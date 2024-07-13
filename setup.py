@@ -71,8 +71,8 @@ _deps = [
     "trl>=0.9.6",
     "jinja2>=3.0.0",
     "tqdm>=4.64.1",
-    "vllm",
-    "wandb",
+    "vllm==0.3.1",
+    "wandb==0.16.3",
 ]
 
 # this is a lookup table with items like:
