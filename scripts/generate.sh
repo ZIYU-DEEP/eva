@@ -21,7 +21,7 @@ N_PAIRS=5  # number of response generated for each prompt (better change name)
 MAX_TOKENS=2048
 OUTPUT_DIR="responses-gemma-1.1-2b-it-split-0"
 DATA_ROOT="./data"  # assume . is the root of the project
-DTYPE="float16"
+DTYPE="bfloat16"
 
 TEMPERATURE=0.7
 TOP_P=0.9
