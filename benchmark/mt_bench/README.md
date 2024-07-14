@@ -14,7 +14,6 @@ CATEGORIES = ["Writing", "Roleplay", "Reasoning", "Math", "Coding", "Extraction"
 ```
 
 
-
 ## Requirements
 ```bash
 git clone https://github.com/lm-sys/FastChat.git

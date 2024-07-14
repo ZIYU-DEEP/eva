@@ -46,6 +46,15 @@ Execute the training scripts based on the base model you choose:
   bash ./scripts/train.sh
   ```
 
+## Evaluation on Benchmarks
+See detailed instructions for different benchmarks in `./benchmark`.
+
+- MT Bench:
+  ```bash
+  cd ./benchmark/mt_bench
+  bash ./run.sh  # Be sure to modify the models to compare with
+  ```
+
 <!-- ### Breakdown of Scripts:
 1. **Generation:**
    ```bash

@@ -27,7 +27,7 @@ for i in "${!MODEL_PATHS[@]}"; do
     python gen_model_answer.py \
         --model-path "${MODEL_PATHS[$i]}" \
         --model-id "${MODEL_IDS[$i]}" \
-        --num-gpus-total 4
+        --num-gpus-total 8
 done
 # --------------------------------------------------------------------------
 
