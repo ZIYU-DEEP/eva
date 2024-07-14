@@ -21,7 +21,7 @@ MODEL="google/gemma-1.1-2b-it"
 DATASET="cat-searcher/responses-gemma-1.1-2b-it-split-${ITER}-pair"
 BATCH_SIZE=4
 ACCUMULATE=2
-SAVE_DIR="checkpoints/gemma-1.1-2b-it-iter-${ITER}"
+SAVE_DIR="checkpoints/gemma-1.1-2b-it-${LOSS_TYPE}-iter-${ITER}"
 RUN_NAME="sppo"
 
 # Set the name for the log file
