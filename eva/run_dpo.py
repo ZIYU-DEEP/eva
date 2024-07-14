@@ -40,11 +40,9 @@ def main():
     training_args.do_eval = False
     num_iteration = 1
     for i in range(num_iteration):
-        # if i > 0:
-        #     model_args.model_name_or_path = f"data/zephry-7b-dpo-qlora-idpo-{i}"
-        # training_args.output_dir = f"data/zephry-7b-dpo-qlora-idpo-{i+1}"
         main_inner(model_args, data_args, training_args)
-        print(f"-------------------------Finished Iteration {i+1}---------------------------------")
+        str_decor = '-' * 25
+        print(f"{str_decor} Finished Iteration {i} {str_decor}")
 
 
 def main_inner(model_args, data_args, training_args):
@@ -78,12 +76,19 @@ def main_inner(model_args, data_args, training_args):
     ###############
     # Load datasets
     ###############
-    raw_datasets = get_datasets(data_args, splits=["train"])
+    raw_datasets = get_datasets(
+        data_args, 
+        splits=["train"],  # only use the train split for now
+    )
     logger.info(
         f"Training on the following splits: {[split + ' : ' + str(dset.num_rows) for split, dset in raw_datasets.items()]}"
     )
     column_names = list(raw_datasets["train"].features)
-    column_names = [x for x in column_names if x not in ['chosen_probs', 'chosen_probs_win', 'chosen_probs_lose']]
+    
+    # The dataset should contain three entries
+    # prompt / chosen / rejected
+    column_names = [x for x in column_names 
+                    if x not in ['chosen_probs', 'chosen_probs_win', 'chosen_probs_lose']]
     # raw_datasets["train"].add_column("chosen_prob", [1]*len(raw_datasets["train"]))
     # print(column_names)
     # exit()
@@ -130,7 +135,9 @@ def main_inner(model_args, data_args, training_args):
         logger.info(f"Rejected sample {index} of the raw training set:\n\n{raw_datasets['train'][index]['rejected']}")
 
     torch_dtype = (
-        model_args.torch_dtype if model_args.torch_dtype in ["auto", None] else getattr(torch, model_args.torch_dtype)
+        model_args.torch_dtype 
+        if model_args.torch_dtype in ["auto", None] 
+        else getattr(torch, model_args.torch_dtype)
     )
     quantization_config = get_quantization_config(model_args)
 
@@ -186,7 +193,7 @@ def main_inner(model_args, data_args, training_args):
         args=training_args,
         beta=training_args.beta,
         train_dataset=raw_datasets["train"],
-        # eval_dataset=raw_datasets["test"],
+        # eval_dataset=raw_datasets["test"],  # Do not do evaluation for now
         tokenizer=tokenizer,
         max_length=training_args.max_length,
         max_prompt_length=training_args.max_prompt_length,
@@ -197,12 +204,17 @@ def main_inner(model_args, data_args, training_args):
     ###############
     # Training loop
     ###############
+    # Set up the checkpoint
     checkpoint = None
     if training_args.resume_from_checkpoint is not None:
         checkpoint = training_args.resume_from_checkpoint
     elif last_checkpoint is not None:
         checkpoint = last_checkpoint
+    
+    # Start training
     train_result = trainer.train(resume_from_checkpoint=checkpoint)
+    
+    # Get the training metrics
     metrics = train_result.metrics
     metrics["train_samples"] = len(raw_datasets["train"])
     trainer.log_metrics("train", metrics)
