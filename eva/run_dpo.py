@@ -101,7 +101,9 @@ def main_inner(model_args, data_args, training_args):
     #####################
     raw_datasets = raw_datasets.map(
         apply_chat_template,
-        fn_kwargs={"tokenizer": tokenizer, "task": "dpo", "skip_system_message": True},
+        fn_kwargs={"tokenizer": tokenizer, 
+                   "task": "dpo", 
+                   "skip_system_message": True},
         num_proc=data_args.preprocessing_num_workers,
         remove_columns=column_names,
         desc="Formatting comparisons with prompt template",
@@ -115,7 +117,9 @@ def main_inner(model_args, data_args, training_args):
     # Replace column names with what TRL needs, text_chosen -> chosen and text_rejected -> rejected
     for split in ["train"]:
         raw_datasets[split] = raw_datasets[split].rename_columns(
-            {"text_prompt": "prompt", "text_chosen": "chosen", "text_rejected": "rejected"}
+            {"text_prompt": "prompt", 
+             "text_chosen": "chosen", 
+             "text_rejected": "rejected"}
         )
 
     print(raw_datasets['train'].features)
@@ -194,10 +198,10 @@ def main_inner(model_args, data_args, training_args):
     # Training loop
     ###############
     checkpoint = None
-    # if training_args.resume_from_checkpoint is not None:
-    #     checkpoint = training_args.resume_from_checkpoint
-    # elif last_checkpoint is not None:
-    #     checkpoint = last_checkpoint
+    if training_args.resume_from_checkpoint is not None:
+        checkpoint = training_args.resume_from_checkpoint
+    elif last_checkpoint is not None:
+        checkpoint = last_checkpoint
     train_result = trainer.train(resume_from_checkpoint=checkpoint)
     metrics = train_result.metrics
     metrics["train_samples"] = len(raw_datasets["train"])

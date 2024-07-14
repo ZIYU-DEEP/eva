@@ -11,17 +11,17 @@ export OMP_NUM_THREADS=$(nproc)
 
 # Set the parameters
 LEARNING_RATE="5.0e-7"
-ITER="1"
+ITER="0"
 BETA="0.001"
 LOSS_TYPE="sppo"
 OPTIM="rmsprop"
 PREF="sppo_score"
 N_EPOCHS=18
 MODEL="google/gemma-1.1-2b-it"
-DATASET="cat-searcher/responses-gemma-1.1-2b-it-split-0-pair"
-BATCH_SIZE=1
-ACCUMULATE=1
-SAVE_DIR="checkpoints/gemma-1.1-2b-it-iter-0"
+DATASET="cat-searcher/responses-gemma-1.1-2b-it-split-${ITER}-pair"
+BATCH_SIZE=4
+ACCUMULATE=2
+SAVE_DIR="checkpoints/gemma-1.1-2b-it-iter-${ITER}"
 RUN_NAME="sppo"
 
 # Set the name for the log file
