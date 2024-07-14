@@ -2,6 +2,16 @@
 model_name_or_path: google/gemma-1.1-2b-it
 torch_dtype: null
 
+# Push to hub arguments
+push_to_hub: true
+hub_private_repo: true
+hub_model_id: cat-searcher/gemma-1.1-2b-it-sppo-iter0
+output_dir: checkpoints/gemma-1.1-2b-it-sppo-iter0
+
+# Checkpoint setting
+hub_strategy: checkpoint
+resume_from_checkpoint: null
+
 # Data training arguments
 # For definitions, see: src/h4/training/config.py
 dataset_mixer:
@@ -13,30 +23,42 @@ dataset_splits:
 preprocessing_num_workers: 12
 
 # DPOTrainer arguments
+seed: 42
 bf16: true
+optim: adamw_torch
 beta: 0.01
-do_eval: "no"
-eval_strategy: "no"
-eval_steps: 100
-gradient_accumulation_steps: 1
+loss_type: rpo
+learning_rate: 5.0e-7
+lr_scheduler_type: linear
+num_train_epochs: 6
+warmup_ratio: 0.1
+
+# Gradient accumulation settings
+gradient_accumulation_steps: 2
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: False
-hub_model_id: gemma-1.1-2b-it-sppo-iter0
-learning_rate: 5.0e-7
-log_level: info
-logging_steps: 10
-loss_type: rpo
-lr_scheduler_type: linear
+
+# Batch size
+per_device_train_batch_size: 4
+per_device_eval_batch_size: 4
+
+# effective_batch_size == batch_size * accumulate_grad_batches * devices
+
+# Length
 max_length: 1024
 max_prompt_length: 512
-num_train_epochs: 6
-optim: adamw_torch
-output_dir: checkpoints/gemma-1.1-2b-it-sppo-iter0
-per_device_train_batch_size: 8
-per_device_eval_batch_size: 4
-push_to_hub: true
+
+# Evaluation settings
+do_eval: "no"
+eval_strategy: "no"
+eval_steps: 100
+
+# Save strategy
 save_strategy: "epoch"
+# save_stpes: 0.2  # the ratio of total training steps
 save_total_limit: 20
-seed: 42
-warmup_ratio: 0.1
+
+# Log settings
+log_level: info
+logging_steps: 10
