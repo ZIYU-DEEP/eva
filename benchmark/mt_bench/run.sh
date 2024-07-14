@@ -8,7 +8,7 @@ MODEL_PATHS=(
 
 MODEL_IDS=(
     "gemma-1.1-2b-it"
-    "cat-searcher/gemma-1.1-2b-it-sppo-iter0"
+    "gemma-1.1-2b-it-sppo-iter0"
 )
 
 
