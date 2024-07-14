@@ -10,12 +10,12 @@ output_dir: checkpoints/gemma-1.1-2b-it-sppo-iter0
 
 # Checkpoint setting
 hub_strategy: checkpoint
-resume_from_checkpoint: last-checkpoint
+resume_from_checkpoint: null
 
 # Data training arguments
 # For definitions, see: src/h4/training/config.py
 dataset_mixer:
-  responses-gemma-1.1-2b-it-split-0-pair: 1.0
+  cat-searcher/responses-gemma-1.1-2b-it-split-0-pair: 1.0
 
 dataset_splits:
 - train
