@@ -55,8 +55,8 @@ eval_strategy: "no"
 eval_steps: 100
 
 # Save strategy
-save_strategy: "steps"
-save_stpes: 0.2  # the ratio of total training steps
+save_strategy: "epoch"
+# save_stpes: 0.2  # the ratio of total training steps
 save_total_limit: 20
 
 # Log settings
