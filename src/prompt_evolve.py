@@ -41,7 +41,9 @@ def parse_arguments():
 def openai_reward_individual(
     prompt: str, 
     response: str,
-    reward_model_path: str = 'gpt-4-0125-preview') -> List[Tuple[float, str]]:
+    reward_model_path: str = 'gpt-4-0125-preview',
+    max_tokens_openai: str = 8192,
+    temperature_openai: float = 0.2) -> List[Tuple[float, str]]:
     """
     Calculate reward for a single response using OpenAI's GPT-4.
     """
@@ -49,16 +51,12 @@ def openai_reward_individual(
     system_prompt = """You are an AI assistant tasked with evaluating the quality of responses to prompts. 
     Rate the response on a scale of 1 to 5, where 1 is the worst and 5 is the best. 
     Consider the following factors in your evaluation:
-    1. Relevance: How well does the response address the prompt?
-    2. Accuracy: Is the information provided correct and factual?
-    3. Coherence: Is the response well-structured and easy to understand?
-    4. Helpfulness: Does the response provide useful information or insights?
-    5. Completeness: Does the response fully answer all aspects of the prompt?
-    6. Harmfulness: Does the response avoid causing harm, offense, or providing dangerous advice?
-    7. Truthfulness: Is the information in the response truthful and not misleading?
-    8. Conciseness: Is the response free of unnecessary information and to the point?
-    9. Engagement: Is the response engaging and does it maintain the user interest?
-    10. Tone: Is the tone of the response appropriate for the context?
+    a. Relevance: How well does the response address the prompt?
+    b. Accuracy: Is the information provided correct and factual?
+    c. Helpfulness: Does the response provide useful information or insights?
+    d. Harmfulness: Does the response avoid causing harm, offense, or providing dangerous advice?
+    e. Truthfulness: Is the information in the response truthful and not misleading?
+    f. Conciseness: Is the response free of unnecessary information and to the point?
     
     You should provide ONE numeric score on a scale of 1 to 5 to access the OVERALL quality of the response. Your response should start with "#SCORE: "
 
@@ -66,7 +64,7 @@ def openai_reward_individual(
     
     In summary, your response should be in the following format:
     #SCORE: {a number between 1 and 5}
-    #HINT: {a few sentences to improve the response}
+    #HINT: {a few sentences for the language model to better respond to the prompt}
     """
     
     messages = [
@@ -78,8 +76,8 @@ def openai_reward_individual(
         completion = openai.ChatCompletion.create(
             model=reward_model_path,
             messages=messages,
-            temperature=0.2,
-            max_tokens=300,
+            temperature=temperature_openai,
+            max_tokens=max_tokens_openai,
         )
         content = completion.choices[0].message['content'].strip()
         
@@ -102,37 +100,35 @@ def openai_reward_individual(
 def openai_reward_comparative(
     prompt: str, 
     responses: List[str],
-    reward_model_path: str = 'gpt-4-0125-preview') -> List[Tuple[float, str]]:
+    reward_model_path: str = 'gpt-4-0125-preview',
+    max_tokens_openai: str = 8192,
+    temperature_openai: float = 0.2) -> List[Tuple[float, str]]:
     """
     Calculate rewards for multiple responses using OpenAI's GPT-4.
     """
     
     system_prompt = """You are an AI assistant tasked with evaluating the quality of multiple responses to a single prompt. 
     Rate each response on a scale of 1 to 5, where 1 is the worst and 5 is the best. 
-    Consider the following factors in your evaluation:
-    1. Relevance: How well does the response address the prompt?
-    2. Accuracy: Is the information provided correct and factual?
-    3. Coherence: Is the response well-structured and easy to understand?
-    4. Helpfulness: Does the response provide useful information or insights?
-    5. Completeness: Does the response fully answer all aspects of the prompt?
-    6. Harmfulness: Does the response avoid causing harm, offense, or providing dangerous advice?
-    7. Truthfulness: Is the information in the response truthful and not misleading?
-    8. Conciseness: Is the response free of unnecessary information and to the point?
-    9. Engagement: Is the response engaging and does it maintain the user’s interest?
-    10. Tone: Is the tone of the response appropriate for the context?
+    Consider the following major factors in your evaluation:
+    a. Relevance: How well does the response address the prompt?
+    b. Accuracy: Is the information provided correct and factual?
+    c. Helpfulness: Does the response provide useful information or insights?
+    d. Harmfulness: Does the response avoid causing harm, offense, or providing dangerous advice?
+    e. Truthfulness: Is the information in the response truthful and not misleading?
+    f. Conciseness: Is the response free of unnecessary information and to the point?
     
-    Provide scores for each response in the following format:
+    Provide one score per response in the following format:
     #SCORE1: {score for response 1}
     #SCORE2: {score for response 2}
     ...
 
-    After providing scores for the response, give ONE concise and specific hint for future improvement for the given prompt. The hint should start with "#HINT: ". The hint should help language models to better respond to this prompt; the hint may specify the criteria to consider or some general rationale to follow. Additionally, the hint may mention any bad practices observed in the response that should be avoided.
+    After providing scores for the response, suggest ONE concise hint to help language models to better respond to this prompt. The hint should start with "#HINT: "; the hint may specify important criteria to consider or better rationales to follow. Additionally, the hint may mention any bad practices observed in the response that should be avoided. The hint should be concise and clear, DO NOT BE VERBOSE.
 
     In summary, your response should be in the following format:
     #SCORE1: {a number between 1 and 5}
     #SCORE2: {a number between 1 and 5}
     ... (add more scores here)
-    #HINT: {a few sentences to improve the response}
+    #HINT: {a few sentences for the language model to better respond to the prompt}
     """
     
     messages = [
@@ -147,8 +143,8 @@ def openai_reward_comparative(
         completion = openai.ChatCompletion.create(
             model=reward_model_path,
             messages=messages,
-            temperature=0.2,
-            max_tokens=500,
+            temperature=temperature_openai,
+            max_tokens=max_tokens_openai,
         )
         content = completion.choices[0].message['content'].strip()
         
@@ -172,24 +168,25 @@ def openai_reward_comparative(
 def huggingface_reward(
     prompt: str, 
     response: str, 
-    reward_model_path: str) -> Dict[str, float]:
+    reward_model_path: str,
+    max_tokens: int = 2048,
+    torch_dtype: str = 'bfloat16') -> Dict[str, float]:
     """
     Calculate reward using a Hugging Face model.
     """
     
-    device = "cuda" if torch.cuda.is_available() else "cpu"
     model = AutoModelForSequenceClassification.from_pretrained(
         reward_model_path, 
-        device_map=device, 
+        device_map='auto', 
         trust_remote_code=True, 
-        torch_dtype=torch.bfloat16)  # TODO: make it a paramter
+        torch_dtype=torch_dtype) 
     
     tokenizer = AutoTokenizer.from_pretrained(reward_model_path, use_fast=True)
 
     if "armorm-llama3-8b" in reward_model_path.lower():
         messages = [{"role": "user", "content": prompt},
                     {"role": "assistant", "content": response}]
-        input_ids = tokenizer.apply_chat_template(messages, return_tensors="pt").to(device)
+        input_ids = tokenizer.apply_chat_template(messages, return_tensors="pt").to(model.device)
         
         with torch.no_grad():
             output = model(input_ids)
@@ -218,8 +215,8 @@ def huggingface_reward(
             response, 
             return_tensors="pt", 
             truncation=True, 
-            max_length=512,  # TODO: make it a parameter
-        ).to(device)
+            max_length=max_tokens,  
+        ).to(model.device)
         with torch.no_grad():
             outputs = model(**inputs)
         rewards_dict = {"score": outputs.logits[0][1].item()}  # Assuming binary classification
