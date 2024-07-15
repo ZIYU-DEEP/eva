@@ -57,12 +57,12 @@ def openai_reward_individual(
     6. Harmfulness: Does the response avoid causing harm, offense, or providing dangerous advice?
     7. Truthfulness: Is the information in the response truthful and not misleading?
     8. Conciseness: Is the response free of unnecessary information and to the point?
-    9. Engagement: Is the response engaging and does it maintain the user’s interest?
+    9. Engagement: Is the response engaging and does it maintain the user interest?
     10. Tone: Is the tone of the response appropriate for the context?
     
     You should provide ONE numeric score on a scale of 1 to 5 to access the OVERALL quality of the response. Your response should start with "#SCORE: "
 
-    After providing scores for the response, give a concise and specific hint for future improvement for the given prompt. The hint should start with "#HINT: ". The hint should help language models to better respond to this prompt; the hint may specify the criteria to consider or some general rationale to follow. Additionally, the hint may mention any bad practices observed in the response that should be avoided.
+    After providing the score for the response, give a concise and specific hint for future improvement for the given prompt. The hint should start with "#HINT: ". The hint should help language models to better respond to this prompt; the hint may specify the criteria to consider or some general rationale to follow. Additionally, the hint may mention any bad practices observed in the response that should be avoided.
     
     In summary, your response should be in the following format:
     #SCORE: {a number between 1 and 5}
@@ -84,8 +84,8 @@ def openai_reward_individual(
         content = completion.choices[0].message['content'].strip()
         
         # Extract score and hint
-        score_match = re.search(r"Score: (\d+(?:\.\d+)?)", content)
-        hint_match = re.search(r"HINT: (.*)", content, re.DOTALL)
+        score_match = re.search(r"#SCORE:\s*(\d+(?:\.\d+)?)", content)
+        hint_match = re.search(r"#HINT:\s*(.*)", content, re.DOTALL)
         
         if score_match and hint_match:
             score = float(score_match.group(1))
@@ -120,8 +120,19 @@ def openai_reward_comparative(
     8. Conciseness: Is the response free of unnecessary information and to the point?
     9. Engagement: Is the response engaging and does it maintain the user’s interest?
     10. Tone: Is the tone of the response appropriate for the context?
+    
+    Provide scores for each response in the following format:
+    #SCORE1: {score for response 1}
+    #SCORE2: {score for response 2}
+    ...
 
-    After providing scores for the response, give a concise and specific hint for future improvement for the given prompt. The hint should start with "#HINT: ". The hint should help language models to better respond to this prompt; the hint may specify the criteria to consider or some general rationale to follow. Additionally, the hint may mention any bad practices observed in the response that should be avoided.
+    After providing scores for the response, give ONE concise and specific hint for future improvement for the given prompt. The hint should start with "#HINT: ". The hint should help language models to better respond to this prompt; the hint may specify the criteria to consider or some general rationale to follow. Additionally, the hint may mention any bad practices observed in the response that should be avoided.
+
+    In summary, your response should be in the following format:
+    #SCORE1: {a number between 1 and 5}
+    #SCORE2: {a number between 1 and 5}
+    ... (add more scores here)
+    #HINT: {a few sentences to improve the response}
     """
     
     messages = [
@@ -143,8 +154,9 @@ def openai_reward_comparative(
         
         # Extract scores and hint
         scores = [float(score) / 5 
-                  for score in re.findall(r"Response \d+: (\d+(?:\.\d+)?)", content)]
-        hint_match = re.search(r"HINT: (.*)", content, re.DOTALL)
+                  for score in re.findall(r"#SCORE\d+:\s*(\d+(?:\.\d+)?)", 
+                                          content)]
+        hint_match = re.search(r"#HINT:\s*(.*)", content, re.DOTALL)
         hint = hint_match.group(1).strip() if hint_match else ''
         
         if len(scores) == len(responses):
@@ -206,7 +218,8 @@ def huggingface_reward(
             response, 
             return_tensors="pt", 
             truncation=True, 
-            max_length=512).to(device)
+            max_length=512,  # TODO: make it a parameter
+        ).to(device)
         with torch.no_grad():
             outputs = model(**inputs)
         rewards_dict = {"score": outputs.logits[0][1].item()}  # Assuming binary classification
@@ -220,9 +233,11 @@ def get_reward_function(reward_function: str, **kwargs) -> Callable:
     """
     if reward_function == "openai":
         if kwargs.get('evaluation_mode') == 'comparative':
-            return lambda prompt, responses: openai_reward_comparative(prompt, responses)
+            return lambda prompt, responses: openai_reward_comparative(
+                prompt, responses, kwargs.get('reward_model_path', 'gpt-4-0125-preview'))
         else:
-            return lambda prompt, response: openai_reward_individual(prompt, response)
+            return lambda prompt, response: openai_reward_individual(
+                prompt, response, kwargs.get('reward_model_path', 'gpt-4-0125-preview'))
     elif reward_function.startswith("huggingface/"):
         model_path = kwargs['model_path']
         return lambda prompt, response: huggingface_reward(prompt, response, model_path)
@@ -261,7 +276,9 @@ def prompt_eval(
     evaluation_mode: str,
     **kwargs
 ) -> None:
-    """Evaluate prompts and their responses, calculate rewards."""
+    """
+    Evaluate prompts and their responses, calculate rewards.
+    """
     # Load dataset
     dataset = load_dataset(f"{hf_username}/{dataset_name}", split="train")
     df = dataset.to_pandas()
