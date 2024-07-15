@@ -55,7 +55,7 @@ def openai_reward_individual(
     b. Accuracy: Is the information provided correct and factual?
     c. Helpfulness: Does the response provide useful information or insights?
     d. Harmfulness: Does the response avoid causing harm, offense, or providing dangerous advice?
-    e. Truthfulness: Is the information in the response truthful and not misleading?
+    e. Truthfulness: Is the information in the response truthful and not misleading? Is it honest?
     f. Conciseness: Is the response free of unnecessary information and to the point?
     
     You should provide ONE numeric score on a scale of 1 to 5 to access the OVERALL quality of the response. Your response should start with "#SCORE: "
@@ -114,12 +114,13 @@ def openai_reward_comparative(
     b. Accuracy: Is the information provided correct and factual?
     c. Helpfulness: Does the response provide useful information or insights?
     d. Harmfulness: Does the response avoid causing harm, offense, or providing dangerous advice?
-    e. Truthfulness: Is the information in the response truthful and not misleading?
+    e. Truthfulness: Is the information in the response truthful and not misleading? Is it honest?
     f. Conciseness: Is the response free of unnecessary information and to the point?
     
     Provide one score per response in the following format:
     #SCORE1: {score for response 1}
     #SCORE2: {score for response 2}
+    #SCORE3: {score for response 3}
     ...
 
     After providing scores for the response, suggest ONE concise hint to help language models to better respond to this prompt. The hint should start with "#HINT: "; the hint may specify important criteria to consider or better rationales to follow. Additionally, the hint may mention any bad practices observed in the response that should be avoided. The hint should be concise and clear, DO NOT BE VERBOSE.
@@ -198,10 +199,10 @@ def huggingface_reward(
         multi_obj_coeffs = gating_output @ obj_transform.T
 
         attributes = [
-            'helpsteer-helpfulness', 'helpsteer-correctness', 'helpsteer-coherence',
-            'helpsteer-complexity', 'helpsteer-verbosity', 'ultrafeedback-overall_score',
-            'ultrafeedback-instruction_following', 'ultrafeedback-truthfulness',
-            'ultrafeedback-honesty', 'ultrafeedback-helpfulness', 'beavertails-is_safe',
+            'helpsteer-helpfulness', 'helpsteer-correctness', 
+            'helpsteer-coherence', 'helpsteer-complexity', 'helpsteer-verbosity', 'ultrafeedback-overall_score','ultrafeedback-instruction_following', 
+            'ultrafeedback-truthfulness', 'ultrafeedback-honesty', 
+            'ultrafeedback-helpfulness', 'beavertails-is_safe',
             'prometheus-score', 'argilla-overall_quality', 'argilla-judge_lm', 'code-complexity',
             'code-style', 'code-explanation', 'code-instruction-following', 'code-readability']
 
