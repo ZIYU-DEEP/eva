@@ -18,24 +18,33 @@ import re
 
 
 def parse_arguments():
-    """Parse command line arguments."""
+    """
+    Parse command line arguments.
+    """
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_dataset", type=str, default="responses-gemma-1.1-2b-it-split-0-all")
-    parser.add_argument("--hf_username", type=str, default="cat-searcher")
+    parser.add_argument("--input_dataset", type=str, 
+                        default="responses-gemma-1.1-2b-it-split-0-all")
+    parser.add_argument("--hf_username", type=str, 
+                        default="cat-searcher")
     parser.add_argument("--reward_function", type=str, default="openai")
     parser.add_argument("--sample_metric", type=str, default="reward_mean")
-    parser.add_argument("--sample_frac", type=float, default=0.5)
-    parser.add_argument("--openai_api_key", type=str, required=True)
+    parser.add_argument("--sample_frac", type=float, default=0.25)
     parser.add_argument("--hf_model_path", type=str, default="RLHFlow/ArmoRM-Llama3-8B-v0.1")
     parser.add_argument("--nproc", type=int, default=4)
     parser.add_argument("--batch_size", type=int, default=100)
-    parser.add_argument("--evaluation_mode", type=str, choices=['individual', 'comparative'], default='individual')
+    parser.add_argument("--evaluation_mode", type=str, 
+                        choices=['individual', 'comparative'], 
+                        default='individual')
     return parser.parse_args()
 
 
-def openai_reward_individual(prompt: str, response: str, api_key: str) -> Tuple[float, str]:
-    """Calculate reward for a single response using OpenAI's GPT-4."""
-    openai.api_key = api_key
+def openai_reward_individual(
+    prompt: str, 
+    response: str,
+    reward_model_path: str = 'gpt-4-0125-preview') -> List[Tuple[float, str]]:
+    """
+    Calculate reward for a single response using OpenAI's GPT-4.
+    """
     
     system_prompt = """You are an AI assistant tasked with evaluating the quality of responses to prompts. 
     Rate the response on a scale of 1 to 5, where 1 is the worst and 5 is the best. 
@@ -45,8 +54,20 @@ def openai_reward_individual(prompt: str, response: str, api_key: str) -> Tuple[
     3. Coherence: Is the response well-structured and easy to understand?
     4. Helpfulness: Does the response provide useful information or insights?
     5. Completeness: Does the response fully answer all aspects of the prompt?
+    6. Harmfulness: Does the response avoid causing harm, offense, or providing dangerous advice?
+    7. Truthfulness: Is the information in the response truthful and not misleading?
+    8. Conciseness: Is the response free of unnecessary information and to the point?
+    9. Engagement: Is the response engaging and does it maintain the user’s interest?
+    10. Tone: Is the tone of the response appropriate for the context?
+    
+    You should provide ONE numeric score on a scale of 1 to 5 to access the OVERALL quality of the response. Your response should start with "#SCORE: "
 
-    After providing the score, give a brief explanation of your rating and provide a HINT for improvement."""
+    After providing scores for the response, give a concise and specific hint for future improvement for the given prompt. The hint should start with "#HINT: ". The hint should help language models to better respond to this prompt; the hint may specify the criteria to consider or some general rationale to follow. Additionally, the hint may mention any bad practices observed in the response that should be avoided.
+    
+    In summary, your response should be in the following format:
+    #SCORE: {a number between 1 and 5}
+    #HINT: {a few sentences to improve the response}
+    """
     
     messages = [
         {"role": "system", "content": system_prompt},
@@ -55,7 +76,7 @@ def openai_reward_individual(prompt: str, response: str, api_key: str) -> Tuple[
     
     try:
         completion = openai.ChatCompletion.create(
-            model="gpt-4",
+            model=reward_model_path,
             messages=messages,
             temperature=0.2,
             max_tokens=300,
@@ -78,9 +99,13 @@ def openai_reward_individual(prompt: str, response: str, api_key: str) -> Tuple[
         return 0.0, f"Error: {str(e)}"
 
 
-def openai_reward_comparative(prompt: str, responses: List[str], api_key: str) -> List[Tuple[float, str]]:
-    """Calculate rewards for multiple responses using OpenAI's GPT-4."""
-    openai.api_key = api_key
+def openai_reward_comparative(
+    prompt: str, 
+    responses: List[str],
+    reward_model_path: str = 'gpt-4-0125-preview') -> List[Tuple[float, str]]:
+    """
+    Calculate rewards for multiple responses using OpenAI's GPT-4.
+    """
     
     system_prompt = """You are an AI assistant tasked with evaluating the quality of multiple responses to a single prompt. 
     Rate each response on a scale of 1 to 5, where 1 is the worst and 5 is the best. 
@@ -90,17 +115,26 @@ def openai_reward_comparative(prompt: str, responses: List[str], api_key: str) -
     3. Coherence: Is the response well-structured and easy to understand?
     4. Helpfulness: Does the response provide useful information or insights?
     5. Completeness: Does the response fully answer all aspects of the prompt?
+    6. Harmfulness: Does the response avoid causing harm, offense, or providing dangerous advice?
+    7. Truthfulness: Is the information in the response truthful and not misleading?
+    8. Conciseness: Is the response free of unnecessary information and to the point?
+    9. Engagement: Is the response engaging and does it maintain the user’s interest?
+    10. Tone: Is the tone of the response appropriate for the context?
 
-    After providing scores for all responses, give a brief explanation of your ratings and provide a general HINT for improvement based on all responses."""
+    After providing scores for the response, give a concise and specific hint for future improvement for the given prompt. The hint should start with "#HINT: ". The hint should help language models to better respond to this prompt; the hint may specify the criteria to consider or some general rationale to follow. Additionally, the hint may mention any bad practices observed in the response that should be avoided.
+    """
     
     messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": f"Prompt: {prompt}\n\n" + "\n\n".join([f"Response {i+1}: {response}" for i, response in enumerate(responses)]) + "\n\nPlease rate these responses and provide a general HINT:"}
+        {"role": "system", 
+         "content": system_prompt},
+        
+        {"role": "user", 
+         "content": f"Prompt: {prompt}\n\n" + "\n\n".join([f"Response {i+1}: {response}" for i, response in enumerate(responses)]) + "\n\nPlease rate these responses and provide a general HINT:"}
     ]
     
     try:
         completion = openai.ChatCompletion.create(
-            model="gpt-4",
+            model=reward_model_path,
             messages=messages,
             temperature=0.2,
             max_tokens=500,
@@ -108,9 +142,10 @@ def openai_reward_comparative(prompt: str, responses: List[str], api_key: str) -
         content = completion.choices[0].message['content'].strip()
         
         # Extract scores and hint
-        scores = [float(score)/5 for score in re.findall(r"Response \d+: (\d+(?:\.\d+)?)", content)]
+        scores = [float(score) / 5 
+                  for score in re.findall(r"Response \d+: (\d+(?:\.\d+)?)", content)]
         hint_match = re.search(r"HINT: (.*)", content, re.DOTALL)
-        hint = hint_match.group(1).strip() if hint_match else "No hint provided"
+        hint = hint_match.group(1).strip() if hint_match else ''
         
         if len(scores) == len(responses):
             return list(zip(scores, [hint] * len(scores)))
@@ -122,14 +157,24 @@ def openai_reward_comparative(prompt: str, responses: List[str], api_key: str) -
         return [(0.0, f"Error: {str(e)}")] * len(responses)
 
 
-def huggingface_reward(prompt: str, response: str, model_path: str) -> Dict[str, float]:
-    """Calculate reward using a Hugging Face model."""
+def huggingface_reward(
+    prompt: str, 
+    response: str, 
+    reward_model_path: str) -> Dict[str, float]:
+    """
+    Calculate reward using a Hugging Face model.
+    """
+    
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    model = AutoModelForSequenceClassification.from_pretrained(model_path, device_map=device, 
-                                   trust_remote_code=True, torch_dtype=torch.bfloat16)
-    tokenizer = AutoTokenizer.from_pretrained(model_path, use_fast=True)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        reward_model_path, 
+        device_map=device, 
+        trust_remote_code=True, 
+        torch_dtype=torch.bfloat16)  # TODO: make it a paramter
+    
+    tokenizer = AutoTokenizer.from_pretrained(reward_model_path, use_fast=True)
 
-    if "armorm-llama3-8b" in model_path.lower():
+    if "armorm-llama3-8b" in reward_model_path.lower():
         messages = [{"role": "user", "content": prompt},
                     {"role": "assistant", "content": response}]
         input_ids = tokenizer.apply_chat_template(messages, return_tensors="pt").to(device)
@@ -143,18 +188,25 @@ def huggingface_reward(prompt: str, response: str, model_path: str) -> Dict[str,
         obj_transform = model.reward_transform_matrix.data.cpu().float()
         multi_obj_coeffs = gating_output @ obj_transform.T
 
-        attributes = ['helpsteer-helpfulness', 'helpsteer-correctness', 'helpsteer-coherence',
-                      'helpsteer-complexity', 'helpsteer-verbosity', 'ultrafeedback-overall_score',
-                      'ultrafeedback-instruction_following', 'ultrafeedback-truthfulness',
-                      'ultrafeedback-honesty', 'ultrafeedback-helpfulness', 'beavertails-is_safe',
-                      'prometheus-score', 'argilla-overall_quality', 'argilla-judge_lm', 'code-complexity',
-                      'code-style', 'code-explanation', 'code-instruction-following', 'code-readability']
+        attributes = [
+            'helpsteer-helpfulness', 'helpsteer-correctness', 'helpsteer-coherence',
+            'helpsteer-complexity', 'helpsteer-verbosity', 'ultrafeedback-overall_score',
+            'ultrafeedback-instruction_following', 'ultrafeedback-truthfulness',
+            'ultrafeedback-honesty', 'ultrafeedback-helpfulness', 'beavertails-is_safe',
+            'prometheus-score', 'argilla-overall_quality', 'argilla-judge_lm', 'code-complexity',
+            'code-style', 'code-explanation', 'code-instruction-following', 'code-readability']
 
-        rewards_dict = {attr: score.item() for attr, score in zip(attributes, multi_obj_rewards[0])}
+        rewards_dict = {attr: score.item() 
+                        for attr, score in zip(attributes, multi_obj_rewards[0])}
         rewards_dict['preference_score'] = preference_score.item()
     else:
         # Default behavior for other models
-        inputs = tokenizer(prompt, response, return_tensors="pt", truncation=True, max_length=512).to(device)
+        inputs = tokenizer(
+            prompt, 
+            response, 
+            return_tensors="pt", 
+            truncation=True, 
+            max_length=512).to(device)
         with torch.no_grad():
             outputs = model(**inputs)
         rewards_dict = {"score": outputs.logits[0][1].item()}  # Assuming binary classification
@@ -163,20 +215,25 @@ def huggingface_reward(prompt: str, response: str, model_path: str) -> Dict[str,
 
 
 def get_reward_function(reward_function: str, **kwargs) -> Callable:
-    """Return the specified reward function."""
+    """
+    Return the specified reward function.
+    """
     if reward_function == "openai":
         if kwargs.get('evaluation_mode') == 'comparative':
-            return lambda prompt, responses: openai_reward_comparative(prompt, responses, kwargs['api_key'])
+            return lambda prompt, responses: openai_reward_comparative(prompt, responses)
         else:
-            return lambda prompt, response: openai_reward_individual(prompt, response, kwargs['api_key'])
+            return lambda prompt, response: openai_reward_individual(prompt, response)
     elif reward_function.startswith("huggingface/"):
         model_path = kwargs['model_path']
         return lambda prompt, response: huggingface_reward(prompt, response, model_path)
     else:
         raise ValueError(f"Unknown reward function: {reward_function}")
 
+
 def process_batch(batch, reward_func, evaluation_mode):
-    """Process a batch of prompts and responses."""
+    """
+    Process a batch of prompts and responses.
+    """
     rewards = []
     critiques = []
     for prompt, responses in zip(batch['prompt'], batch['responses']):
@@ -271,7 +328,6 @@ def main():
         nproc=args.nproc,
         batch_size=args.batch_size,
         evaluation_mode=args.evaluation_mode,
-        api_key=args.openai_api_key,
         model_path=args.hf_model_path,
     )
 
