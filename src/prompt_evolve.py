@@ -29,12 +29,14 @@ def parse_arguments():
     parser.add_argument("--reward_function", type=str, default="openai")
     parser.add_argument("--sample_metric", type=str, default="reward_mean")
     parser.add_argument("--sample_frac", type=float, default=0.25)
-    parser.add_argument("--hf_model_path", type=str, default="RLHFlow/ArmoRM-Llama3-8B-v0.1")
+    parser.add_argument("--reward_model_path", type=str, default="RLHFlow/ArmoRM-Llama3-8B-v0.1")
     parser.add_argument("--nproc", type=int, default=4)
     parser.add_argument("--batch_size", type=int, default=100)
+    parser.add_argument("--torch_dtype", type=str, default='bfloat16')
     parser.add_argument("--evaluation_mode", type=str, 
-                        choices=['individual', 'comparative'], 
-                        default='individual')
+                        choices=['individual', 'batch'], 
+                        default='batch',
+    )
     return parser.parse_args()
 
 
@@ -97,7 +99,7 @@ def openai_reward_individual(
         return 0.0, f"Error: {str(e)}"
 
 
-def openai_reward_comparative(
+def openai_reward_batch(
     prompt: str, 
     responses: List[str],
     reward_model_path: str = 'gpt-4-0125-preview',
@@ -166,19 +168,20 @@ def openai_reward_comparative(
         return [(0.0, f"Error: {str(e)}")] * len(responses)
 
 
-def huggingface_reward(
+def hf_reward(
     prompt: str, 
     response: str, 
     reward_model_path: str,
-    max_tokens: int = 2048,
+    max_tokens_hf: int = 2048,
     torch_dtype: str = 'bfloat16') -> Dict[str, float]:
     """
     Calculate reward using a Hugging Face model.
+    TODO: load this with different ranks.
     """
     
     model = AutoModelForSequenceClassification.from_pretrained(
         reward_model_path, 
-        device_map='auto', 
+        device_map='cuda', 
         trust_remote_code=True, 
         torch_dtype=torch_dtype) 
     
@@ -187,7 +190,7 @@ def huggingface_reward(
     if "armorm-llama3-8b" in reward_model_path.lower():
         messages = [{"role": "user", "content": prompt},
                     {"role": "assistant", "content": response}]
-        input_ids = tokenizer.apply_chat_template(messages, return_tensors="pt").to(model.device)
+        input_ids = tokenizer.apply_chat_template(messages, return_tensors="pt").to('cuda')
         
         with torch.no_grad():
             output = model(input_ids)
@@ -216,7 +219,7 @@ def huggingface_reward(
             response, 
             return_tensors="pt", 
             truncation=True, 
-            max_length=max_tokens,  
+            max_length=max_tokens_hf,  
         ).to(model.device)
         with torch.no_grad():
             outputs = model(**inputs)
@@ -225,41 +228,65 @@ def huggingface_reward(
     return rewards_dict
 
 
-def get_reward_function(reward_function: str, **kwargs) -> Callable:
+def get_reward_function(reward_function: str = 'openai', 
+                        evaluation_mode: str = 'batch',
+                        reward_model_path: str = 'gpt-4-0125-preview',
+                        max_tokens_openai: str = 8192,
+                        temperature_openai: float = 0.2,
+                        max_tokens_hf: int = 2048,
+                        torch_dtype: str = 'bfloat16',
+                        ) -> Callable:
     """
     Return the specified reward function.
     """
     if reward_function == "openai":
-        if kwargs.get('evaluation_mode') == 'comparative':
-            return lambda prompt, responses: openai_reward_comparative(
-                prompt, responses, kwargs.get('reward_model_path', 'gpt-4-0125-preview'))
+        if evaluation_mode == 'batch':
+            return lambda prompt, responses: openai_reward_batch(
+                prompt, 
+                responses, 
+                reward_model_path,
+                max_tokens_openai,
+                temperature_openai,
+            )
         else:
             return lambda prompt, response: openai_reward_individual(
-                prompt, response, kwargs.get('reward_model_path', 'gpt-4-0125-preview'))
-    elif reward_function.startswith("huggingface/"):
-        model_path = kwargs['model_path']
-        return lambda prompt, response: huggingface_reward(prompt, response, model_path)
+                prompt, 
+                response, 
+                reward_model_path,
+                max_tokens_openai,
+                temperature_openai,
+            )
+    elif reward_function.startswith('hf'):
+        return lambda prompt, response: hf_reward(
+            prompt, 
+            response, 
+            reward_model_path,
+            max_tokens_hf,
+            torch_dtype)
     else:
         raise ValueError(f"Unknown reward function: {reward_function}")
 
 
 def process_batch(batch, reward_func, evaluation_mode):
     """
-    Process a batch of prompts and responses.
+    Process a batch of prompts.
     """
     rewards = []
     critiques = []
+    
     for prompt, responses in zip(batch['prompt'], batch['responses']):
-        if evaluation_mode == 'comparative':
+        
+        if evaluation_mode == 'batch':  # This batch is refer to one prompt multiple responses
             batch_rewards = reward_func(prompt, [r[1]['content'] for r in responses])
             row_rewards, row_critiques = zip(*batch_rewards)
-        else:
+        else:                          # This is one response per prompt setting
             row_rewards = []
             row_critiques = []
             for response in responses:
                 reward, critique = reward_func(prompt, response[1]['content'])
                 row_rewards.append(reward)
                 row_critiques.append(critique)
+                
         rewards.append(row_rewards)
         critiques.append(row_critiques)
     return rewards, critiques
@@ -272,7 +299,11 @@ def prompt_eval(
     nproc: int,
     batch_size: int,
     evaluation_mode: str,
-    **kwargs
+    reward_model_path: str = 'gpt-4-0125-preview',
+    max_tokens_openai: str = 8192,
+    temperature_openai: float = 0.2,
+    max_tokens_hf: int = 2048,
+    torch_dtype: str = 'bfloat16',
 ) -> None:
     """
     Evaluate prompts and their responses, calculate rewards.
@@ -282,10 +313,19 @@ def prompt_eval(
     df = dataset.to_pandas()
 
     # Get reward function
-    reward_func = get_reward_function(reward_function, evaluation_mode=evaluation_mode, **kwargs)
+    reward_func = get_reward_function(
+        reward_function, 
+        evaluation_mode=evaluation_mode, 
+        reward_model_path=reward_model_path,
+        max_tokens_openai=max_tokens_openai,
+        temperature_openai=temperature_openai,
+        max_tokens_hf=max_tokens_hf,
+        torch_dtype=torch_dtype)
 
     # Prepare data for batch processing
-    data = [{'prompt': row['prompt'], 'responses': [row[f'generate_{i}'] for i in range(5)]} for _, row in df.iterrows()]
+    data = [{'prompt': row['prompt'], 
+             'responses': [row[f'generate_{i}'] for i in range(5)]} 
+                           for _, row in df.iterrows()]
 
     # Process data in batches using ThreadPoolExecutor
     all_rewards = []
@@ -312,11 +352,13 @@ def prompt_eval(
 
 def prompt_sample(
     dataset_name: str,
-    hf_username: str,
-    metric: str,
-    frac: float,
+    hf_username: str = 'cat-searcher',
+    metric: str = 'reward_mean',
+    frac: float = 0.25,
 ) -> None:
-    """Sample prompts based on a specified metric."""
+    """
+    Sample prompts based on a specified metric.
+    """
     # Load dataset
     dataset = load_dataset(f"{hf_username}/{dataset_name}-re", split="train")
     df = dataset.to_pandas()
@@ -329,7 +371,10 @@ def prompt_sample(
 
     # Save and push to hub
     new_dataset = Dataset.from_pandas(sampled_df)
-    new_dataset.push_to_hub(f"{hf_username}/{dataset_name}-re-sample-{metric}", split="train", private=True)
+    new_dataset.push_to_hub(
+        f"{hf_username}/{dataset_name}-re-sample-{metric}", 
+        split="train", 
+        private=True)
 
 
 def main():
@@ -343,7 +388,11 @@ def main():
         nproc=args.nproc,
         batch_size=args.batch_size,
         evaluation_mode=args.evaluation_mode,
-        model_path=args.hf_model_path,
+        reward_model_path=args.reward_model_path,
+        max_tokens_openai=args.max_tokens_openai,
+        temperature_openai=args.temperature_openai,
+        max_tokens_hf=args.max_tokens_hf,
+        torch_dtype=args.torch_dtype,
     )
 
     # Sample prompts
