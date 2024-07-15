@@ -79,6 +79,8 @@ def from_ranks(
     ):
     """
     Take the numpy array, generate the df with columns below:
+        - prompt_id
+        - prompt
         - generate_{i}
         - probability: list of lists
         - rm_scores: list of lists

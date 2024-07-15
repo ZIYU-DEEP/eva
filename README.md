@@ -27,10 +27,11 @@ We present a new self-play framework for language model alignment and a new lear
    pip install -e .
    ```
 
-4. **Log in to HugingFace and Wandb:**
+4. **Set up external accounts:**
    ```bash
-   huggingface-cli login
-   wandb login
+   huggingface-cli login       
+   wandb login                 
+   export OPENAI_API_KEY="..."  # get a key at platform.openai.com/api-keys
    ```
 
 ## Training Scripts
