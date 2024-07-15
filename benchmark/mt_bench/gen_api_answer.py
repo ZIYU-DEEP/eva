@@ -7,7 +7,8 @@ import argparse
 import json
 import os
 import time
-import concurrent.futures
+import numpy as np 
+import tqdm
 
 import openai
 import shortuuid
