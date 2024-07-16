@@ -1,5 +1,5 @@
 ```
-scripts/
+src/
 ├── preload.py           # Preloads necessary data and models
 
 ├── generate.py          # Generates response pairs

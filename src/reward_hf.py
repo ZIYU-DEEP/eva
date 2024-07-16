@@ -98,7 +98,10 @@ def process_dataset(rank: int,
     all_responses = {f'generate_{i}': [] for i in range(n_generations)}
 
     # Populate the lists
-    for _, row in tqdm.tqdm(df.iterrows(), total=len(df), desc=f"Processing on GPU {rank}"):
+    for _, row in tqdm.tqdm(df.iterrows(), 
+                            total=len(df), 
+                            desc=f"Rewarding on GPU {rank}", 
+                            disable=rank != 0):
         prompt = row['prompt']
         responses = [
             row[f'generate_{i}'] for i in range(n_generations) 
@@ -166,7 +169,7 @@ def push_to_hf(hf_username: str = 'cat-searcher',
     """
     Push to huggingface repo.
     """
-    repo = Dataset.from_parquet(parquet_path)
+    repo = Dataset.from_parquet(str(parquet_path))
     repo.push_to_hub(f'{hf_username}/{hf_reward_repo_name}', 
                      split='train', 
                      private=True)
@@ -198,6 +201,7 @@ def parse_arguments():
 
 def main():
     
+    # -------------- Set up the arguments --------------- #
     args = parse_arguments()
     output_dir = Path(args.output_dir)
     
@@ -205,17 +209,17 @@ def main():
     reward_dir = data_root / 'eval' / output_dir
     reward_dir.mkdir(parents=True, exist_ok=True)
     
-    filename_suffix = f'{args.reward_model_path.split('/')[-1]}'
+    filename_suffix = f"{args.reward_model_path.split('/')[-1]}"
     df_path = reward_dir / f'rewards_{filename_suffix}.csv'
     parquet_path = reward_dir / f'rewards_{filename_suffix}.parquet'
+    hf_reward_repo_name = args.output_dir + "-all-hf-rewards"
     
-    hf_reward_repo_name = args.output_dir.name + "-all-hf-rewards"
-    
-    world_size = torch.cuda.device_count()
+    # -------------- Set up the datasets and get rewards --------------- #
     dataset = load_dataset(args.input_dataset)
-    subset = dataset['train'].select(range(100))  # DEBUG TODO: Remove this line
+    subset = dataset['train'].select(range(20))  # DEBUG TODO: Remove this line
 
     # Get the rewards
+    world_size = torch.cuda.device_count()
     mp.spawn(
         process_dataset,
         args=(world_size, subset, args.reward_model_path, args.torch_dtype, args.n_generations),
