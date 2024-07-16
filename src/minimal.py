@@ -72,6 +72,7 @@ def process_dataset(rank: int, world_size: int, dataset, reward_model_path: str)
 
     all_rewards = []
     all_critiques = []
+    all_prompts = []
 
     for _, row in tqdm.tqdm(df.iterrows(), total=len(df), desc=f"Processing on GPU {rank}"):
         prompt = row['prompt']
@@ -82,6 +83,7 @@ def process_dataset(rank: int, world_size: int, dataset, reward_model_path: str)
         rewards = hf_reward(prompt, [r[1]['content'] for r in responses], reward_model_path)
         row_rewards, row_critiques = zip(*rewards)
         
+        all_prompts.append(prompt)
         all_rewards.append(row_rewards)
         all_critiques.append(row_critiques)
 
@@ -89,10 +91,11 @@ def process_dataset(rank: int, world_size: int, dataset, reward_model_path: str)
 
     # Save results for this GPU
     results_df = pd.DataFrame({
+        'prompt': all_prompts,
         'rewards': all_rewards,
         'critiques': all_critiques
     })
-    results_df.to_csv(f'results_gpu_{rank}.csv', index=False)
+    results_df.to_csv(f'./local/temp_results_gpu_{rank}.csv', index=False)
 
 
 def main():
@@ -100,7 +103,7 @@ def main():
     # Load the dataset
     dataset = load_dataset("cat-searcher/responses-gemma-1.1-2b-it-split-0-all")
     # Slice the first 100 rows as a subset
-    subset = dataset['train'].select(range(100))
+    subset = dataset['train'].select(range(50))
     
     reward_model_path = "RLHFlow/ArmoRM-Llama3-8B-v0.1" 
 
@@ -110,6 +113,18 @@ def main():
         nprocs=world_size,
         join=True
     )
+
+    # Combine the temporary files into a single CSV file
+    combined_df = pd.concat(
+        [pd.read_csv(f'./local/temp_results_gpu_{rank}.csv') for rank in range(world_size)],
+        ignore_index=True
+    )
+    combined_df.to_csv('./local/results_all_gpus.csv', index=False)
+
+    # Clean up temporary files
+    for rank in range(world_size):
+        os.remove(f'./local/temp_results_gpu_{rank}.csv')
+
 
 if __name__ == "__main__":
     main()
