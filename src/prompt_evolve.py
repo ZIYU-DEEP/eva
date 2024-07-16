@@ -2,19 +2,26 @@
 Evaluate prompts and their responses, calculate rewards, and sample based on metrics.
 """
 
+import os
+import re
+import time
+import openai
+import json
+import tqdm
+import torch
 import argparse
-from pathlib import Path
 import numpy as np
 import pandas as pd
+import concurrent.futures
+
+from pathlib import Path
+from openai import OpenAI
+from typing import List, Tuple, Dict
 from datasets import load_dataset, Dataset
 from typing import Callable, List, Dict, Tuple
-import json
-import torch
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
-import openai
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import time
-import re
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
 
 
 def parse_arguments():
@@ -74,29 +81,27 @@ def openai_reward_individual(
         {"role": "user", "content": f"Prompt: {prompt}\n\nResponse: {response}\n\nPlease rate this response and provide a HINT:"}
     ]
     
-    try:
-        completion = openai.ChatCompletion.create(
-            model=reward_model_path,
-            messages=messages,
-            temperature=temperature_openai,
-            max_tokens=max_tokens_openai,
-        )
-        content = completion.choices[0].message['content'].strip()
-        
-        # Extract score and hint
-        score_match = re.search(r"#SCORE:\s*(\d+(?:\.\d+)?)", content)
-        hint_match = re.search(r"#HINT:\s*(.*)", content, re.DOTALL)
-        
-        if score_match and hint_match:
-            score = float(score_match.group(1))
-            hint = hint_match.group(1).strip()
-            return score / 5, hint  # Normalize to 0-1 range
-        else:
-            print(f"Error parsing OpenAI response: {content}")
-            return 0.0, "Error in parsing response"
-    except Exception as e:
-        print(f"Error in OpenAI API call: {e}")
-        return 0.0, f"Error: {str(e)}"
+    client = OpenAI()
+    completion = client.chat.completions.create(
+        model=reward_model_path,
+        messages=messages,
+        temperature=temperature_openai,
+        max_tokens=max_tokens_openai,
+    )
+    content = completion.choices[0].message['content'].strip()
+    
+    # Extract score and hint
+    score_match = re.search(r"#SCORE:\s*(\d+(?:\.\d+)?)", content)
+    hint_match = re.search(r"#HINT:\s*(.*)", content, re.DOTALL)
+    
+    if score_match and hint_match:
+        score = float(score_match.group(1))
+        hint = hint_match.group(1).strip()
+        return score / 5, hint  # Normalize to 0-1 range
+    else:
+        print(f"Error parsing OpenAI response: {content}")
+        return 0.0, 'Error parsing critiques.'
+
 
 
 def openai_reward_batch(
@@ -142,35 +147,32 @@ def openai_reward_batch(
          "content": f"Prompt: {prompt}\n\n" + "\n\n".join([f"Response {i+1}: {response}" for i, response in enumerate(responses)]) + "\n\nPlease rate these responses and provide a general HINT:"}
     ]
     
-    try:
-        completion = openai.ChatCompletion.create(
-            model=reward_model_path,
-            messages=messages,
-            temperature=temperature_openai,
-            max_tokens=max_tokens_openai,
-        )
-        content = completion.choices[0].message['content'].strip()
-        
-        # Extract scores and hint
-        scores = [float(score) / 5 
-                  for score in re.findall(r"#SCORE\d+:\s*(\d+(?:\.\d+)?)", 
-                                          content)]
-        hint_match = re.search(r"#HINT:\s*(.*)", content, re.DOTALL)
-        hint = hint_match.group(1).strip() if hint_match else ''
-        
-        if len(scores) == len(responses):
-            return list(zip(scores, [hint] * len(scores)))
-        else:
-            print(f"Error parsing OpenAI response: {content}")
-            return [(0.0, "Error in parsing response")] * len(responses)
-    except Exception as e:
-        print(f"Error in OpenAI API call: {e}")
-        return [(0.0, f"Error: {str(e)}")] * len(responses)
+    client = OpenAI()
+    completion = client.chat.completions.create(
+        model=reward_model_path,
+        messages=messages,
+        temperature=temperature_openai,
+        max_tokens=max_tokens_openai,
+    )
+    content = completion.choices[0].message['content'].strip()
+    
+    # Extract scores and hint
+    scores = [float(score) / 5 
+                for score in re.findall(r"#SCORE\d+:\s*(\d+(?:\.\d+)?)", 
+                                        content)]
+    hint_match = re.search(r"#HINT:\s*(.*)", content, re.DOTALL)
+    hint = hint_match.group(1).strip() if hint_match else ''
+    
+    if len(scores) == len(responses):
+        return list(zip(scores, [hint] * len(scores)))
+    else:
+        print(f"Error parsing OpenAI response: {content}")
+        return [(0.0, "Error parsing critiques.")] * len(responses)  # To be filtered out
 
 
 def hf_reward(
     prompt: str, 
-    response: str, 
+    responses: List[str],  # List of responses for the prompt
     reward_model_path: str,
     max_tokens_hf: int = 2048,
     torch_dtype: str = 'bfloat16') -> Dict[str, float]:
@@ -188,44 +190,28 @@ def hf_reward(
     tokenizer = AutoTokenizer.from_pretrained(reward_model_path, use_fast=True)
 
     if "armorm-llama3-8b" in reward_model_path.lower():
-        messages = [{"role": "user", "content": prompt},
-                    {"role": "assistant", "content": response}]
-        input_ids = tokenizer.apply_chat_template(messages, return_tensors="pt").to('cuda')
         
+        # Reformat the input
+        messages = [
+            [{"role": "user", "content": prompt},
+            {"role": "assistant", "content": response}]
+            for response in responses
+        ]
+        
+        # Apply the chat template for tokens
+        input_ids = tokenizer.apply_chat_template(
+            messages, return_tensors="pt", padding=True).to('cuda')
+        
+        # Get the scores
         with torch.no_grad():
             output = model(input_ids)
-            multi_obj_rewards = output.rewards.cpu().float()
-            gating_output = output.gating_output.cpu().float()
-            preference_score = output.score.cpu().float()
-
-        obj_transform = model.reward_transform_matrix.data.cpu().float()
-        multi_obj_coeffs = gating_output @ obj_transform.T
-
-        attributes = [
-            'helpsteer-helpfulness', 'helpsteer-correctness', 
-            'helpsteer-coherence', 'helpsteer-complexity', 'helpsteer-verbosity', 'ultrafeedback-overall_score','ultrafeedback-instruction_following', 
-            'ultrafeedback-truthfulness', 'ultrafeedback-honesty', 
-            'ultrafeedback-helpfulness', 'beavertails-is_safe',
-            'prometheus-score', 'argilla-overall_quality', 'argilla-judge_lm', 'code-complexity',
-            'code-style', 'code-explanation', 'code-instruction-following', 'code-readability']
-
-        rewards_dict = {attr: score.item() 
-                        for attr, score in zip(attributes, multi_obj_rewards[0])}
-        rewards_dict['preference_score'] = preference_score.item()
+            scores = output.score.cpu().float().tolist()
+            
     else:
-        # Default behavior for other models
-        inputs = tokenizer(
-            prompt, 
-            response, 
-            return_tensors="pt", 
-            truncation=True, 
-            max_length=max_tokens_hf,  
-        ).to(model.device)
-        with torch.no_grad():
-            outputs = model(**inputs)
-        rewards_dict = {"score": outputs.logits[0][1].item()}  # Assuming binary classification
+        raise NotImplementedError(
+            f"Reward calculation not implemented for model: {reward_model_path}")
 
-    return rewards_dict
+    return list(zip(scores, [''] * len(scores)))
 
 
 def get_reward_function(reward_function: str = 'openai', 
@@ -235,7 +221,7 @@ def get_reward_function(reward_function: str = 'openai',
                         temperature_openai: float = 0.2,
                         max_tokens_hf: int = 2048,
                         torch_dtype: str = 'bfloat16',
-                        ) -> Callable:
+    ) -> Callable:
     """
     Return the specified reward function.
     """
@@ -267,76 +253,92 @@ def get_reward_function(reward_function: str = 'openai',
         raise ValueError(f"Unknown reward function: {reward_function}")
 
 
-def process_batch(batch, reward_func, evaluation_mode):
-    """
-    Process a batch of prompts.
-    """
-    rewards = []
-    critiques = []
-    
-    for prompt, responses in zip(batch['prompt'], batch['responses']):
-        
-        if evaluation_mode == 'batch':  # This batch is refer to one prompt multiple responses
-            batch_rewards = reward_func(prompt, [r[1]['content'] for r in responses])
-            row_rewards, row_critiques = zip(*batch_rewards)
-        else:                          # This is one response per prompt setting
-            row_rewards = []
-            row_critiques = []
-            for response in responses:
-                reward, critique = reward_func(prompt, response[1]['content'])
-                row_rewards.append(reward)
-                row_critiques.append(critique)
-                
-        rewards.append(row_rewards)
-        critiques.append(row_critiques)
-    return rewards, critiques
-
-
 def prompt_eval(
     dataset_name: str,
     hf_username: str,
-    reward_function: str,
-    nproc: int,
-    batch_size: int,
-    evaluation_mode: str,
+    local_rank: int = 0,
+    n_gpus: int = 8,
+    reward_function: str = 'openai',
+    evaluation_mode: str = 'batch',
     reward_model_path: str = 'gpt-4-0125-preview',
     max_tokens_openai: str = 8192,
     temperature_openai: float = 0.2,
     max_tokens_hf: int = 2048,
-    torch_dtype: str = 'bfloat16',
+    torch_dtype: str = 'blfloat16',
 ) -> None:
     """
     Evaluate prompts and their responses, calculate rewards.
     """
     # Load dataset
     dataset = load_dataset(f"{hf_username}/{dataset_name}", split="train")
-    df = dataset.to_pandas()
-
+    
     # Get reward function
-    reward_func = get_reward_function(
-        reward_function, 
-        evaluation_mode=evaluation_mode, 
-        reward_model_path=reward_model_path,
-        max_tokens_openai=max_tokens_openai,
-        temperature_openai=temperature_openai,
-        max_tokens_hf=max_tokens_hf,
-        torch_dtype=torch_dtype)
+    reward_func = get_reward_function(reward_function, 
+                                      evaluation_mode=evaluation_mode, 
+                                      reward_model_path=reward_model_path,
+                                      max_tokens_openai=max_tokens_openai,
+                                      termperature_openai=temperature_openai,
+                                      max_tokens_hf=max_tokens_hf,
+                                      torch_dtype=torch_dtype)
+    
+    if reward_function.startswith("hf"):
+        # Process only a portion of the dataset for Hugging Face models
+        n_samples = len(dataset)
+        start_idx = (n_samples // n_gpus) * local_rank
+        end_idx = min((n_samples // n_gpus) * (local_rank + 1), n_samples)
+        
+        df = dataset.select(range(start_idx, end_idx)).to_pandas()
+        
+        all_rewards = []
+        all_critiques = []
+        
+        for _, row in tqdm.tqdm(df.iterrows(), 
+                                total=len(df), 
+                                desc=f"Processing on GPU {local_rank}"):
+            prompt = row['prompt']
+            responses = [
+                row[f'generate_{i}'] for i in range(5)  # TODO: better make this a param
+            ]  
+            
+            rewards = reward_func(prompt, [r[1]['content'] for r in responses])
+            row_rewards, row_critiques = zip(*rewards)
+            
+            all_rewards.append(row_rewards)
+            all_critiques.append(row_critiques)
+        
+    else:  # OpenAI reward functions
+        df = dataset.to_pandas()
+        
+        def process_row(row):
+            prompt = row['prompt']
+            responses = [row[f'generate_{i}'] for i in range(5)]
+            
+            if evaluation_mode == 'batch':
+                batch_rewards = reward_func(prompt, [r[1]['content'] for r in responses])
+                row_rewards, row_critiques = zip(*batch_rewards)
+            else:
+                row_rewards = []
+                row_critiques = []
+                for response in responses:
+                    reward, critique = reward_func(prompt, response[1]['content'])
+                    row_rewards.append(reward)
+                    row_critiques.append(critique)
+            
+            return row_rewards, row_critiques
 
-    # Prepare data for batch processing
-    data = [{'prompt': row['prompt'], 
-             'responses': [row[f'generate_{i}'] for i in range(5)]} 
-                           for _, row in df.iterrows()]
-
-    # Process data in batches using ThreadPoolExecutor
-    all_rewards = []
-    all_critiques = []
-    with ThreadPoolExecutor(max_workers=nproc) as executor:
-        futures = [executor.submit(process_batch, data[i:i+batch_size], reward_func, evaluation_mode) 
-                   for i in range(0, len(data), batch_size)]
-        for future in as_completed(futures):
-            batch_rewards, batch_critiques = future.result()
-            all_rewards.extend(batch_rewards)
-            all_critiques.extend(batch_critiques)
+        max_workers = min(32, os.cpu_count() + 4) 
+        all_rewards = []
+        all_critiques = []
+        
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(process_row, row) for _, row in df.iterrows()]
+            
+            for future in tqdm.tqdm(concurrent.futures.as_completed(futures), 
+                                    total=len(futures), 
+                                    desc="Processing with OpenAI"):
+                rewards, critiques = future.result()
+                all_rewards.append(rewards)
+                all_critiques.append(critiques)
 
     # Add new columns
     df['rewards'] = all_rewards
@@ -345,10 +347,11 @@ def prompt_eval(
     df['reward_var'] = df['rewards'].apply(np.var)
     df['reward_maxmin'] = df['rewards'].apply(lambda x: max(x) - min(x))
 
-    # Save and push to hub
-    new_dataset = Dataset.from_pandas(df)
-    new_dataset.push_to_hub(f"{hf_username}/{dataset_name}-re", split="train", private=True)
-
+    # Save to parquet file
+    output_file = f"{dataset_name}-re-{local_rank}.parquet"
+    df.to_parquet(output_file, index=False)
+    print(f"Saved results to {output_file}")
+    
 
 def prompt_sample(
     dataset_name: str,
