@@ -37,21 +37,19 @@ def parse_arguments():
     parser.add_argument("--sample_metric", type=str, default="reward_mean")
     parser.add_argument("--sample_frac", type=float, default=0.25)
     parser.add_argument("--reward_model_path", type=str, default="RLHFlow/ArmoRM-Llama3-8B-v0.1")
-    parser.add_argument("--nproc", type=int, default=4)
-    parser.add_argument("--batch_size", type=int, default=100)
     parser.add_argument("--torch_dtype", type=str, default='bfloat16')
     parser.add_argument("--evaluation_mode", type=str, 
-                        choices=['individual', 'batch'], 
-                        default='batch',
+                        choices=['individual', 'combine'], 
+                        default='combine',
     )
     return parser.parse_args()
 
 
-def openai_reward_individual(
+def openai_reward(
     prompt: str, 
     response: str,
     reward_model_path: str = 'gpt-4-0125-preview',
-    max_tokens_openai: str = 8192,
+    max_tokens_openai: str = 4096,
     temperature_openai: float = 0.2) -> List[Tuple[float, str]]:
     """
     Calculate reward for a single response using OpenAI's GPT-4.
@@ -104,14 +102,16 @@ def openai_reward_individual(
 
 
 
-def openai_reward_batch(
+def openai_reward_combine(
     prompt: str, 
     responses: List[str],
     reward_model_path: str = 'gpt-4-0125-preview',
-    max_tokens_openai: str = 8192,
+    max_tokens_openai: str = 4096,
     temperature_openai: float = 0.2) -> List[Tuple[float, str]]:
     """
     Calculate rewards for multiple responses using OpenAI's GPT-4.
+    In this setting, the critic model observe the prompt and all responses at once.
+    Then critic provides a single score and hint for each response.
     """
     
     system_prompt = """You are an AI assistant tasked with evaluating the quality of multiple responses to a single prompt. 
@@ -175,10 +175,10 @@ def hf_reward(
     responses: List[str],  # List of responses for the prompt
     reward_model_path: str,
     max_tokens_hf: int = 2048,
-    torch_dtype: str = 'bfloat16') -> Dict[str, float]:
+    torch_dtype: str = 'bfloat16') -> List[Tuple[float, str]]:
     """
     Calculate reward using a Hugging Face model.
-    TODO: load this with different ranks.
+    
     """
     
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -215,7 +215,7 @@ def hf_reward(
 
 
 def get_reward_function(reward_function: str = 'openai', 
-                        evaluation_mode: str = 'batch',
+                        evaluation_mode: str = 'combine',
                         reward_model_path: str = 'gpt-4-0125-preview',
                         max_tokens_openai: str = 8192,
                         temperature_openai: float = 0.2,
@@ -225,9 +225,10 @@ def get_reward_function(reward_function: str = 'openai',
     """
     Return the specified reward function.
     """
-    if reward_function == "openai":
-        if evaluation_mode == 'batch':
-            return lambda prompt, responses: openai_reward_batch(
+    if reward_function == 'openai':
+        if evaluation_mode == 'combine':
+            # Combined evaluation
+            return lambda prompt, responses: openai_reward_combine(
                 prompt, 
                 responses, 
                 reward_model_path,
@@ -235,7 +236,8 @@ def get_reward_function(reward_function: str = 'openai',
                 temperature_openai,
             )
         else:
-            return lambda prompt, response: openai_reward_individual(
+            # Individual evaluation
+            return lambda prompt, response: openai_reward(
                 prompt, 
                 response, 
                 reward_model_path,
@@ -243,6 +245,7 @@ def get_reward_function(reward_function: str = 'openai',
                 temperature_openai,
             )
     elif reward_function.startswith('hf'):
+        # Individual evaluation
         return lambda prompt, response: hf_reward(
             prompt, 
             response, 
@@ -259,7 +262,7 @@ def prompt_eval(
     local_rank: int = 0,
     n_gpus: int = 8,
     reward_function: str = 'openai',
-    evaluation_mode: str = 'batch',
+    evaluation_mode: str = 'combine',
     reward_model_path: str = 'gpt-4-0125-preview',
     max_tokens_openai: str = 8192,
     temperature_openai: float = 0.2,
@@ -281,7 +284,7 @@ def prompt_eval(
                                       max_tokens_hf=max_tokens_hf,
                                       torch_dtype=torch_dtype)
     
-    if reward_function.startswith("hf"):
+    if reward_function.startswith('hf'):
         # Process only a portion of the dataset for Hugging Face models
         n_samples = len(dataset)
         start_idx = (n_samples // n_gpus) * local_rank
@@ -313,9 +316,9 @@ def prompt_eval(
             prompt = row['prompt']
             responses = [row[f'generate_{i}'] for i in range(5)]
             
-            if evaluation_mode == 'batch':
-                batch_rewards = reward_func(prompt, [r[1]['content'] for r in responses])
-                row_rewards, row_critiques = zip(*batch_rewards)
+            if evaluation_mode == 'combine':
+                combine_rewards = reward_func(prompt, [r[1]['content'] for r in responses])
+                row_rewards, row_critiques = zip(*combine_rewards)
             else:
                 row_rewards = []
                 row_critiques = []
@@ -387,9 +390,9 @@ def main():
     prompt_eval(
         dataset_name=args.input_dataset,
         hf_username=args.hf_username,
+        local_rank=args.local_rank,
+        n_gpus=args.n_gpus,
         reward_function=args.reward_function,
-        nproc=args.nproc,
-        batch_size=args.batch_size,
         evaluation_mode=args.evaluation_mode,
         reward_model_path=args.reward_model_path,
         max_tokens_openai=args.max_tokens_openai,
