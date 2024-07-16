@@ -311,4 +311,5 @@ checkpoints-*/
 push_model_to_hub.py
 **/local/
 **/.DS_Store
+**/data/
 
