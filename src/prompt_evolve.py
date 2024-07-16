@@ -383,6 +383,64 @@ def prompt_sample(
         private=True)
 
 
+def prompt_sample(
+    dataset_name: str,
+    hf_username: str = 'cat-searcher',
+    metric: str = 'reward_mean',
+    frac: float = 0.25,
+    sampling_method: str = 'importance_weighted'
+) -> None:
+    """
+    Sample prompts based on a specified metric with conditional logic and advanced sampling.
+    """
+    # Load dataset
+    dataset = load_dataset(f"{hf_username}/{dataset_name}", split="train")
+    df = dataset.to_pandas()
+
+    # ----------------------------------------------------------------------------------
+    # Calculate weights based on the metric
+    if metric in ['reward_mean']:
+        values = df[metric]
+        min_value, max_value = values.min(), values.max()
+        normalized_values = (values - min_value) / (max_value - min_value)
+        inverted_weights = 1 - normalized_values
+        weights = inverted_weights / inverted_weights.sum()
+        
+    elif metric in ['reward_var', 'reward_gap']:
+        values = df[metric]
+        min_value, max_value = values.min(), values.max()
+        normalized_values = (values - min_value) / (max_value - min_value)
+        weights = normalized_values / normalized_values.sum()
+        
+    else:
+        raise ValueError(f"Metric {metric} not recognized or supported for sampling.")
+    # ----------------------------------------------------------------------------------
+
+    # ----------------------------------------------------------------------------------
+    # Perform sampling based on the specified method
+    if sampling_method == 'importance_weighted':
+        # Simple importance weighted sampling
+        sampled_df = df.sample(n=int(len(df) * frac), weights=weights, replace=False)
+        
+    # elif sampling_method == 'stratified':
+    #     # Stratified sampling based on the metric
+    #     df['weights'] = weights
+    #     sampled_df = df.groupby(pd.qcut(df[metric], q=10, duplicates='drop')).apply(
+    #         lambda x: x.sample(frac=frac, weights=x['weights'], replace=False)).reset_index(drop=True)
+    else:
+        raise ValueError(f"Sampling method {sampling_method} not recognized.")
+    # ----------------------------------------------------------------------------------
+
+    # Save and push to hub
+    new_dataset = Dataset.from_pandas(sampled_df)
+    new_dataset.push_to_hub(
+        f"{hf_username}/{dataset_name}-re-sample-{metric}-{sampling_method}-{frac}", 
+        split="train", 
+        private=True
+    )
+
+
+
 def main():
     args = parse_arguments()
 
