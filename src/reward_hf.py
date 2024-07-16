@@ -30,55 +30,13 @@ def cleanup_distributed():
     dist.destroy_process_group()
 
 
-def hf_reward(
-    prompt: str, 
-    responses: List[str],  # List of responses for the prompt
-    reward_model_path: str,
-    torch_dtype: str = 'bfloat16') -> List[Tuple[float, str]]:
-    
-    """
-    Calculate reward using a Hugging Face model.
-    """
-    model = AutoModelForSequenceClassification.from_pretrained(
-        reward_model_path, 
-        device_map='cuda', 
-        trust_remote_code=True, 
-        torch_dtype=torch_dtype).to(torch.device('cuda'))
-
-    tokenizer = AutoTokenizer.from_pretrained(reward_model_path, use_fast=True)
-
-    if "armorm-llama3-8b" in reward_model_path.lower():
-        
-        # Reformat the input
-        messages = [
-            [{"role": "user", "content": prompt},
-            {"role": "assistant", "content": response}]
-            for response in responses
-        ]
-        
-        # Apply the chat template for tokens
-        input_ids = tokenizer.apply_chat_template(
-            messages, return_tensors="pt", padding=True).to(torch.device('cuda'))
-        
-        # Get the scores
-        with torch.no_grad():
-            output = model(input_ids)
-            scores = output.logits.cpu().float().tolist()
-            
-    else:
-        raise NotImplementedError(
-            f"Reward calculation not implemented for model: {reward_model_path}")
-
-    return list(zip(scores, [''] * len(scores)))
-
-
 def process_dataset(rank: int, 
                     world_size: int, 
                     dataset: dict, 
                     reward_model_path: str, 
                     torch_dtype: str,
                     n_generations: int=5,
-                    save_interval: int=10):
+                    batch_size: int=10):
     
     # Set up DDP
     setup_distributed(rank, world_size)
@@ -105,6 +63,14 @@ def process_dataset(rank: int,
     all_prompts = []
     all_responses = {f'generate_{i}': [] for i in range(n_generations)}
 
+    # Initialize the model and tokenizer only once
+    model = AutoModelForSequenceClassification.from_pretrained(
+        reward_model_path, 
+        device_map='cuda', 
+        trust_remote_code=True, 
+        torch_dtype=torch_dtype).to(torch.device('cuda'))
+    tokenizer = AutoTokenizer.from_pretrained(reward_model_path, use_fast=True)
+
     # Populate the lists
     for idx, row in tqdm.tqdm(df.iterrows(), 
                               total=len(df), 
@@ -121,8 +87,8 @@ def process_dataset(rank: int,
         # Calculate the rewards
         rewards = hf_reward(prompt=prompt, 
                             responses=[r[1]['content'] for r in responses], 
-                            reward_model_path=reward_model_path, 
-                            torch_dtype=torch_dtype)
+                            model=model, 
+                            tokenizer=tokenizer)
         row_rewards, row_critiques = zip(*rewards)
         
         # Update the lists
@@ -136,7 +102,7 @@ def process_dataset(rank: int,
         pd.DataFrame({'index': processed_indices}).to_csv(progress_file, index=False)
         
         # Save results periodically
-        if len(processed_indices) % save_interval == 0:
+        if len(processed_indices) % batch_size == 0:
             save_temp_results(rank, all_prompts, all_rewards, all_critiques, all_responses, n_generations)
 
     # Clean DDP
@@ -148,6 +114,161 @@ def process_dataset(rank: int,
     # Remove progress file after completion
     if os.path.exists(progress_file):
         os.remove(progress_file)
+
+
+def hf_reward(
+    prompt: str, 
+    responses: List[str], 
+    model, 
+    tokenizer) -> List[Tuple[float, str]]:
+    
+    """
+    Calculate reward using a Hugging Face model.
+    """
+    if "armorm-llama3-8b" in model.config._name_or_path.lower():
+        
+        # Reformat the input
+        messages = [
+            [{"role": "user", "content": prompt},
+            {"role": "assistant", "content": response}]
+            for response in responses
+        ]
+        
+        # Apply the chat template for tokens
+        input_ids = tokenizer.apply_chat_template(
+            messages, return_tensors="pt", padding=True).to(torch.device('cuda'))
+        
+        # Get the scores
+        with torch.no_grad():
+            output = model(input_ids)
+            scores = output.logits.cpu().float().tolist()
+            
+    else:
+        raise NotImplementedError(
+            f"Reward calculation not implemented for model: {model.config._name_or_path}")
+
+    return list(zip(scores, [''] * len(scores)))
+
+
+# def hf_reward(
+#     prompt: str, 
+#     responses: List[str],  # List of responses for the prompt
+#     reward_model_path: str,
+#     torch_dtype: str = 'bfloat16') -> List[Tuple[float, str]]:
+    
+#     """
+#     Calculate reward using a Hugging Face model.
+#     """
+#     model = AutoModelForSequenceClassification.from_pretrained(
+#         reward_model_path, 
+#         device_map='cuda', 
+#         trust_remote_code=True, 
+#         torch_dtype=torch_dtype).to(torch.device('cuda'))
+
+#     tokenizer = AutoTokenizer.from_pretrained(reward_model_path, use_fast=True)
+
+#     if "armorm-llama3-8b" in reward_model_path.lower():
+        
+#         # Reformat the input
+#         messages = [
+#             [{"role": "user", "content": prompt},
+#             {"role": "assistant", "content": response}]
+#             for response in responses
+#         ]
+        
+#         # Apply the chat template for tokens
+#         input_ids = tokenizer.apply_chat_template(
+#             messages, return_tensors="pt", padding=True).to(torch.device('cuda'))
+        
+#         # Get the scores
+#         with torch.no_grad():
+#             output = model(input_ids)
+#             scores = output.logits.cpu().float().tolist()
+            
+#     else:
+#         raise NotImplementedError(
+#             f"Reward calculation not implemented for model: {reward_model_path}")
+
+#     return list(zip(scores, [''] * len(scores)))
+
+
+# def process_dataset(rank: int, 
+#                     world_size: int, 
+#                     dataset: dict, 
+#                     reward_model_path: str, 
+#                     torch_dtype: str,
+#                     n_generations: int=5,
+#                     save_interval: int=10):
+    
+#     # Set up DDP
+#     setup_distributed(rank, world_size)
+
+#     # Split dataset
+#     n_samples = len(dataset)
+#     per_gpu_samples = (n_samples + world_size - 1) // world_size  # Ensure at least one sample per GPU
+#     start_idx = rank * per_gpu_samples
+#     end_idx = min(start_idx + per_gpu_samples, n_samples)
+
+#     # Create the dataframe per gpu
+#     df = dataset.select(range(start_idx, end_idx)).to_pandas()
+
+#     # Load progress if exists
+#     progress_file = f'./progress_gpu_{rank}.csv'
+#     if os.path.exists(progress_file):
+#         processed_indices = pd.read_csv(progress_file)['index'].tolist()
+#     else:
+#         processed_indices = []
+
+#     # Initialize the lists to store the results
+#     all_rewards = []
+#     all_critiques = []
+#     all_prompts = []
+#     all_responses = {f'generate_{i}': [] for i in range(n_generations)}
+
+#     # Populate the lists
+#     for idx, row in tqdm.tqdm(df.iterrows(), 
+#                               total=len(df), 
+#                               desc=f"Rewarding on GPU {rank}", 
+#                               disable=rank != 0):
+#         if idx in processed_indices:
+#             continue  # Skip already processed rows
+        
+#         prompt = row['prompt']
+#         responses = [
+#             row[f'generate_{i}'] for i in range(n_generations) 
+#         ]
+        
+#         # Calculate the rewards
+#         rewards = hf_reward(prompt=prompt, 
+#                             responses=[r[1]['content'] for r in responses], 
+#                             reward_model_path=reward_model_path, 
+#                             torch_dtype=torch_dtype)
+        
+#         row_rewards, row_critiques = zip(*rewards)
+        
+#         # Update the lists
+#         all_prompts.append(prompt)
+#         all_rewards.append(row_rewards)
+#         all_critiques.append(row_critiques)
+#         for i in range(n_generations): all_responses[f'generate_{i}'].append(responses[i])
+
+#         # Save progress
+#         processed_indices.append(idx)
+#         pd.DataFrame({'index': processed_indices}).to_csv(progress_file, index=False)
+        
+#         # Save results periodically
+#         if len(processed_indices) % save_interval == 0:
+#             save_temp_results(rank, all_prompts, all_rewards, all_critiques, all_responses, n_generations)
+
+#     # Clean DDP
+#     cleanup_distributed()
+
+#     # Save final results
+#     save_temp_results(rank, all_prompts, all_rewards, all_critiques, all_responses, n_generations)
+
+#     # Remove progress file after completion
+#     if os.path.exists(progress_file):
+#         os.remove(progress_file)
 
 
 def save_temp_results(rank, all_prompts, all_rewards, all_critiques, all_responses, n_generations):
