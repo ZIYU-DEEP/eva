@@ -77,7 +77,8 @@ def process_dataset(rank: int,
                     dataset: dict, 
                     reward_model_path: str, 
                     torch_dtype: str,
-                    n_generations: int=5):
+                    n_generations: int=5,
+                    save_interval: int=10):
     
     # Set up DDP
     setup_distributed(rank, world_size)
@@ -91,6 +92,13 @@ def process_dataset(rank: int,
     # Create the dataframe per gpu
     df = dataset.select(range(start_idx, end_idx)).to_pandas()
 
+    # Load progress if exists
+    progress_file = f'./progress_gpu_{rank}.csv'
+    if os.path.exists(progress_file):
+        processed_indices = pd.read_csv(progress_file)['index'].tolist()
+    else:
+        processed_indices = []
+
     # Initialize the lists to store the results
     all_rewards = []
     all_critiques = []
@@ -98,10 +106,13 @@ def process_dataset(rank: int,
     all_responses = {f'generate_{i}': [] for i in range(n_generations)}
 
     # Populate the lists
-    for _, row in tqdm.tqdm(df.iterrows(), 
-                            total=len(df), 
-                            desc=f"Rewarding on GPU {rank}", 
-                            disable=rank != 0):
+    for idx, row in tqdm.tqdm(df.iterrows(), 
+                              total=len(df), 
+                              desc=f"Rewarding on GPU {rank}", 
+                              disable=rank != 0):
+        if idx in processed_indices:
+            continue  # Skip already processed rows
+        
         prompt = row['prompt']
         responses = [
             row[f'generate_{i}'] for i in range(n_generations) 
@@ -120,16 +131,33 @@ def process_dataset(rank: int,
         all_critiques.append(row_critiques)
         for i in range(n_generations): all_responses[f'generate_{i}'].append(responses[i])
 
+        # Save progress
+        processed_indices.append(idx)
+        pd.DataFrame({'index': processed_indices}).to_csv(progress_file, index=False)
+        
+        # Save results periodically
+        if len(processed_indices) % save_interval == 0:
+            save_temp_results(rank, all_prompts, all_rewards, all_critiques, all_responses, n_generations)
+
     # Clean DDP
     cleanup_distributed()
 
+    # Save final results
+    save_temp_results(rank, all_prompts, all_rewards, all_critiques, all_responses, n_generations)
+
+    # Remove progress file after completion
+    if os.path.exists(progress_file):
+        os.remove(progress_file)
+
+
+def save_temp_results(rank, all_prompts, all_rewards, all_critiques, all_responses, n_generations):
     # Get the dataframe
     results_df = pd.DataFrame({
         'prompt': all_prompts,
         'rewards': all_rewards,
         'critiques': all_critiques,
     })
-    
+
     # Add response columns
     for i in range(n_generations):
         results_df[f'generate_{i}'] = all_responses[f'generate_{i}']
@@ -138,7 +166,7 @@ def process_dataset(rank: int,
     results_df['reward_mean'] = results_df['rewards'].apply(np.mean)
     results_df['reward_var'] = results_df['rewards'].apply(np.var)
     results_df['reward_gap'] = results_df['rewards'].apply(lambda x: max(x) - min(x))
-    
+
     # Save temporary results
     results_df.to_csv(f'./temp_results_gpu_{rank}.csv', index=False)
     results_df.to_parquet(f'./temp_results_gpu_{rank}.parquet', index=False)
@@ -171,7 +199,7 @@ def push_to_hf(hf_username: str = 'cat-searcher',
     """
     repo = Dataset.from_parquet(str(parquet_path))
     repo.push_to_hub(f'{hf_username}/{hf_reward_repo_name}', 
-                     split='train', 
+                     split='train',
                      private=True)
     
 
