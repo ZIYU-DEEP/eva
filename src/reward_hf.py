@@ -216,13 +216,13 @@ def main():
     
     # -------------- Set up the datasets and get rewards --------------- #
     dataset = load_dataset(args.input_dataset)
-    subset = dataset['train'].select(range(20))  # DEBUG TODO: Remove this line
+    # subset = dataset['train'].select(range(20))  # DEBUG TODO: Remove this line
 
     # Get the rewards
     world_size = torch.cuda.device_count()
     mp.spawn(
         process_dataset,
-        args=(world_size, subset, args.reward_model_path, args.torch_dtype, args.n_generations),
+        args=(world_size, dataset, args.reward_model_path, args.torch_dtype, args.n_generations),
         nprocs=world_size,
         join=True
     )
