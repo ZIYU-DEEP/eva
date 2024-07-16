@@ -5,11 +5,12 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from datasets import load_dataset, Dataset
 from typing import List, Tuple
+from pathlib import Path
 import os
 import pandas as pd
+import numpy as np
 import tqdm
 import argparse
-from huggingface_hub import HfApi, Repository
 
 
 def setup_distributed(rank: int, world_size: int):
@@ -117,45 +118,53 @@ def process_dataset(rank: int,
     # Clean DDP
     cleanup_distributed()
 
-    # Save results for this GPU in a temporary file
+    # Get the dataframe
     results_df = pd.DataFrame({
         'prompt': all_prompts,
         'rewards': all_rewards,
-        'critiques': all_critiques
+        'critiques': all_critiques,
     })
-    results_df.to_csv(f'./local/temp_results_gpu_{rank}.csv', index=False)
-    results_df.to_parquet(f'./local/temp_results_gpu_{rank}.parquet', index=False)
+    
+    # Add additional information
+    df['reward_mean'] = df['rewards'].apply(np.mean)
+    df['reward_var'] = df['rewards'].apply(np.var)
+    df['reward_gap'] = df['rewards'].apply(lambda x: max(x) - min(x))
+    
+    # Save temporary results
+    results_df.to_csv(f'./temp_results_gpu_{rank}.csv', index=False)
+    results_df.to_parquet(f'./temp_results_gpu_{rank}.parquet', index=False)
 
 
-def combine_results(world_size: int):
+def combine_results(world_size: int,
+                    df_path: str,
+                    parquet_path: str):
     """
     Combine results from different GPUs in DDP.
     """
     combined_df = pd.concat(
-        [pd.read_csv(f'./local/temp_results_gpu_{rank}.csv') for rank in range(world_size)],
+        [pd.read_csv(f'./temp_results_gpu_{rank}.csv') for rank in range(world_size)],
         ignore_index=True
     )
-    combined_df.to_csv('./local/results_all_gpus.csv', index=False)
-    combined_df.to_parquet('./local/results_all_gpus.parquet', index=False)
+    combined_df.to_csv(df_path, index=False)
+    combined_df.to_parquet(parquet_path, index=False)
 
     # Clean up temporary files
     for rank in range(world_size):
-        os.remove(f'./local/temp_results_gpu_{rank}.csv')
-        os.remove(f'./local/temp_results_gpu_{rank}.parquet')
+        os.remove(f'./temp_results_gpu_{rank}.csv')
+        os.remove(f'./temp_results_gpu_{rank}.parquet')
 
 
-def push_to_hf(repo_name: str, hf_username: str):
+def push_to_hf(hf_username: str = 'cat-searcher',
+               hf_reward_repo_name: str = 'responses-gemma-1.1-2b-it-split-0-rewards',
+               parquet_path: str = './data/rewards/output_dir/reward.parquet'):
     """
     Push to huggingface repo.
     """
-    api = HfApi()
-    repo_url = api.create_repo(name=repo_name, organization=hf_username, private=False, exist_ok=True)
-    repo = Repository(local_dir="./local", clone_from=repo_url)
-
-    repo.git_add(pattern="results_all_gpus.csv")
-    repo.git_add(pattern="results_all_gpus.parquet")
-    repo.git_commit("Add combined results from all GPUs")
-    repo.git_push()
+    repo = Dataset.from_parquet(parquet_path)
+    repo.push_to_hub(f'{hf_username}/{hf_reward_repo_name}', 
+                     split='train', 
+                     private=True)
+    
 
 def parse_arguments():
     """
@@ -167,6 +176,10 @@ def parse_arguments():
                         help='The dataset with prompts and multiple response generations.')
     parser.add_argument("--n_generations", type=int, default=5,
                         help='The number of response generations in the datast.')
+    parser.add_argument("--output_dir", type=str, 
+                        default="responses-gemma-1.1-2b-it-split-0")
+    parser.add_argument("--data_root", type=str, 
+                        default="./data")
     parser.add_argument("--hf_username", type=str, 
                         default="cat-searcher",
                         help='The username to push the results to on Hugging Face.')
@@ -180,6 +193,18 @@ def parse_arguments():
 def main():
     
     args = parse_arguments()
+    output_dir = Path(args.output_dir)
+    
+    data_root = Path(args.data_root)
+    reward_dir = data_root / 'eval' / output_dir
+    reward_dir.mkdir(parents=True, exist_ok=True)
+    
+    df_path = reward_dir / 'reward.csv'
+    parquet_path = reward_dir / 'reward.csv'
+    
+    hf_reward_repo_name = args.output_dir.name + "-all-hf-rewards"
+    
+    
     world_size = torch.cuda.device_count()
     dataset = load_dataset(args.input_dataset)
     subset = dataset['train'].select(range(100))  # DEBUG TODO: Remove this line
@@ -193,10 +218,14 @@ def main():
     )
 
     # Combine the temporary files into a single CSV and Parquet file
-    combine_results(world_size)
+    combine_results(world_size=world_size,
+                    df_path=df_path,
+                    parquet_path=parquet_path)
 
     # Push to Hugging Face
-    push_to_hf(args.input_dataset, args.hf_username)
+    push_to_hf(hf_username=args.hf_username,
+               hf_reward_repo_name=hf_reward_repo_name,
+               parquet_path=parquet_path)
 
 
 if __name__ == "__main__":
