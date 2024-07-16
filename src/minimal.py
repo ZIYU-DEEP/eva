@@ -95,6 +95,7 @@ def process_dataset(rank: int,
     all_rewards = []
     all_critiques = []
     all_prompts = []
+    all_responses = {f'generate_{i}': [] for i in range(n_generations)}
 
     # Populate the lists
     for _, row in tqdm.tqdm(df.iterrows(), total=len(df), desc=f"Processing on GPU {rank}"):
@@ -114,6 +115,7 @@ def process_dataset(rank: int,
         all_prompts.append(prompt)
         all_rewards.append(row_rewards)
         all_critiques.append(row_critiques)
+        for i in range(n_generations): all_responses[f'generate_{i}'].append(responses[i])
 
     # Clean DDP
     cleanup_distributed()
@@ -125,10 +127,14 @@ def process_dataset(rank: int,
         'critiques': all_critiques,
     })
     
+    # Add response columns
+    for i in range(n_generations):
+        results_df[f'generate_{i}'] = all_responses[f'generate_{i}']
+        
     # Add additional information
-    df['reward_mean'] = df['rewards'].apply(np.mean)
-    df['reward_var'] = df['rewards'].apply(np.var)
-    df['reward_gap'] = df['rewards'].apply(lambda x: max(x) - min(x))
+    results_df['reward_mean'] = results_df['rewards'].apply(np.mean)
+    results_df['reward_var'] = results_df['rewards'].apply(np.var)
+    results_df['reward_gap'] = results_df['rewards'].apply(lambda x: max(x) - min(x))
     
     # Save temporary results
     results_df.to_csv(f'./temp_results_gpu_{rank}.csv', index=False)
@@ -199,11 +205,11 @@ def main():
     reward_dir = data_root / 'eval' / output_dir
     reward_dir.mkdir(parents=True, exist_ok=True)
     
-    df_path = reward_dir / 'reward.csv'
-    parquet_path = reward_dir / 'reward.csv'
+    filename_suffix = f'{args.reward_model_path.split('/')[-1]}'
+    df_path = reward_dir / f'rewards_{filename_suffix}.csv'
+    parquet_path = reward_dir / f'rewards_{filename_suffix}.parquet'
     
     hf_reward_repo_name = args.output_dir.name + "-all-hf-rewards"
-    
     
     world_size = torch.cuda.device_count()
     dataset = load_dataset(args.input_dataset)
