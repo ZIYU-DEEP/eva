@@ -1,5 +1,5 @@
 """
-Evolve the prompts.
+Adaptively sample and evolve the prompts.
 """
 
 from multiprocessing import Pool
@@ -19,20 +19,28 @@ def parse_arguments():
     Parse command line arguments.
     """
     parser = argparse.ArgumentParser()
+    
+    parser.add_argument("--hf_username", type=str, default="cat-searcher")
     parser.add_argument("--input_dataset", type=str, 
                         default="cat-searcher/responses-gemma-1.1-2b-it-split-0-all-hf-rewards",
                         help='The dataset with prompts to evolve.')
     parser.add_argument("--output_dataset", type=str, 
                         default="cat-searcher/responses-gemma-1.1-2b-it-split-0-all-hf-rewards-resample-evol",
                         help='The evolved dataset.')
-    parser.add_argument("--hf_username", type=str, default="cat-searcher")
+    
     parser.add_argument("--data_root", type=str, default="./data")
     parser.add_argument("--gen_model_name", type=str, default="gpt-4-turbo")
     parser.add_argument("--num_evolutions", type=int, default=4)
     parser.add_argument("--num_workers", type=int, default=40)
+    
+    parser.add_argument("--adaptive_sample", type=int, default=1,
+                        choices=[0, 1], 
+                        help="Adaptively sample for an informative subsets. 0 if not.")
+    parser.add_argument("--sample_metric", type=str, default='reward_mean')
+    parser.add_argument("--sample_frac", type=float, default=0.25)
+    parser.add_argument("--sample_method", type=str, default='importance_weighted')
 
     return parser.parse_args()
-
 
 
 def evolve_chunk(instructions, gen_model_name, num_evolutions):
@@ -64,10 +72,10 @@ def evolve_chunk(instructions, gen_model_name, num_evolutions):
 def adaptive_sample(
     input_dataset: str = 'cat-searcher/responses-gemma-1.1-2b-it-split-0-all-hf-rewards',
     hf_username: str = 'cat-searcher',
-    metric: str = 'reward_mean',
-    frac: float = 0.25,
-    sampling_method: str = 'importance_weighted'
-) -> None:
+    sample_metric: str = 'reward_mean',
+    sample_frac: float = 0.25,
+    sample_method: str = 'importance_weighted'
+) -> str:
     """
     Sample prompts based on a specified metric with conditional logic and advanced sampling.
     """
@@ -78,45 +86,54 @@ def adaptive_sample(
 
     # ----------------------------------------------------------------------------------
     # Calculate weights based on the metric
-    if metric in ['reward_mean']:
-        values = df[metric]
+    if sample_metric in ['reward_mean']:
+        values = df[sample_metric]
         min_value, max_value = values.min(), values.max()
         normalized_values = (values - min_value) / (max_value - min_value)
         inverted_weights = 1 - normalized_values
         weights = inverted_weights / inverted_weights.sum()
         
-    elif metric in ['reward_var', 'reward_gap']:
-        values = df[metric]
+    elif sample_metric in ['reward_var', 'reward_gap']:
+        values = df[sample_metric]
         min_value, max_value = values.min(), values.max()
         normalized_values = (values - min_value) / (max_value - min_value)
         weights = normalized_values / normalized_values.sum()
         
     else:
-        raise ValueError(f"Metric {metric} not recognized or supported for sampling.")
+        raise ValueError(f"Metric {sample_metric} not recognized.")
     # ----------------------------------------------------------------------------------
 
     # ----------------------------------------------------------------------------------
     # Perform sampling based on the specified method
-    if sampling_method == 'importance_weighted':
+    if sample_method == 'importance_weighted':
         # Simple importance weighted sampling
-        sampled_df = df.sample(n=int(len(df) * frac), weights=weights, replace=False)
+        sampled_df = df.sample(n=int(len(df) * sample_frac), 
+                               weights=weights, 
+                               replace=False)
         
-    elif sampling_method == 'stratified':
+    elif sample_method == 'stratified':
         # Stratified sampling based on the metric
         df['weights'] = weights
-        sampled_df = df.groupby(pd.qcut(df[metric], q=10, duplicates='drop')).apply(
-            lambda x: x.sample(frac=frac, weights=x['weights'], replace=False)).reset_index(drop=True)
+        sampled_df = df.groupby(pd.qcut(df[sample_metric], 
+                                        q=10,  # TODO: better use a parameter
+                                        duplicates='drop')).apply(
+            lambda x: x.sample(frac=sample_frac, 
+                               weights=x['weights'], 
+                               replace=False)).reset_index(drop=True)
     else:
-        raise ValueError(f"Sampling method {sampling_method} not recognized.")
+        raise ValueError(f"Sampling method {sample_method} not recognized.")
     # ----------------------------------------------------------------------------------
 
     # Save and push to hub
     new_dataset = Dataset.from_pandas(sampled_df)
+    ds_name = f"{hf_username}/{input_dataset}-re-sample-{sample_metric}-{sample_method}-{sample_frac}"
     new_dataset.push_to_hub(
-        f"{hf_username}/{input_dataset}-re-sample-{metric}-{sampling_method}-{frac}", 
+        ds_name, 
         split="train", 
         private=True
     )
+    
+    return ds_name
 
 
 def main():
