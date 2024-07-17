@@ -81,7 +81,7 @@ def main():
     # --------------------------------------------------------
     # Get the dataset
     dataset = load_dataset(input_dataset, split='train')
-    dataset = dataset.select(range(0, 50))  # TODO: This line is for debug
+    # dataset = dataset.select(range(0, 50))  # TODO: This line is for debug
     instruction_list = [{'instruction': prompt} for prompt in dataset['prompt']]
     # --------------------------------------------------------
 
@@ -95,13 +95,6 @@ def main():
         instruction_chunks[-2].extend(instruction_chunks[-1])
         instruction_chunks.pop()
     # --------------------------------------------------------
-
-    # # --------------------------------------------------------
-    # # Process the chunks in parallel
-    # with Pool(num_workers) as pool:
-    #     result_chunks = pool.starmap(
-    #         process_chunk, 
-    #         [(chunk, gen_model_name, num_evolutions) for chunk in instruction_chunks])
 
     # --------------------------------------------------------
     # Process the chunks in parallel with progress bar
