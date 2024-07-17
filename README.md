@@ -46,6 +46,7 @@ Execute the training scripts based on the base model you choose:
 2. Evolving training
    ```bash
    # Evaluate the prompt quality
+   bash ./scripts/default/generate.sh
    python ./src/reward_hf.py
 
    # Generate new prompt set
