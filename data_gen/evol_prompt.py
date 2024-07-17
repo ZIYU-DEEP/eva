@@ -12,6 +12,7 @@ from functools import partial
 
 import pandas as pd
 import argparse
+import time
 import os
 
 
@@ -140,6 +141,7 @@ def adaptive_sample(
 def main():
     # --------------------------------------------------------
     # Parse the arguments
+    start_time = time.time()
     args = parse_arguments()
 
     data_root = args.data_root
@@ -163,7 +165,7 @@ def main():
     # --------------------------------------------------------
     # Get the dataset
     dataset = load_dataset(input_dataset, split='train')
-    dataset = dataset.select(range(0, 50))  # TODO: This line is for debug
+    # dataset = dataset.select(range(0, 50))  # DEBUG: this line is for debug
     
     # Create an informative subset
     if do_adaptive_sample:
@@ -218,6 +220,9 @@ def main():
     repo = Dataset.from_csv(csv_path)
     repo.push_to_hub(output_dataset, split='train', private=True)
     print(f'Dataset pushed to huggingface.co/datasets/{output_dataset}.')
+    
+    elapsed_time = time.time() - start_time
+    print(f"Time elapsed: {elapsed_time:.2f} seconds.")
     # --------------------------------------------------------
 
 
