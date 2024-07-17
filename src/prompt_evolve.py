@@ -1,5 +1,6 @@
 """
-Evaluate prompts and their responses, calculate rewards, and sample based on metrics.
+!!! DEPRECATED !!!
+SEE ./data_gen/prompt_evolve.py.
 """
 
 import os
@@ -21,7 +22,6 @@ from datasets import load_dataset, Dataset
 from typing import Callable, List, Dict, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
 
 
 def parse_arguments():
