@@ -48,7 +48,10 @@ def parse_arguments():
 def evolve_chunk(instructions, gen_model_name, num_evolutions):
     # Get the llm
     llm = OpenAILLM(model=gen_model_name)
-    llm.generation_kwargs = {"max_new_tokens": 512}  # TODO: note this mean lead to api error
+    llm.generation_kwargs = {
+        "max_new_tokens": 512,  # TODO: too large may lead to api error; original 2048
+        "temperature": 1.0,
+        }  
     
     # Create the task for evolving instructions
     evol_instruct = EvolInstruct(

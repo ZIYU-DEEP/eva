@@ -1,6 +1,6 @@
 # README
 
-```
+<!-- ```
 src/
 ├── preload.py           # Preloads necessary data and models
 
@@ -12,7 +12,7 @@ src/
 ├── pipeline.sh          # Main pipeline script for training
 
 └── update_config.py    # Updates the dataset with new entries
-```
+``` -->
 
 ## Folder Structure
 ### Generating responses from a prompt set

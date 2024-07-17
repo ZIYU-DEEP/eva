@@ -22,8 +22,8 @@ DATASET="cat-searcher/responses-gemma-1.1-2b-it-split-${ITER}-evol-mixed-pair"
 BATCH_SIZE=4
 ACCUMULATE=2
 SAVE_DIR="checkpoints/gemma-1.1-2b-it-${LOSS_TYPE}-iter-${ITER}-evol-mixed"
-HUB_MODEL_ID="cat-searcher/gemma-1.1-2b-it-${LOSS_TYPE}-iter${ITER}"
 RUN_NAME="sppo"
+HUB_MODEL_ID="cat-searcher/gemma-1.1-2b-it-${LOSS_TYPE}-iter${ITER}-evol-mixed"
 
 # Set the name for the log file
 log_file="iter${ITER}"
@@ -47,6 +47,7 @@ python src/update_config.py \
     --hub_model_id $HUB_MODEL_ID \
     --config_path "$new_config_file" >"logs/train_$log_file.log"
 # ------------------------------------------------------------------
+
 
 
 # ##################################################################
