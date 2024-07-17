@@ -25,8 +25,8 @@ def parse_arguments():
     parser.add_argument("--output_dataset", type=str, 
                         default="cat-searcher/responses-gemma-1.1-2b-it-split-0-all-hf-rewards-resample-evol",
                         help='The evolved dataset.')
-    parser.add_argument("--data_root", type=str, 
-                        default="./data")
+    parser.add_argument("--hf_username", type=str, default="cat-searcher")
+    parser.add_argument("--data_root", type=str, default="./data")
     parser.add_argument("--gen_model_name", type=str, default="gpt-4-turbo")
     parser.add_argument("--num_evolutions", type=int, default=4)
     parser.add_argument("--num_workers", type=int, default=40)
@@ -35,7 +35,7 @@ def parse_arguments():
 
 
 
-def process_chunk(instructions, gen_model_name, num_evolutions):
+def evolve_chunk(instructions, gen_model_name, num_evolutions):
     # Get the llm
     llm = OpenAILLM(model=gen_model_name)
     
@@ -59,6 +59,64 @@ def process_chunk(instructions, gen_model_name, num_evolutions):
             evolved_prompts.append(result_i)
     
     return evolved_prompts
+
+
+def prompt_sample(
+    input_dataset: str,
+    hf_username: str = 'cat-searcher',
+    metric: str = 'reward_mean',
+    frac: float = 0.25,
+    sampling_method: str = 'importance_weighted'
+) -> None:
+    """
+    Sample prompts based on a specified metric with conditional logic and advanced sampling.
+    """
+    # Load dataset
+    if '/' in input_dataset: input_dataset = input_dataset.split('/')[-1]
+    dataset = load_dataset(f"{hf_username}/{input_dataset}", split="train")
+    df = dataset.to_pandas()
+
+    # ----------------------------------------------------------------------------------
+    # Calculate weights based on the metric
+    if metric in ['reward_mean']:
+        values = df[metric]
+        min_value, max_value = values.min(), values.max()
+        normalized_values = (values - min_value) / (max_value - min_value)
+        inverted_weights = 1 - normalized_values
+        weights = inverted_weights / inverted_weights.sum()
+        
+    elif metric in ['reward_var', 'reward_gap']:
+        values = df[metric]
+        min_value, max_value = values.min(), values.max()
+        normalized_values = (values - min_value) / (max_value - min_value)
+        weights = normalized_values / normalized_values.sum()
+        
+    else:
+        raise ValueError(f"Metric {metric} not recognized or supported for sampling.")
+    # ----------------------------------------------------------------------------------
+
+    # ----------------------------------------------------------------------------------
+    # Perform sampling based on the specified method
+    if sampling_method == 'importance_weighted':
+        # Simple importance weighted sampling
+        sampled_df = df.sample(n=int(len(df) * frac), weights=weights, replace=False)
+        
+    elif sampling_method == 'stratified':
+        # Stratified sampling based on the metric
+        df['weights'] = weights
+        sampled_df = df.groupby(pd.qcut(df[metric], q=10, duplicates='drop')).apply(
+            lambda x: x.sample(frac=frac, weights=x['weights'], replace=False)).reset_index(drop=True)
+    else:
+        raise ValueError(f"Sampling method {sampling_method} not recognized.")
+    # ----------------------------------------------------------------------------------
+
+    # Save and push to hub
+    new_dataset = Dataset.from_pandas(sampled_df)
+    new_dataset.push_to_hub(
+        f"{hf_username}/{input_dataset}-re-sample-{metric}-{sampling_method}-{frac}", 
+        split="train", 
+        private=True
+    )
 
 
 def main():
@@ -100,7 +158,7 @@ def main():
     # Process the chunks in parallel with progress bar
     with Pool(num_workers) as pool:
         result_chunks = list(tqdm(pool.starmap(
-            process_chunk, 
+            evolve_chunk, 
             [(chunk, gen_model_name, num_evolutions) for chunk in instruction_chunks]), total=len(instruction_chunks)))
 
     # Flatten the list of results
