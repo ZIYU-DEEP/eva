@@ -4,11 +4,13 @@
 MODEL_PATHS=(
     "google/gemma-1.1-2b-it"
     "cat-searcher/gemma-1.1-2b-it-sppo-iter0"
+    "cat-searcher/gemma-1.1-2b-it-sppo-iter0-evol-mixed"
 )
 
 MODEL_IDS=(
     "gemma-1.1-2b-it"
     "gemma-1.1-2b-it-sppo-iter0"
+    "gemma-1.1-2b-it-sppo-iter0-evol-mixed"
 )
 
 
