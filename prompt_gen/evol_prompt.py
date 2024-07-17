@@ -7,6 +7,7 @@ from datasets import load_dataset, Dataset
 from distilabel.llms import OpenAILLM
 from distilabel.steps.tasks import EvolInstruct
 from pathlib import Path
+from tqdm import tqdm
 
 import pandas as pd
 import argparse
@@ -33,8 +34,7 @@ def parse_arguments():
     return parser.parse_args()
 
 
-# --------------------------------------------------------
-# Function to process a chunk of instructions
+
 def process_chunk(instructions, gen_model_name, num_evolutions):
     # Get the llm
     llm = OpenAILLM(model=gen_model_name)
@@ -59,7 +59,6 @@ def process_chunk(instructions, gen_model_name, num_evolutions):
             evolved_prompts.append(result_i)
     
     return evolved_prompts
-# --------------------------------------------------------
 
 
 def main():
@@ -97,12 +96,19 @@ def main():
         instruction_chunks.pop()
     # --------------------------------------------------------
 
+    # # --------------------------------------------------------
+    # # Process the chunks in parallel
+    # with Pool(num_workers) as pool:
+    #     result_chunks = pool.starmap(
+    #         process_chunk, 
+    #         [(chunk, gen_model_name, num_evolutions) for chunk in instruction_chunks])
+
     # --------------------------------------------------------
-    # Process the chunks in parallel
+    # Process the chunks in parallel with progress bar
     with Pool(num_workers) as pool:
-        result_chunks = pool.starmap(
+        result_chunks = list(tqdm(pool.starmap(
             process_chunk, 
-            [(chunk, gen_model_name, num_evolutions) for chunk in instruction_chunks])
+            [(chunk, gen_model_name, num_evolutions) for chunk in instruction_chunks]), total=len(instruction_chunks)))
 
     # Flatten the list of results
     prompt_list = [prompt for sublist in result_chunks for prompt in sublist]
@@ -117,6 +123,7 @@ def main():
     df_chunk.to_csv(csv_path, index=False)
     repo = Dataset.from_csv(csv_path)
     repo.push_to_hub(output_dataset, split='train', private=True)
+    print(f'Dataset pushed to huggingface.co/datasets/{output_dataset}.')
     # --------------------------------------------------------
 
 
