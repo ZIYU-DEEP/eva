@@ -61,8 +61,8 @@ def evolve_chunk(instructions, gen_model_name, num_evolutions):
     return evolved_prompts
 
 
-def prompt_sample(
-    input_dataset: str,
+def adaptive_sample(
+    input_dataset: str = 'cat-searcher/responses-gemma-1.1-2b-it-split-0-all-hf-rewards',
     hf_username: str = 'cat-searcher',
     metric: str = 'reward_mean',
     frac: float = 0.25,
