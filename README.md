@@ -2,7 +2,7 @@
 # README
 
 ## About
-We present a new self-play framework for language model alignment and a new learning objective derived from the self-play framework to fine-tune large language models efficiently.
+We present a new self-play framework for language model alignment and a new learning objective derived from the self-play framework to align large language models more efficiently and effectively.
 
 
 ## Environment Setup
@@ -12,7 +12,7 @@ We present a new self-play framework for language model alignment and a new lear
    conda activate align
    ```
 
-2. **Install PairRM:**
+2. **Install PairRM:** (a temporary choice for RM during training)
    ```bash
    git clone https://github.com/yuchenlin/LLM-Blender.git
    cd LLM-Blender
@@ -37,14 +37,23 @@ We present a new self-play framework for language model alignment and a new lear
 ## Training Scripts
 Execute the training scripts based on the base model you choose:
 
-- Generation:
+- Generation for Y|X:
   ```bash
   bash ./scripts/generate.sh
   ```
 
+- (Optional) Evolving for X'|X:
+  ```bash
+  bash ./scripts/evolve_x.sh
+  ```
+
 - Training:
   ```bash
-  bash ./scripts/train.sh
+  # use the raw X
+  bash ./scripts/train.sh 
+
+  # use X + X'
+  bash ./scripts/train_plus.sh
   ```
 
 ## Evaluation on Benchmarks
@@ -55,6 +64,18 @@ See detailed instructions for different benchmarks in `./benchmark`.
   cd ./benchmark/mt_bench
   bash ./run.sh  # Be sure to modify the models to compare with
   ```
+
+- Arena Hard
+   ```bash
+   cd ./benchmark/arena_hard
+   bash ./run.sh # Be sure to modify the models to compare with
+   ```
+
+<!-- - Alpaca Eval
+   ```bash
+   cd ./benchmark/arena_hard
+   bash ./run.sh # Be sure to modify the models to compare with
+   ``` -->
 
 <!-- ### Breakdown of Scripts:
 1. **Generation:**
