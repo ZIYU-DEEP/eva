@@ -4,11 +4,11 @@ Adaptively sample and evolve the prompts.
 
 from multiprocessing import Pool
 from datasets import load_dataset, Dataset
-from distilabel.llms import OpenAILLM
-from distilabel.steps.tasks import EvolInstruct
+# from distilabel.llms import OpenAILLM
+# from distilabel.steps.tasks import EvolInstruct
 from pathlib import Path
 from tqdm import tqdm
-from functools import partial
+# from functools import partial
 
 import pandas as pd
 import argparse
@@ -32,10 +32,10 @@ def parse_arguments():
     
     parser.add_argument("--data_root", type=str, default="./data")
     parser.add_argument("--gen_model_name", type=str, default="gpt-4-turbo")
-    parser.add_argument("--num_evolutions", type=int, default=4)
-    parser.add_argument("--num_workers", type=int, default=40)
+    parser.add_argument("--num_evolutions", type=int, default=1)
+    parser.add_argument("--num_workers", type=int, default=2)
     
-    parser.add_argument("--do_adaptive_sample", type=int, default=1,
+    parser.add_argument("--do_adaptive_sample", type=int, default=0,
                         choices=[0, 1], 
                         help="Adaptively sample for an informative subsets. 0 if not.")
     parser.add_argument("--sample_metric", type=str, default='reward_mean')
@@ -46,11 +46,14 @@ def parse_arguments():
 
 
 def evolve_chunk(instructions, gen_model_name, num_evolutions):
-    # Get the llm
-    llm = OpenAILLM(model=gen_model_name)
-    llm.generation_kwargs = {"max_new_tokens": 1024}  # TODO: double check api
+    # Ensure imports are available in each process
+    from distilabel.llms import OpenAILLM
+    from distilabel.steps.tasks import EvolInstruct
     
-    # Create the task for evolving instructions
+    # Initialize the llm and EvolInstruct within the worker
+    llm = OpenAILLM(model=gen_model_name)
+    llm.generation_kwargs = {"max_new_tokens": 512}  # Adjust the token value
+    
     evol_instruct = EvolInstruct(
         llm=llm,
         num_evolutions=num_evolutions,
@@ -166,7 +169,7 @@ def main():
     # --------------------------------------------------------
     # Get the dataset
     dataset = load_dataset(input_dataset, split='train')
-    dataset = dataset.select(range(0, 50))  # DEBUG: this line is for debug
+    dataset = dataset.select(range(0, 6))  # DEBUG: this line is for debug
     
     # Create an informative subset
     if do_adaptive_sample:
@@ -195,6 +198,7 @@ def main():
 
     # --------------------------------------------------------
     # Wrap evolve_chunk to handle multiple arguments
+    from functools import partial
     evolve_chunk_wrapper = partial(evolve_chunk, 
                                    gen_model_name=gen_model_name, 
                                    num_evolutions=num_evolutions)
