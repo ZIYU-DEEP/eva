@@ -73,6 +73,7 @@ _deps = [
     "tqdm>=4.64.1",
     "vllm==0.3.1",
     "wandb==0.16.3",
+    "distilabel==1.2.1",
 ]
 
 # this is a lookup table with items like:
