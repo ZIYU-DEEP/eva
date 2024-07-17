@@ -18,11 +18,11 @@ OPTIM="rmsprop"
 PREF="sppo_score"
 N_EPOCHS=18
 MODEL="google/gemma-1.1-2b-it"
-DATASET="cat-searcher/responses-gemma-1.1-2b-it-split-${ITER}-evol-mixed-pair"
-BATCH_SIZE=4
-ACCUMULATE=2
-SAVE_DIR="checkpoints/gemma-1.1-2b-it-${LOSS_TYPE}-iter-${ITER}-evol-mixed"
-HUB_MODEL_ID="cat-searcher/gemma-1.1-2b-it-${LOSS_TYPE}-iter${ITER}"
+DATASET="cat-searcher/responses-gemma-1.1-2b-it-split-${ITER}-pair"
+BATCH_SIZE=2
+ACCUMULATE=4
+SAVE_DIR="checkpoints/gemma-1.1-2b-it-${LOSS_TYPE}-iter-${ITER}-re-run"
+HUB_MODEL_ID="cat-searcher/gemma-1.1-2b-it-${LOSS_TYPE}-iter${ITER}-re-run"
 RUN_NAME="sppo"
 
 # Set the name for the log file
