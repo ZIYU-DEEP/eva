@@ -33,7 +33,7 @@ def parse_arguments():
     parser.add_argument("--data_root", type=str, default="./data")
     parser.add_argument("--gen_model_name", type=str, default="gpt-4-turbo")
     parser.add_argument("--num_evolutions", type=int, default=4)
-    parser.add_argument("--num_workers", type=int, default=40)
+    parser.add_argument("--num_workers", type=int, default=20)
     
     parser.add_argument("--do_adaptive_sample", type=int, default=1,
                         choices=[0, 1], 
@@ -48,7 +48,7 @@ def parse_arguments():
 def evolve_chunk(instructions, gen_model_name, num_evolutions):
     # Get the llm
     llm = OpenAILLM(model=gen_model_name)
-    llm.generation_kwargs = {"max_new_tokens": 1024}  # TODO: double check api
+    llm.generation_kwargs = {"max_new_tokens": 512}  # TODO: note this mean lead to api error
     
     # Create the task for evolving instructions
     evol_instruct = EvolInstruct(
@@ -166,7 +166,7 @@ def main():
     # --------------------------------------------------------
     # Get the dataset
     dataset = load_dataset(input_dataset, split='train')
-    dataset = dataset.select(range(0, 50))  # DEBUG: this line is for debug
+    # dataset = dataset.select(range(0, 50))  # DEBUG: this line is for debug
     
     # Create an informative subset
     if do_adaptive_sample:
