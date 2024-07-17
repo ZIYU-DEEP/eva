@@ -33,7 +33,7 @@ def parse_arguments():
     parser.add_argument("--num_evolutions", type=int, default=4)
     parser.add_argument("--num_workers", type=int, default=40)
     
-    parser.add_argument("--adaptive_sample", type=int, default=1,
+    parser.add_argument("--do_adaptive_sample", type=int, default=1,
                         choices=[0, 1], 
                         help="Adaptively sample for an informative subsets. 0 if not.")
     parser.add_argument("--sample_metric", type=str, default='reward_mean')
@@ -147,7 +147,13 @@ def main():
     num_workers = args.num_workers
     gen_model_name = args.gen_model_name 
     num_evolutions = args.num_evolutions
-
+    
+    do_adaptive_sample = args.do_adaptive_sample
+    hf_username = args.hf_username
+    sample_metric = args.sample_metric
+    sample_frac = args.sample_frac
+    sample_method = args.sample_method
+    
     evolve_dir = Path(data_root) / 'evolved'
     evolve_dir.mkdir(parents=True, exist_ok=True)
     csv_path = str(evolve_dir / f'{input_dataset.split("/")[-1]}.csv')
@@ -156,7 +162,19 @@ def main():
     # --------------------------------------------------------
     # Get the dataset
     dataset = load_dataset(input_dataset, split='train')
-    # dataset = dataset.select(range(0, 50))  # TODO: This line is for debug
+    dataset = dataset.select(range(0, 50))  # TODO: This line is for debug
+    
+    # Create an informative subset
+    if do_adaptive_sample:
+        input_dataset = adaptive_sample(
+            input_dataset=input_dataset,
+            hf_username=hf_username,
+            sample_metric=sample_metric,
+            sample_frac=sample_frac,
+            sample_method=sample_method
+        )
+        dataset = load_dataset(input_dataset, split='train')
+        
     instruction_list = [{'instruction': prompt} for prompt in dataset['prompt']]
     # --------------------------------------------------------
 
