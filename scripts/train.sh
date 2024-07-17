@@ -22,6 +22,7 @@ DATASET="cat-searcher/responses-gemma-1.1-2b-it-split-${ITER}-evol-mixed-pair"
 BATCH_SIZE=4
 ACCUMULATE=2
 SAVE_DIR="checkpoints/gemma-1.1-2b-it-${LOSS_TYPE}-iter-${ITER}-evol-mixed"
+HUB_MODEL_ID="cat-searcher/gemma-1.1-2b-it-${LOSS_TYPE}-iter${ITER}"
 RUN_NAME="sppo"
 
 # Set the name for the log file
@@ -39,9 +40,11 @@ dataset_name=$(echo "$DATASET" | cut -d '/' -f2)
 new_config_file="./recipes/default/config_full_${dataset_name}.yaml"
 cp ./recipes/default/config_full.yaml "$new_config_file"
 
-# Update the dataset (todo: do this in place in bash files)
+# Update the dataset, model name, and hub model ID
 python src/update_config.py \
     --dataset $DATASET \
+    --model_name $MODEL \
+    --hub_model_id $HUB_MODEL_ID \
     --config_path "$new_config_file" >"logs/train_$log_file.log"
 # ------------------------------------------------------------------
 
