@@ -1,7 +1,7 @@
 # MT-Bench
 
 <div style="text-align: center;">
-    <img src="plot.png" width="600">
+    <img src="newplot.png" width="600">
 </div>
 
 
@@ -27,13 +27,16 @@ pip install -e ".[model_worker,llm_judge]"
 # 0. Define the model paths and IDs in arrays
 MODEL_PATHS=(
     "google/gemma-1.1-2b-it"
-    "google/gemma-2-9b-it"
+    "cat-searcher/gemma-1.1-2b-it-sppo-iter0"
+    "cat-searcher/gemma-1.1-2b-it-sppo-iter0-evol-mixed"
 )
 
 MODEL_IDS=(
     "gemma-1.1-2b-it"
-    "gemma-2-9b-it"
+    "gemma-1.1-2b-it-sppo-iter0"
+    "gemma-1.1-2b-it-sppo-iter0-evol-mixed"
 )
+
 
 # 1. Download models
 for i in "${!MODEL_PATHS[@]}"; do
