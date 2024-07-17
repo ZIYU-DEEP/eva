@@ -5,8 +5,8 @@ torch_dtype: null
 # Push to hub arguments
 push_to_hub: true
 hub_private_repo: true
-hub_model_id: cat-searcher/gemma-1.1-2b-it-sppo-iter0
-output_dir: checkpoints/gemma-1.1-2b-it-sppo-iter0
+hub_model_id: cat-searcher/gemma-1.1-2b-it-sppo-iter0-evol-mixed
+output_dir: checkpoints/gemma-1.1-2b-it-sppo-iter0-evol-mixed
 
 # Checkpoint setting
 hub_strategy: checkpoint
