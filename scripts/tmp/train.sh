@@ -50,24 +50,24 @@ python src/update_config.py \
 
 
 
-# # ##################################################################
-# # 1. Training
-# # ##################################################################
-# # ------------------------------------------------------------------
-# # Run the training
-# ACCELERATE_LOG_LEVEL=info accelerate launch \
-#     --config_file ./recipes/accelerate_configs/deepspeed_zero3.yaml \
-#     --main_process_port 8964 \
-#     eva/run_dpo.py "$new_config_file" \
-#     --learning_rate=$LEARNING_RATE \
-#     --beta=$BETA \
-#     --optim="$OPTIM" \
-#     --output_dir="$SAVE_DIR" \
-#     --run_name="$RUN_NAME" \
-#     --loss_type=$LOSS_TYPE \
-#     --per_device_train_batch_size=$BATCH_SIZE \
-#     --gradient_accumulation_steps=$ACCUMULATE \
-#     --model_name_or_path=$MODEL \
-#     --num_train_epochs=$N_EPOCHS
-# # 2>&1 | tee "logs/train_$log_file.log"
-# # ------------------------------------------------------------------
+# ##################################################################
+# 1. Training
+# ##################################################################
+# ------------------------------------------------------------------
+# Run the training
+ACCELERATE_LOG_LEVEL=info accelerate launch \
+    --config_file ./recipes/accelerate_configs/deepspeed_zero3.yaml \
+    --main_process_port 8964 \
+    eva/run_dpo.py "$new_config_file" \
+    --learning_rate=$LEARNING_RATE \
+    --beta=$BETA \
+    --optim="$OPTIM" \
+    --output_dir="$SAVE_DIR" \
+    --run_name="$RUN_NAME" \
+    --loss_type=$LOSS_TYPE \
+    --per_device_train_batch_size=$BATCH_SIZE \
+    --gradient_accumulation_steps=$ACCUMULATE \
+    --model_name_or_path=$MODEL \
+    --num_train_epochs=$N_EPOCHS
+# 2>&1 | tee "logs/train_$log_file.log"
+# ------------------------------------------------------------------
