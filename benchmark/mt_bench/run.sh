@@ -14,31 +14,31 @@ MODEL_IDS=(
 )
 
 
-# --------------------------------------------------------------------------
-# 0. Download models
-for i in "${!MODEL_PATHS[@]}"; do
-    python download_model.py \
-        --model-path "${MODEL_PATHS[$i]}"
-done
-# --------------------------------------------------------------------------
+# # --------------------------------------------------------------------------
+# # 0. Download models
+# for i in "${!MODEL_PATHS[@]}"; do
+#     python download_model.py \
+#         --model-path "${MODEL_PATHS[$i]}"
+# done
+# # --------------------------------------------------------------------------
 
 
-# --------------------------------------------------------------------------
-# 1. Generate answers (saved to ./data/mt_bench/model_answer/*.jsonl)
-for i in "${!MODEL_PATHS[@]}"; do
-    python gen_model_answer.py \
-        --model-path "${MODEL_PATHS[$i]}" \
-        --model-id "${MODEL_IDS[$i]}" \
-        --num-gpus-total 8
-done
-# --------------------------------------------------------------------------
+# # --------------------------------------------------------------------------
+# # 1. Generate answers (saved to ./data/mt_bench/model_answer/*.jsonl)
+# for i in "${!MODEL_PATHS[@]}"; do
+#     python gen_model_answer.py \
+#         --model-path "${MODEL_PATHS[$i]}" \
+#         --model-id "${MODEL_IDS[$i]}" \
+#         --num-gpus-total 8
+# done
+# # --------------------------------------------------------------------------
 
 
 # --------------------------------------------------------------------------
 # 2. Generate judgements (saved to ./data/mt_bench/model_answer/*.jsonl)
 python gen_judgment.py \
     --model-list "${MODEL_IDS[@]}" \
-    --parallel 40
+    --parallel 10
 # --------------------------------------------------------------------------
 
 
