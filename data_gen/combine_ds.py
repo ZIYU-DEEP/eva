@@ -4,8 +4,7 @@ Only prompts are retained.
 """
 
 import argparse
-from datasets import load_dataset, Dataset
-from datasets import concatenate_datasets
+from datasets import load_dataset, concatenate_datasets
 
 
 def parse_arguments():
@@ -14,22 +13,24 @@ def parse_arguments():
     """
     parser = argparse.ArgumentParser()
 
-    # Just temp things
-    # Better write it as a list of datasets
+    # Allow for multiple datasets as input
     parser.add_argument(
-        "--dataset_1", 
+        "--datasets", 
         type=str, 
-        default='cat-searcher/responses-gemma-1.1-2b-it-split-0-all-hf-rewards')
-
-    parser.add_argument(
-        "--dataset_2", 
-        type=str, 
-        default='cat-searcher/responses-gemma-1.1-2b-it-split-0-all-hf-rewards-resample-evol')
+        nargs='+', 
+        default=[
+            'cat-searcher/responses-gemma-1.1-2b-it-split-0-all-hf-rewards',
+            'cat-searcher/responses-gemma-1.1-2b-it-split-0-all-hf-rewards-resample-evol'
+        ],
+        help="List of datasets to combine"
+    )
 
     parser.add_argument(
         "--output_dataset", 
         type=str, 
-        default='cat-searcher/responses-gemma-1.1-2b-it-split-0-evol-mixed')
+        default='cat-searcher/responses-gemma-1.1-2b-it-split-0-evol-mixed',
+        help="Name of the output dataset"
+    )
     
     return parser.parse_args()
 
@@ -38,16 +39,15 @@ def main():
     # Parse command line arguments
     args = parse_arguments()
 
-    # Load datasets
-    dataset_1 = load_dataset(args.dataset_1, split='train')
-    dataset_2 = load_dataset(args.dataset_2, split='train')
-
-    # Retain only the 'prompt' column
-    dataset_1 = dataset_1.remove_columns([col for col in dataset_1.column_names if col != 'prompt'])
-    dataset_2 = dataset_2.remove_columns([col for col in dataset_2.column_names if col != 'prompt'])
+    # Load and process datasets
+    datasets = []
+    for dataset_name in args.datasets:
+        dataset = load_dataset(dataset_name, split='train')
+        dataset = dataset.remove_columns([col for col in dataset.column_names if col != 'prompt'])
+        datasets.append(dataset)
 
     # Combine the datasets
-    combined_dataset = concatenate_datasets([dataset_1, dataset_2])
+    combined_dataset = concatenate_datasets(datasets)
 
     # Shuffle the combined dataset
     shuffled_dataset = combined_dataset.shuffle(seed=42)
