@@ -8,6 +8,7 @@ from distilabel.llms import OpenAILLM
 from distilabel.steps.tasks import EvolInstruct
 from pathlib import Path
 from tqdm import tqdm
+from functools import partial
 
 import pandas as pd
 import argparse
@@ -190,14 +191,21 @@ def main():
     # --------------------------------------------------------
 
     # --------------------------------------------------------
+    # Wrap evolve_chunk to handle multiple arguments
+    evolve_chunk_wrapper = partial(evolve_chunk, 
+                                   gen_model_name=gen_model_name, 
+                                   num_evolutions=num_evolutions)
+    
     # Process the chunks in parallel with progress bar
     with Pool(num_workers) as pool:
-        result_chunks = list(tqdm(pool.starmap(
-            evolve_chunk, 
-            [(chunk, gen_model_name, num_evolutions) for chunk in instruction_chunks]), total=len(instruction_chunks)))
-
+        result_chunks = []
+        for result in tqdm(pool.imap_unordered(
+                evolve_chunk_wrapper, 
+                instruction_chunks), total=len(instruction_chunks)):
+            result_chunks.append(result)
+            
     # Flatten the list of results
-    prompt_list = [prompt for sublist in result_chunks for prompt in sublist]
+    prompt_list = [prompt for sublist in result_chunks for prompt in sublist] 
     # --------------------------------------------------------
 
     # --------------------------------------------------------
