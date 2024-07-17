@@ -34,10 +34,31 @@ We present a new self-play framework for language model alignment and a new lear
    export OPENAI_API_KEY="..."  # get a key at platform.openai.com/api-keys
    ```
 
-## Training Scripts
+## Training Scripts (TEMP)
 Execute the training scripts based on the base model you choose:
 
-- Generation for Y|X:
+1. Default training
+   ```bash
+   bash ./scripts/default/generate.sh
+   bash ./scripts/default/train.sh 
+   ```
+
+2. Evolving training
+   ```bash
+   # Evaluate the prompt quality
+   bash ./scripts/default/generate.sh
+   python ./src/reward_hf.py
+
+   # Generate new prompt set
+   python ./data_gen/evol_prompt.py
+   python ./data_gen/combine_df.py
+
+   # Standard training
+   bash ./scripts/evolve/generate.sh
+   bash ./scripts/evolve/train.sh 
+   ```
+
+<!-- - Generation for Y|X:
   ```bash
   bash ./scripts/generate.sh
   ```
@@ -54,7 +75,7 @@ Execute the training scripts based on the base model you choose:
 
   # use X + X'
   bash ./scripts/train_plus.sh
-  ```
+  ``` -->
 
 ## Evaluation on Benchmarks
 See detailed instructions for different benchmarks in `./benchmark`.
