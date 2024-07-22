@@ -57,7 +57,7 @@ python src/update_config.py \
 ACCELERATE_LOG_LEVEL=info accelerate launch \
     --config_file ./recipes/accelerate_configs/deepspeed_zero3.yaml \
     --main_process_port 8964 \
-    eva/run_dpo.py "$new_config_file" \
+    eva/run_sppo.py "$new_config_file" \
     --learning_rate=$LEARNING_RATE \
     --beta=$BETA \
     --optim="$OPTIM" \

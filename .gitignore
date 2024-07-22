@@ -204,3 +204,6 @@ push_model_to_hub.py
 !benchmark/mt_bench/data/
 
 !benchmark/alpaca_eval
+
+**.npy
+**/dataset_with_topics/
