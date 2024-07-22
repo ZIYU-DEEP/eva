@@ -1,32 +1,49 @@
 set -e
-# set -x
+# set -x  # Print the commands
+
+# ------------------------------------------------------------------
+# Below is to be re-written by source iterate.sh in other bash files
+ITER=0
+MODEL_FAMILY="gemma-1.1-2b-it"
+LOSS_TYPE="sppo"
+PREF="sppo_score"
+# ------------------------------------------------------------------
+
+# ------------------------------------------------------------------
+# Other general parameter to be reset
+HF_USERNAME='cat-searcher'
+LEARNING_RATE="5.0e-7"
+BETA="0.001"
+OPTIM="rmsprop"
+N_EPOCHS=18
+BATCH_SIZE=4
+ACCUMULATE=2
+# ------------------------------------------------------------------
 
 
 # ##################################################################
 # 0. PREPARATION
 # ##################################################################
 # ------------------------------------------------------------------
+NEXT_ITER=$((ITER + 1))
+
+# The base model to train
+MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  
+
+# The preference data from the base model
+DATASET="${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${NEXT_ITER}-pair"
+
+# The directory for the saved model
+SAVE_DIR="checkpoints/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
+HUB_MODEL_ID="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
+# ------------------------------------------------------------------
+
+# ------------------------------------------------------------------
 # export OMP_NUM_THREADS=2
 export OMP_NUM_THREADS=$(nproc)
 
-# Set the parameters
-LEARNING_RATE="5.0e-7"
-ITER="0"
-BETA="0.001"
-LOSS_TYPE="sppo"
-OPTIM="rmsprop"
-PREF="sppo_score"
-N_EPOCHS=18
-MODEL="google/gemma-1.1-2b-it"
-DATASET="cat-searcher/responses-gemma-1.1-2b-it-split-${ITER}-pair"
-BATCH_SIZE=4
-ACCUMULATE=2
-SAVE_DIR="checkpoints/gemma-1.1-2b-it-${LOSS_TYPE}-iter-${ITER}-re-run"
-HUB_MODEL_ID="cat-searcher/gemma-1.1-2b-it-${LOSS_TYPE}-iter${ITER}-re-run"
-RUN_NAME="sppo"
-
 # Set the name for the log file
-log_file="iter${ITER}"
+log_file="iter-${ITER}"
 log_file+="_${LEARNING_RATE}"
 log_file+="_${BETA}"
 log_file+="_${OPTIM}"
@@ -43,7 +60,7 @@ cp ./recipes/default/config_full.yaml "$new_config_file"
 # Update the dataset, model name, and hub model ID
 python src/update_config.py \
     --dataset $DATASET \
-    --model_name $MODEL \
+    --model_name $MODEL_PATH \
     --hub_model_id $HUB_MODEL_ID \
     --config_path "$new_config_file" >"logs/train_$log_file.log"
 # ------------------------------------------------------------------
@@ -62,11 +79,10 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --beta=$BETA \
     --optim="$OPTIM" \
     --output_dir="$SAVE_DIR" \
-    --run_name="$RUN_NAME" \
     --loss_type=$LOSS_TYPE \
     --per_device_train_batch_size=$BATCH_SIZE \
     --gradient_accumulation_steps=$ACCUMULATE \
-    --model_name_or_path=$MODEL \
+    --model_name_or_path=$MODEL_PATH \
     --num_train_epochs=$N_EPOCHS
 # 2>&1 | tee "logs/train_$log_file.log"
 # ------------------------------------------------------------------

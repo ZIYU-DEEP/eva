@@ -12,9 +12,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+# Adapted from https://github.com/huggingface/alignment-handbook
+
+
 import dataclasses
 import os
-import yaml
 import sys
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, NewType, Optional, Tuple
@@ -44,22 +47,6 @@ class H4ArgumentParser(HfArgumentParser):
         Returns:
             [`List[dataclass]`]: a list of dataclasses with the values from the YAML file and the command line
         """
-        # DEBUG 
-        # print(f"Parsing YAML file: {yaml_arg}")
-        # print("Contents of the YAML file:")
-        
-        # # Read and print the contents of the YAML file
-        # with open(yaml_arg, 'r') as file:
-        #     yaml_content = file.read()
-        
-        # # Parse the YAML content
-        # yaml_dict = yaml.safe_load(yaml_content)
-        # print("\nParsed YAML content:")
-        # print(yaml_dict)
-        
-        # print(f"\nAdditional arguments: {other_args}")
-        
-        # Parse the args
         arg_list = self.parse_yaml_file(os.path.abspath(yaml_arg))
 
         outputs = []
@@ -241,14 +228,14 @@ class SFTConfig(transformers.TrainingArguments):
 
 
 @dataclass
-class DPOConfig(transformers.TrainingArguments):
+class SPPOConfig(transformers.TrainingArguments):
     """
-    Arguments related to the DPO training process itself. For all parameters, see: https://huggingface.co/docs/transformers/v4.26.1/en/main_classes/trainer#transformers.TrainingArguments
+    Arguments related to the SPPO training process itself. For all parameters, see: https://huggingface.co/docs/transformers/v4.26.1/en/main_classes/trainer#transformers.TrainingArguments
     """
 
     beta: Optional[float] = field(
         default=0.1,
-        metadata={"help": "The beta factor in DPO loss. Higher beta means less divergence from the initial policy."},
+        metadata={"help": "The beta factor in DPO loss. In SPPO eta = 1/beta. Higher beta means less divergence from the initial policy."},
     )
     hub_model_revision: Optional[str] = field(
         default="main",
@@ -260,7 +247,7 @@ class DPOConfig(transformers.TrainingArguments):
     )
     max_prompt_length: Optional[int] = field(
         default=None,
-        metadata={"help": ("For DPO, the maximum length of the prompt to use for conditioning the model.")},
+        metadata={"help": ("For DPO/SPPO, the maximum length of the prompt to use for conditioning the model.")},
     )
     max_length: Optional[int] = field(
         default=None,
@@ -268,4 +255,4 @@ class DPOConfig(transformers.TrainingArguments):
     )
     optim: Optional[str] = field(default="rmsprop")
     remove_unused_columns: bool = field(default=False)
-    loss_type: Optional[str] = field(default="sigmoid", metadata={"help": ("The loss type for DPO.")})
+    loss_type: Optional[str] = field(default="sigmoid", metadata={"help": ("The loss type for SPPO.")})
