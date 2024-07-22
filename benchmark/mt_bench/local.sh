@@ -2,15 +2,13 @@
 
 # Define the model paths and IDs in arrays
 MODEL_PATHS=(
-    "google/gemma-1.1-2b-it"
-    "cat-searcher/gemma-1.1-2b-it-sppo-iter0"
-    "cat-searcher/gemma-1.1-2b-it-sppo-iter0-evol-mixed"
+    "cat-searcher/gemma-1.1-2b-it-sppo-iter-1"
+    "google/gemma-1.1.2b-it"
 )
 
 MODEL_IDS=(
+    "gemma-1.1-2b-it-sppo-iter-1"
     "gemma-1.1-2b-it"
-    "gemma-1.1-2b-it-sppo-iter0"
-    "gemma-1.1-2b-it-sppo-iter0-evol-mixed"
 )
 
 
@@ -38,12 +36,14 @@ done
 # 2. Generate judgements (saved to ./data/mt_bench/model_answer/*.jsonl)
 python gen_judgment.py \
     --model-list "${MODEL_IDS[@]}" \
-    --parallel 40
+    --parallel 40 \
+    --filename-suffix _iter-1
 # --------------------------------------------------------------------------
 
 
 # --------------------------------------------------------------------------
 # 3. Show results
 python show_result.py \
-    --model-list "${MODEL_IDS[@]}"
+    --model-list "${MODEL_IDS[@]}" \
+    --filename-suffix _iter-1
 # --------------------------------------------------------------------------

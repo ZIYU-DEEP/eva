@@ -63,6 +63,9 @@ python show_result.py \
 ```
 Checkout plots in `plot_result.py`.
 
+## TODO
+- [ ] Fix the openai version issue
+- [ ] Make `gen_judgement.py` more efficient
 
 
 
