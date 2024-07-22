@@ -41,7 +41,7 @@ DATASET_NAME="${HF_USERNAME}/ultrafeedback-split-${NEXT_ITER}"
 OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${NEXT_ITER}"
 
 echo "The base model used to generate responses is set to $MODEL_PATH."
-echo "The generated responses is upload to $DATASET_NAME with suffix pair and all."
+echo "The generated responses will be uploaded to $DATASET_NAME with suffix pair and all."
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------

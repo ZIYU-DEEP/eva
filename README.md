@@ -58,6 +58,11 @@ Execute the training scripts based on the base model you choose:
    bash ./scripts/evolve/train.sh 
    ```
 
+To run the gemma baseline, do:
+```
+bash ./scripts/gemma-baseline/iterate.sh
+```
+
 <!-- - Generation for Y|X:
   ```bash
   bash ./scripts/generate.sh
