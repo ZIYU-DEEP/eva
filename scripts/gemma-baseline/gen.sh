@@ -4,20 +4,20 @@ set -e  # Exit if failing
 
 # ------------------------------------------------------------------
 # Below is to be re-written by source generate.sh in other bash files
-ITER=0
-MODEL_FAMILY="gemma-1.1-2b-it"
-LOSS_TYPE="sppo"
+ITER=${ITER:-0}
+MODEL_FAMILY=${MODEL_FAMILY:-"gemma-1.1-2b-it"}
+LOSS_TYPE=${LOSS_TYPE:-"sppo"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
 # Other general parameter to be reset
-N_PAIRS=5  # number of response generated for each prompt (better change name)
-DATA_ROOT="./data"  # assume the script is run at the project directory
-MAX_TOKENS=2048
-DTYPE="bfloat16"
-TEMPERATURE=0.7
-TOP_P=0.9
-HF_USERNAME='cat-searcher'
+N_PAIRS=${N_PAIRS:-5}  # number of response generated for each prompt (better change name)
+DATA_ROOT=${DATA_ROOT:-"./data"}  # assume the script is run at the project directory
+MAX_TOKENS=${MAX_TOKENS:-2048}
+DTYPE=${DTYPE:-"bfloat16"}
+TEMPERATURE=${TEMPERATURE:-0.7}
+TOP_P=${TOP_P:-0.9}
+HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 # ------------------------------------------------------------------
 
 

@@ -1,24 +1,26 @@
+#!/bin/bash
 set -e
 # set -x  # Print the commands
 
 # ------------------------------------------------------------------
 # Below is to be re-written by source iterate.sh in other bash files
-ITER=0
-MODEL_FAMILY="gemma-1.1-2b-it"
-LOSS_TYPE="sppo"
-PREF="sppo_score"
+ITER=${ITER:-0}
+MODEL_FAMILY=${MODEL_FAMILY:-"gemma-1.1-2b-it"}
+LOSS_TYPE=${LOSS_TYPE:-"sppo"}
+PREF=${PREF:-"sppo_score"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
 # Other general parameter to be reset
-HF_USERNAME='cat-searcher'
-LEARNING_RATE="5.0e-7"
-BETA="0.001"
-OPTIM="rmsprop"
-N_EPOCHS=18
-BATCH_SIZE=4
-ACCUMULATE=2
+HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
+LEARNING_RATE=${LEARNING_RATE:-"5.0e-7"}
+BETA=${BETA:-"0.001"}
+OPTIM=${OPTIM:-"rmsprop"}
+N_EPOCHS=${N_EPOCHS:-18}
+BATCH_SIZE=${BATCH_SIZE:-4}
+ACCUMULATE=${ACCUMULATE:-2}
 # ------------------------------------------------------------------
+
 
 
 # ##################################################################
