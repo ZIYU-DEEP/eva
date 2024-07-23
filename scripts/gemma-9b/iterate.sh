@@ -3,7 +3,7 @@ set -x
 
 # This file should be run under the project directory
 # Number of iterations
-n_iters=${1:-6}
+n_iters=${1:-1}
 
 # General parameters
 MODEL_FAMILY="gemma-2-9b-it"
