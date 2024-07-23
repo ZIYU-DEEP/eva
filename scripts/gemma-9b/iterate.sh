@@ -20,8 +20,8 @@ LEARNING_RATE="5.0e-7"
 BETA="0.001"
 OPTIM="rmsprop"
 N_EPOCHS=9
-BATCH_SIZE=4
-ACCUMULATE=2
+BATCH_SIZE=2
+ACCUMULATE=4
 
 for ((i=0; i<n_iters; i++))
 do

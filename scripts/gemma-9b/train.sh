@@ -17,8 +17,8 @@ LEARNING_RATE=${LEARNING_RATE:-"5.0e-7"}
 BETA=${BETA:-"0.001"}
 OPTIM=${OPTIM:-"rmsprop"}
 N_EPOCHS=${N_EPOCHS:-9}
-BATCH_SIZE=${BATCH_SIZE:-4}
-ACCUMULATE=${ACCUMULATE:-2}
+BATCH_SIZE=${BATCH_SIZE:-2}
+ACCUMULATE=${ACCUMULATE:-4}
 # ------------------------------------------------------------------
 
 
