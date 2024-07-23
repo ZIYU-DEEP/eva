@@ -129,7 +129,6 @@ def train_and_evaluate(trainer, raw_datasets, training_args):
     last_checkpoint = get_checkpoint(training_args)
     
     # Set up the checkpoint
-    
     # Train from a specified checkpoint given in the recipe
     if training_args.resume_from_checkpoint is not None:
         checkpoint = training_args.resume_from_checkpoint
