@@ -123,8 +123,31 @@ def setup_model(model_args, training_args):
     return model, ref_model, model_kwargs, ref_model_kwargs
 
 def train_and_evaluate(trainer, raw_datasets, training_args):
-    checkpoint = None
+
+    # -------------------------------------------------------------------------------- 
+    # Set up the checkpoint
+    last_checkpoint = get_checkpoint(training_args)
+    
+    # Set up the checkpoint
+    
+    # Train from a specified checkpoint given in the recipe
+    if training_args.resume_from_checkpoint is not None:
+        checkpoint = training_args.resume_from_checkpoint
+        logger.info(f"Resuming training from the specified checkpoint.")
+        
+    # Train from the auto-saved checkpoint
+    elif last_checkpoint is not None:
+        checkpoint = last_checkpoint
+        logger.info(f"Checkpoint detected, resuming training at {last_checkpoint=}.")
+    
+    else:
+        checkpoint = None
+        logger.info(f"No checkpoint with {last_checkpoint}. Starting from scratch.")
+    
+    # Set the train result
     train_result = trainer.train(resume_from_checkpoint=checkpoint)
+    # --------------------------------------------------------------------------------
+    
     metrics = train_result.metrics
     metrics["train_samples"] = len(raw_datasets["train"])
     trainer.log_metrics("train", metrics)
@@ -190,31 +213,31 @@ def main_inner(model_args, data_args, training_args):
     else:
         logger.info(f"No checkpoint with {last_checkpoint}. Starting from scratch.")
 
-    # set_seed(training_args.seed)
+    set_seed(training_args.seed)
 
-    # data_args.truncation_side = "left"
-    # tokenizer = get_tokenizer(model_args, data_args)
-    # raw_datasets = load_and_process_datasets(data_args, tokenizer)
+    data_args.truncation_side = "left"
+    tokenizer = get_tokenizer(model_args, data_args)
+    raw_datasets = load_and_process_datasets(data_args, tokenizer)
 
-    # model, ref_model, model_kwargs, ref_model_kwargs = setup_model(model_args, training_args)
+    model, ref_model, model_kwargs, ref_model_kwargs = setup_model(model_args, training_args)
 
-    # trainer = SPPOTrainer(
-    #     model,
-    #     ref_model,
-    #     model_init_kwargs=model_kwargs,
-    #     ref_model_init_kwargs=ref_model_kwargs,
-    #     args=training_args,
-    #     beta=training_args.beta,
-    #     train_dataset=raw_datasets["train"],  # Do Not Eval For Now
-    #     tokenizer=tokenizer,
-    #     max_length=training_args.max_length,
-    #     max_prompt_length=training_args.max_prompt_length,
-    #     peft_config=get_peft_config(model_args),
-    #     loss_type=training_args.loss_type,
-    # )
+    trainer = SPPOTrainer(
+        model,
+        ref_model,
+        model_init_kwargs=model_kwargs,
+        ref_model_init_kwargs=ref_model_kwargs,
+        args=training_args,
+        beta=training_args.beta,
+        train_dataset=raw_datasets["train"],  # Do Not Eval For Now
+        tokenizer=tokenizer,
+        max_length=training_args.max_length,
+        max_prompt_length=training_args.max_prompt_length,
+        peft_config=get_peft_config(model_args),
+        loss_type=training_args.loss_type,
+    )
 
-    # train_and_evaluate(trainer, raw_datasets, training_args)
-    # save_model_and_results(trainer, training_args, model_args, data_args)
+    train_and_evaluate(trainer, raw_datasets, training_args)
+    save_model_and_results(trainer, training_args, model_args, data_args)
 
 
 if __name__ == "__main__":
