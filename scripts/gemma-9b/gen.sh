@@ -11,7 +11,7 @@ LOSS_TYPE=${LOSS_TYPE:-"sppo"}
 
 # ------------------------------------------------------------------
 # Other general parameter to be reset
-N_PAIRS=${N_PAIRS:-5}  # number of response generated for each prompt (better change name)
+N_PAIRS=${N_PAIRS:-6}  # number of response generated for each prompt (better change name)
 DATA_ROOT=${DATA_ROOT:-"./data"}  # assume the script is run at the project directory
 MAX_TOKENS=${MAX_TOKENS:-2048}
 DTYPE=${DTYPE:-"bfloat16"}
