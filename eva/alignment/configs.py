@@ -125,14 +125,14 @@ class ModelArguments:
             )
         },
     )
-    attn_implementation: Optional[str] = field(
-        default='sdpa',
-        metadata={
-            "help": (
-                "The model checkpoint for weights initialization. Don't set if you want to train a model from scratch."
-            )
-        },
-    )
+    # attn_implementation: Optional[str] = field(
+    #     default='sdpa',
+    #     metadata={
+    #         "help": (
+    #             "The model checkpoint for weights initialization. Don't set if you want to train a model from scratch."
+    #         )
+    #     },
+    # )
     model_revision: str = field(
         default="main",
         metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},
