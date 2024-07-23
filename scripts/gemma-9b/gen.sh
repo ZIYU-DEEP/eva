@@ -37,7 +37,7 @@ VLLM_WORLD_SIZE=1
 NEXT_ITER=$((ITER + 1))
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
 
-DATASET_NAME="${HF_USERNAME}/ultrafeedback-split-${NEXT_ITER}"
+DATASET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${NEXT_ITER}"
 OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${NEXT_ITER}"
 
 echo "The base model used to generate responses is set to $MODEL_PATH."
