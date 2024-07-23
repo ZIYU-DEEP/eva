@@ -207,11 +207,11 @@ def main_inner(model_args, data_args, training_args):
     logger.info(f"Data parameters {data_args}")
     logger.info(f"Training/evaluation parameters {training_args}")
 
-    last_checkpoint = get_checkpoint(training_args)
-    if last_checkpoint is not None and training_args.resume_from_checkpoint is None:
-        logger.info(f"Checkpoint detected, resuming training at {last_checkpoint=}.")
-    else:
-        logger.info(f"No checkpoint with {last_checkpoint}. Starting from scratch.")
+    # last_checkpoint = get_checkpoint(training_args)
+    # if last_checkpoint is not None and training_args.resume_from_checkpoint is None:
+    #     logger.info(f"Checkpoint detected, resuming training at {last_checkpoint=}.")
+    # else:
+    #     logger.info(f"No checkpoint with {last_checkpoint}. Starting from scratch.")
 
     set_seed(training_args.seed)
 
