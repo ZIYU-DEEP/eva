@@ -2,49 +2,38 @@
 set -e  # Exit if failing
 # set -x  # Print the commands
 
-# ------------------------------------------------------------------
-# Below is to be re-written by source generate.sh in other bash files
-ITER=${ITER:-0}
-MODEL_FAMILY=${MODEL_FAMILY:-"gemma-1.1-2b-it"}
-LOSS_TYPE=${LOSS_TYPE:-"sppo"}
-# ------------------------------------------------------------------
-
-# ------------------------------------------------------------------
-# Other general parameter to be reset
-N_PAIRS=${N_PAIRS:-5}  # number of response generated for each prompt (better change name)
-DATA_ROOT=${DATA_ROOT:-"./data"}  # assume the script is run at the project directory
-MAX_TOKENS=${MAX_TOKENS:-2048}
-DTYPE=${DTYPE:-"bfloat16"}
-TEMPERATURE=${TEMPERATURE:-0.9}
-TOP_P=${TOP_P:-0.9}
-HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
-# ------------------------------------------------------------------
+# GENERAL IDEA
+# 1. Given X_{t-1} and theta_{t}, we first generate responses from theta_t
+# 2. based on the responses, we apply a point_wise RM to reward all the responses
+#    We then use the rewards to provide a metric to prompt in X_{t-1}
+# 3. We then build a set with evolved X_{t-1}
+# 4. We then mix the evolved X_{t-1} with the original D_{t-1} to form X_t
+# 5. We then train a new model theta_{t}^{evol} on X_t
 
 
 # ##################################################################
 # 0. PREPARATION
 # ##################################################################
 export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
+
+# ------------------------------------------------------------------
+# Below is to be re-written by source generate.sh in other bash files
+MODEL_PATH="google/gemma-1.1-2b-it"
+DATASET_NAME="cat-searcher/responses-gemma-1.1-2b-it-split-0-evol-mixed"
+HF_USERNAME='cat-searcher'
+
 N_GPUS=8
 VLLM_WORLD_SIZE=1
 
-# ------------------------------------------------------------------
-# TODO - The naming fashion is a bit inconvenient
-# Currently 0 refers to the SFT model - to fix later
-# So dataset iter starts with 1, while model iter starts with 0
-# X_1 & theta_0 --> Y_1
-# X_1 & Y_1 --> theta_1
-NEXT_ITER=$((ITER + 1))
-MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
+N_PAIRS=5  # number of response generated for each prompt (better change name)
+MAX_TOKENS=2048
+OUTPUT_DIR="responses-gemma-1.1-2b-it-split-0-evol-mixed"
+DATA_ROOT="./data"  # assume . is the root of the project
+DTYPE="bfloat16"
 
-DATASET_NAME="${HF_USERNAME}/ultrafeedback-split-${NEXT_ITER}"
-OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${NEXT_ITER}"
+TEMPERATURE=0.7
+TOP_P=0.9
 
-echo "The base model used to generate responses is set to $MODEL_PATH."
-echo "The generated responses will be uploaded to $DATASET_NAME with suffix pair and all."
-# ------------------------------------------------------------------
-
-# ------------------------------------------------------------------
 TIMESTAMP=$(date +"%b-%d-%H-%M")
 START_TIME=$(date +%s)
 mkdir -p ./logs
@@ -155,8 +144,8 @@ python src/compute_prob.py \
 # In the end, we will push two datasets to HF
 
 # One is ${OUTPUT_DIR}-all
-# See https://huggingface.co/datasets/${HF_USERNAME}/ultrafeeback-${MODEL_FAMILY}-split-${NEXT_ITER}-all
+# See https://huggingface.co/datasets/cat-searcher/responses-gemma-1.1-2b-it-split-0-all
 
 # One is ${OUTPUT_DIR}-pair, 
 # With columns: chosen, rejected, chosen_probs, chosen_probs_win, chosen_probs_lose
-# See https://huggingface.co/datasets/${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${NEXT_ITER}--pair
+# See https://huggingface.co/datasets/cat-searcher/responses-gemma-1.1-2b-it-split-0-pair

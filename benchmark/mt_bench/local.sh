@@ -4,11 +4,16 @@
 MODEL_PATHS=(
     "cat-searcher/gemma-1.1-2b-it-sppo-iter-1"
     "google/gemma-1.1.2b-it"
+    "google/gemma-2-9b-it"
+    "princeton-nlp/gemma-2-9b-it-DPO"
+
 )
 
 MODEL_IDS=(
     "gemma-1.1-2b-it-sppo-iter-1"
     "gemma-1.1-2b-it"
+    "gemma-2-9b-it"
+    "gemma-2-9b-it-DPO"
 )
 
 
@@ -37,7 +42,7 @@ done
 python gen_judgment.py \
     --model-list "${MODEL_IDS[@]}" \
     --parallel 40 \
-    --filename-suffix _iter-1
+    --filename-suffix _9b
 # --------------------------------------------------------------------------
 
 
@@ -45,5 +50,5 @@ python gen_judgment.py \
 # 3. Show results
 python show_result.py \
     --model-list "${MODEL_IDS[@]}" \
-    --filename-suffix _iter-1
+    --filename-suffix _9b
 # --------------------------------------------------------------------------
