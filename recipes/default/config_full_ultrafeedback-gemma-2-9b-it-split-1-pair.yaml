@@ -10,7 +10,7 @@ output_dir: checkpoints/gemma-2-9b-it-sppo-iter-1
 
 # Checkpoint setting
 hub_strategy: checkpoint
-resume_from_checkpoint: checkpoints/gemma-2-9b-it-sppo-iter-1/checkpoint-311  # Let it automatically resume training
+resume_from_checkpoint: null  # Let it automatically resume training
 
 # Data training arguments
 # For definitions, see: src/h4/training/config.py
