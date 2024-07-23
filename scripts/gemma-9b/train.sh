@@ -57,14 +57,16 @@ echo "logging to $log_file.log"
 # Save the new recipe (in fact, only data mixer name is updated)
 dataset_name=$(echo "$DATASET" | cut -d '/' -f2) 
 new_config_file="./recipes/default/config_full_${dataset_name}.yaml"
-cp ./recipes/default/config_full.yaml "$new_config_file"
 
-# Update the dataset, model name, and hub model ID
-python src/update_config.py \
-    --dataset $DATASET \
-    --model_name $MODEL_PATH \
-    --hub_model_id $HUB_MODEL_ID \
-    --config_path "$new_config_file" >"logs/train_$log_file.log"
+# TODO: make this optional
+# cp ./recipes/default/config_full.yaml "$new_config_file"
+
+# # Update the dataset, model name, and hub model ID
+# python src/update_config.py \
+#     --dataset $DATASET \
+#     --model_name $MODEL_PATH \
+#     --hub_model_id $HUB_MODEL_ID \
+#     --config_path "$new_config_file" >"logs/train_$log_file.log"
 # ------------------------------------------------------------------
 
 

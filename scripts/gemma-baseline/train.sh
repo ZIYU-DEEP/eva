@@ -58,34 +58,34 @@ echo "logging to $log_file.log"
 dataset_name=$(echo "$DATASET" | cut -d '/' -f2) 
 new_config_file="./recipes/default/config_full_${dataset_name}.yaml"
 cat $new_config_file
-# cp ./recipes/default/config_full.yaml "$new_config_file"
+cp ./recipes/default/config_full.yaml "$new_config_file"
 
-# # Update the dataset, model name, and hub model ID
-# python src/update_config.py \
-#     --dataset $DATASET \
-#     --model_name $MODEL_PATH \
-#     --hub_model_id $HUB_MODEL_ID \
-#     --config_path "$new_config_file" >"logs/train_$log_file.log"
+# Update the dataset, model name, and hub model ID
+python src/update_config.py \
+    --dataset $DATASET \
+    --model_name $MODEL_PATH \
+    --hub_model_id $HUB_MODEL_ID \
+    --config_path "$new_config_file" >"logs/train_$log_file.log"
 # ------------------------------------------------------------------
 
 
 # ##################################################################
 # 1. Training
 # ##################################################################
-# # ------------------------------------------------------------------
-# # Run the training
-# ACCELERATE_LOG_LEVEL=info accelerate launch \
-#     --config_file ./recipes/accelerate_configs/deepspeed_zero3.yaml \
-#     --main_process_port 8964 \
-#     eva/run_sppo.py "$new_config_file" \
-#     --learning_rate=$LEARNING_RATE \
-#     --beta=$BETA \
-#     --optim="$OPTIM" \
-#     --output_dir="$SAVE_DIR" \
-#     --loss_type=$LOSS_TYPE \
-#     --per_device_train_batch_size=$BATCH_SIZE \
-#     --gradient_accumulation_steps=$ACCUMULATE \
-#     --model_name_or_path=$MODEL_PATH \
-#     --num_train_epochs=$N_EPOCHS
-# # 2>&1 | tee "logs/train_$log_file.log"
-# # ------------------------------------------------------------------
+# ------------------------------------------------------------------
+# Run the training
+ACCELERATE_LOG_LEVEL=info accelerate launch \
+    --config_file ./recipes/accelerate_configs/deepspeed_zero3.yaml \
+    --main_process_port 8964 \
+    eva/run_sppo.py "$new_config_file" \
+    --learning_rate=$LEARNING_RATE \
+    --beta=$BETA \
+    --optim="$OPTIM" \
+    --output_dir="$SAVE_DIR" \
+    --loss_type=$LOSS_TYPE \
+    --per_device_train_batch_size=$BATCH_SIZE \
+    --gradient_accumulation_steps=$ACCUMULATE \
+    --model_name_or_path=$MODEL_PATH \
+    --num_train_epochs=$N_EPOCHS
+# 2>&1 | tee "logs/train_$log_file.log"
+# ------------------------------------------------------------------
