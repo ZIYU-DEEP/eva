@@ -35,13 +35,13 @@ VLLM_WORLD_SIZE=1
 # X_1 & theta_0 --> Y_1
 # X_1 & Y_1 --> theta_1
 NEXT_ITER=$((ITER + 1))
-MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
 
+MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
 DATASET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${NEXT_ITER}"
 OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${NEXT_ITER}"
 
 echo "The base model used to generate responses is set to $MODEL_PATH."
-echo "The generated responses will be uploaded to $DATASET_NAME with suffix pair and all."
+echo "The generated responses will be uploaded to $OUTPUT_DIR with suffix pair and all."
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
