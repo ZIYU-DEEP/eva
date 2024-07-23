@@ -27,11 +27,16 @@ We present a new self-play framework for language model alignment and a new lear
    pip install -e .
    ```
 
-4. **Set up external accounts:**
+4. **Misc:**
    ```bash
    huggingface-cli login       
    wandb login                 
    export OPENAI_API_KEY="..."  # get a key at platform.openai.com/api-keys
+
+   # To run VLLM with Gemma-2 models, use the set up below
+   pip install vllm==0.5.3
+   pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.3  # See https://github.com/flashinfer-ai/flashinfer for specific versions
+   export VLLM_ATTENTION_BACKEND=FLASHINFER
    ```
 
 ## Training Scripts (TEMP)
