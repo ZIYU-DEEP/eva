@@ -1,11 +1,11 @@
 # Model arguments
-model_name_or_path: google/gemma-1.1-2b-it
+model_name_or_path: google/gemma-1.1-2b-it  # TO BE MODIFIED
 torch_dtype: null
 
 # Push to hub arguments
 push_to_hub: true
 hub_private_repo: true
-hub_model_id: cat-searcher/gemma-1.1-2b-it-sppo-iter0
+hub_model_id: cat-searcher/gemma-1.1-2b-it-sppo-iter0  # TO BE MODIFIED
 output_dir: checkpoints/gemma-1.1-2b-it-sppo-iter0
 
 # Checkpoint setting
@@ -15,7 +15,7 @@ resume_from_checkpoint: null  # Let it automatically resume training
 # Data training arguments
 # For definitions, see: src/h4/training/config.py
 dataset_mixer:
-  cat-searcher/responses-gemma-1.1-2b-it-split-0-pair: 1.0
+  cat-searcher/responses-gemma-1.1-2b-it-split-0-pair: 1.0  # TO BE MODIFIED
 
 dataset_splits:
 - train
@@ -25,9 +25,9 @@ preprocessing_num_workers: 12
 # DPOTrainer arguments
 seed: 42
 bf16: true
-optim: adamw_torch
-beta: 0.01
-loss_type: rpo
+optim: rmsprop
+beta: 0.001
+loss_type: sppo  
 learning_rate: 5.0e-7
 lr_scheduler_type: linear
 num_train_epochs: 6

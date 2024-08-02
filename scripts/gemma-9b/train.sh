@@ -33,7 +33,7 @@ NEXT_ITER=$((ITER + 1))
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  
 
 # The preference data from the base model
-DATASET="${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${NEXT_ITER}-pair"
+DATASET="${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-pair"
 
 # The directory for the saved model
 SAVE_DIR="checkpoints/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
@@ -54,19 +54,20 @@ log_file+="_${PREF}"
 log_file+="_${N_EPOCHS}"
 echo "logging to $log_file.log"
 
-# Save the new recipe (in fact, only data mixer name is updated)
-dataset_name=$(echo "$DATASET" | cut -d '/' -f2) 
-new_config_file="./recipes/default/config_full_${dataset_name}.yaml"
+# Save the new recipe
+# TODO: make the config as an argument
+config_name=$(echo "$DATASET" | cut -d '/' -f2) # identify with model-split-iter
+new_config_file="./recipes/default/config_full_${config_name}.yaml"
 
 # TODO: make this optional
-# cp ./recipes/default/config_full.yaml "$new_config_file"
+cp ./recipes/default/config_full.yaml "$new_config_file"
 
-# # Update the dataset, model name, and hub model ID
-# python src/update_config.py \
-#     --dataset $DATASET \
-#     --model_name $MODEL_PATH \
-#     --hub_model_id $HUB_MODEL_ID \
-#     --config_path "$new_config_file" >"logs/train_$log_file.log"
+# Update the dataset, model name, and hub model ID
+python src/update_config.py \
+    --dataset $DATASET \
+    --model_name $MODEL_PATH \
+    --hub_model_id $HUB_MODEL_ID \
+    --config_path "$new_config_file" >"logs/train_$log_file.log"
 # ------------------------------------------------------------------
 
 

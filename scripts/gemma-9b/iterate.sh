@@ -41,7 +41,7 @@ do
   # Source the train.sh script
   source ./scripts/gemma-9b/train.sh 
 
-  export ITER=$i
+  # export ITER=$i
 
   # # Get the response from the trained model
   # ## If one split for one iter, this is not necessary
