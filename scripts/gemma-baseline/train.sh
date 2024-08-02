@@ -5,6 +5,7 @@ set -e
 # ------------------------------------------------------------------
 # Below is to be re-written by source iterate.sh in other bash files
 ITER=${ITER:-0}
+SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-1.1-2b-it"}
 LOSS_TYPE=${LOSS_TYPE:-"sppo"}
 PREF=${PREF:-"sppo_score"}
@@ -27,17 +28,17 @@ ACCUMULATE=${ACCUMULATE:-2}
 # 0. PREPARATION
 # ##################################################################
 # ------------------------------------------------------------------
-NEXT_ITER=$((ITER + 1))
+# NEXT_ITER=$((ITER + 1))
 
 # The base model to train
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  
 
 # The preference data from the base model
-DATASET="${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${NEXT_ITER}-pair"
+DATASET="${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-pair"
 
 # The directory for the saved model
-SAVE_DIR="checkpoints/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
-HUB_MODEL_ID="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
+SAVE_DIR="checkpoints/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${SPLIT}"
+HUB_MODEL_ID="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${SPLIT}-iter-${ITER}"
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------

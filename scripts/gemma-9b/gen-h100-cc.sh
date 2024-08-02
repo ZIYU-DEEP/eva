@@ -3,7 +3,7 @@ set -x
 
 # This file should be run under the project directory
 # Number of iterations
-n_splits=${1:-6}
+n_splits=${1:-2}
 
 # General parameters
 MODEL_FAMILY="gemma-2-9b-it"
@@ -39,9 +39,9 @@ do
   source ./scripts/gemma-9b/gen.sh
 
   # Source the train.sh script
-  source ./scripts/gemma-9b/train.sh 
+  # source ./scripts/gemma-9b/train.sh 
 
-  export ITER=$i
+  # export ITER=$i
 
   # # Get the response from the trained model
   # ## If one split for one iter, this is not necessary

@@ -35,7 +35,7 @@ VLLM_WORLD_SIZE=1
 # So dataset iter starts with 1, while model iter starts with 0
 # X_1 & theta_0 --> Y_1
 # X_1 & Y_1 --> theta_1
-NEXT_ITER=$((ITER + 1))
+# NEXT_ITER=$((ITER + 1))
 
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
 PROMPT_SET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${SPLIT}"
