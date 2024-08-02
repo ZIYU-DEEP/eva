@@ -2,16 +2,16 @@
 
 # Define the model paths and IDs in arrays
 MODEL_PATHS=(
-    "cat-searcher/gemma-1.1-2b-it-sppo-iter-1"
-    "google/gemma-1.1.2b-it"
+    # "cat-searcher/gemma-1.1-2b-it-sppo-iter-1"
+    # "google/gemma-1.1.2b-it"
     "google/gemma-2-9b-it"
     "princeton-nlp/gemma-2-9b-it-DPO"
 
 )
 
 MODEL_IDS=(
-    "gemma-1.1-2b-it-sppo-iter-1"
-    "gemma-1.1-2b-it"
+    # "gemma-1.1-2b-it-sppo-iter-1"
+    # "gemma-1.1-2b-it"
     "gemma-2-9b-it"
     "gemma-2-9b-it-DPO"
 )

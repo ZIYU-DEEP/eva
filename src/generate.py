@@ -33,11 +33,12 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--model_path", type=str, 
-                        default="google/gemma-1.1-2b-it")
+                        default="google/gemma-2-9b-it")
     parser.add_argument("--dataset_name", type=str, 
-                        default="cat-searcher/ultra-feedback-split-0")
+                        default="cat-searcher/ultrafeedback-split-1")
     parser.add_argument("--output_dir", type=str, 
-                        default="responses-gemma-1.1-2b-it-split-0")
+                        default="responses-gemma-1.1-2b-it-split-1-buffer",
+                        help="Directory to save the responses.")
     parser.add_argument("--data_root", type=str, 
                         default="./data")
     parser.add_argument("--n_gpus", type=int, default=1)

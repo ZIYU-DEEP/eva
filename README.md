@@ -40,7 +40,7 @@ We present a new self-play framework for language model alignment and a new lear
    ```
 
 ## Training Scripts (TEMP)
-Execute the training scripts based on the base model you choose:
+Execute the training scripts based on the base model you choose. Be sure to modify the iteration number during the training.
 
 1. Default training
    ```bash
@@ -59,7 +59,6 @@ Execute the training scripts based on the base model you choose:
    python ./data_gen/combine_df.py
 
    # Standard training
-   bash ./scripts/evolve/generate.sh
    bash ./scripts/evolve/train.sh 
    ```
 

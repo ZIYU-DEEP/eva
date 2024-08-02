@@ -207,3 +207,5 @@ push_model_to_hub.py
 
 **.npy
 **/dataset_with_topics/
+**/local_*
+

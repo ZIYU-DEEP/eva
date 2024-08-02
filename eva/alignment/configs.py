@@ -129,7 +129,7 @@ class ModelArguments:
     #     default='sdpa',
     #     metadata={
     #         "help": (
-    #             "The model checkpoint for weights initialization. Don't set if you want to train a model from scratch."
+    #             "See instructions on sdpa and eager options."
     #         )
     #     },
     # )
