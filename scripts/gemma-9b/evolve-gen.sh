@@ -60,120 +60,17 @@ mkdir -p ./logs
 # ------------------------------------------------------------------
 
 
-# ##################################################################
-# 1. RESPONSE GENERATION
-# ##################################################################
-
-# ------------------------------------------------------------------
-# 1.1. Generate Y | X
-for gpu_id in $(seq 0 $((N_GPUS-1))); do
-
-    # Common command for all GPUs
-    gen="CUDA_VISIBLE_DEVICES=$gpu_id python src/generate.py \
-        --model_path $MODEL_PATH \
-        --dataset_name $DATASET_NAME \
-        --n_gpus $N_GPUS \
-        --vllm_world_size $VLLM_WORLD_SIZE \
-        --local_rank $gpu_id \
-        --n_pairs $N_PAIRS \
-        --max_tokens $MAX_TOKENS \
-        --output_dir $OUTPUT_DIR \
-        --data_root $DATA_ROOT \
-        --temperature $TEMPERATURE \
-        --top_p $TOP_P \
-        --dtype $DTYPE"
-
-    if [ $gpu_id -eq 0 ]; then
-        # Print output for GPU 0 to screen and log file
-        eval "$gen 2>&1 | tee logs/gen_${TIMESTAMP}_${gpu_id}.log" &
-    else
-        # Log output for other GPUs
-        eval "$gen > logs/gen_${TIMESTAMP}_${gpu_id}.log 2>&1" &
-    fi
-done
-wait
-# ------------------------------------------------------------------
-
-
-# ------------------------------------------------------------------
-# 1.2. Combine Generated Results
-python src/combine_generate.py \
-    --output_dir $OUTPUT_DIR \
-    --data_root $DATA_ROOT \
-    --n_gpus $N_GPUS \
-    --n_pairs $N_PAIRS
-# ------------------------------------------------------------------
-
-
-# ##################################################################
-# 2. RANK the data (Will be used as the buffer to later use)
-# ##################################################################
-# ------------------------------------------------------------------
-# 2.1. Preload the reward model
-python src/preload.py  # Initialize the checkpoints
-# ------------------------------------------------------------------
-
-# ------------------------------------------------------------------
-# 2.2. Rank the responses
-for gpu_id in $(seq 0 $((N_GPUS-1))); do
-    # Common command for all GPUs
-    rank="CUDA_VISIBLE_DEVICES=$gpu_id python src/rank.py \
-        --model_path $MODEL_PATH \
-        --output_dir $OUTPUT_DIR \
-        --data_root $DATA_ROOT \
-        --n_pairs $N_PAIRS \
-        --n_gpus $N_GPUS \
-        --local_rank $gpu_id \
-        --dataset_name $DATASET_NAME"
-
-    if [ $gpu_id -eq 0 ]; then
-        # Print output for GPU 0 to screen and log file
-        eval "$rank 2>&1 | tee logs/rank_${TIMESTAMP}_${gpu_id}.log" &
-    else
-        # Log output for other GPUs
-        eval "$rank > logs/rank_${TIMESTAMP}_${gpu_id}.log 2>&1" &
-    fi
-done
-wait
-# ------------------------------------------------------------------
-
-# Record Time in the log files
-END_TIME_=$(date +%s)  
-DURATION=$((END_TIME_ - END_TIME)) 
-echo "All ranking completed at $(date)"
-echo "Time elapsed: $((DURATION / 3600))h $((DURATION % 3600 / 60))m $((DURATION % 60))s" | tee -a logs/rank_${TIMESTAMP}_*.log 
-
-# ------------------------------------------------------------------
-# 2.3. Compute the probability
-python src/compute_prob.py \
-    --output_dir $OUTPUT_DIR \
-    --data_root $DATA_ROOT \
-    --n_pairs $N_PAIRS \
-    --n_gpus $N_GPUS \
-    --dataset_name $DATASET_NAME \
-    --hf_username $HF_USERNAME
-# ------------------------------------------------------------------
-
-# In the end, we will push two datasets to HF
-
-# One is ${OUTPUT_DIR}-all
-# See https://huggingface.co/datasets/${HF_USERNAME}/ultrafeeback-${MODEL_FAMILY}-split-${NEXT_ITER}-buffer-all
-
-# One is ${OUTPUT_DIR}-pair, 
-# With columns: chosen, rejected, chosen_probs, chosen_probs_win, chosen_probs_lose
-# See https://huggingface.co/datasets/${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${NEXT_ITER}-buffer-pair
-
 
 # ##################################################################
 # 3. EVOLVE-RELEVANT Get Rewards for the responses
 # ##################################################################
 # TODO: REPLACE ALL WITH POINTWISE RM - REMOVE THE PAIRRM PART
-DATASET_TO_REWARD="${HF_USERNAME}/ultrafeedback-gemma-split-${NEXT_ITER}-all"
+DATASET_TO_REWARD="${HF_USERNAME}/ultrafeedback-gemma-split-${SPLIT}-iter-${ITER}-all"
 
 python src/reward_hf.py \
     --input_dataset $DATASET_TO_REWARD \
-    --n_generations $N_PAIRS \
     --output_dir $OUTPUT_DIR \
+    --n_generations $N_PAIRS \
     --data_root $DATA_ROOT \
     --hf_username  $HF_USERNAME\
     --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
