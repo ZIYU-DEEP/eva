@@ -33,10 +33,15 @@ We present a new self-play framework for language model alignment and a new lear
    wandb login                 
    export OPENAI_API_KEY="..."  # get a key at platform.openai.com/api-keys
 
-   # To run VLLM with Gemma-2 models, use the set up below
+   # To run VLLM with Gemma-2 models, we currently use the following setup:
+   cd ..
+
    pip install vllm==0.5.3
-   pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.3  # See https://github.com/flashinfer-ai/flashinfer for specific versions
+   wget https://github.com/flashinfer-ai/flashinfer/releases/download/v0.1.1/flashinfer-0.1.1+cu121torch2.3-cp310-cp310-linux_x86_64.whl
+   pip install flashinfer-0.1.1+cu121torch2.3-cp310-cp310-linux_x86_64.whl
    export VLLM_ATTENTION_BACKEND=FLASHINFER
+
+   cd eva
    ```
 
 ## Training Scripts (TEMP)
@@ -100,6 +105,9 @@ See detailed instructions for different benchmarks in `./benchmark`.
    cd ./benchmark/arena_hard
    bash ./run.sh # Be sure to modify the models to compare with
    ```
+
+## TODO
+- [ ] Fix the naming issue (more like a tree adding suffix)
 
 <!-- - Alpaca Eval
    ```bash

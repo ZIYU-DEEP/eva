@@ -3,7 +3,7 @@ set -x
 
 # This file should be run under the project directory
 # Number of iterations
-n_splits=${1:-6}
+n_splits=${1:-2}
 
 # General parameters
 MODEL_FAMILY="gemma-2-9b-it"
@@ -35,8 +35,8 @@ do
          N_PAIRS DATA_ROOT MAX_TOKENS DTYPE TEMPERATURE TOP_P \
          LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE
 
-  # Source the gen.sh script
-  source ./scripts/gemma-9b/gen.sh
+  # # Source the gen.sh script
+  # source ./scripts/gemma-9b/gen.sh
 
   # Source the train.sh script
   source ./scripts/gemma-9b/train.sh 
