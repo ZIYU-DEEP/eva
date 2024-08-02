@@ -50,7 +50,7 @@ def evolve_chunk(instructions, gen_model_name, num_evolutions):
     # Get the llm
     llm = OpenAILLM(model=gen_model_name)
     llm.generation_kwargs = {
-        "max_new_tokens": 600,  # TODO: too large may lead to api error; original 2048
+        "max_new_tokens": 1024,  # TODO: too large may lead to api error; original 2048
         "temperature": 1.0,
         }  
     

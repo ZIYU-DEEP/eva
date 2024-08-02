@@ -26,6 +26,7 @@ DTYPE=${DTYPE:-"bfloat16"}
 TEMPERATURE=${TEMPERATURE:-0.9}
 TOP_P=${TOP_P:-0.9}
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
+SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_gap'}
 # ------------------------------------------------------------------
 
 
@@ -46,8 +47,8 @@ VLLM_WORLD_SIZE=1
 NEXT_ITER=$((ITER + 1))
 
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  # TODO: this naming fashion only works at iter-1
-DATASET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${ITER}"  # INPUT - Only to get prompts from X_t
-OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${ITER}-buffer"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
+# DATASET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${ITER}"  # INPUT - Only to get prompts from X_t
+OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
 
 echo "The base model used to generate responses is set to $MODEL_PATH."
 echo "The generated responses will be uploaded to $OUTPUT_DIR with suffix pair and all."
@@ -65,7 +66,7 @@ mkdir -p ./logs
 # 3. EVOLVE-RELEVANT Get Rewards for the responses
 # ##################################################################
 # TODO: REPLACE ALL WITH POINTWISE RM - REMOVE THE PAIRRM PART
-DATASET_TO_REWARD="${HF_USERNAME}/ultrafeedback-gemma-split-${SPLIT}-iter-${ITER}-all"
+DATASET_TO_REWARD="${HF_USERNAME}/${OUTPUT_DIR}-all"
 
 python src/reward_hf.py \
     --input_dataset $DATASET_TO_REWARD \
@@ -83,18 +84,18 @@ echo "Pushed the annotated data to ${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards."
 # 4. EVOLVE-RELEVANT Create a new dataset with ONLY evolved prompts
 # ##################################################################
 DATASET_WITH_REWARDS="${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards"
-DATASET_EVOLVED="${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards-resample-evol"  
+DATASET_EVOLVED="${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards-resample-evol-${}"  
 
 python data_gen/evol_prompt.py \
     --hf_username  $HF_USERNAME \
     --input_dataset $DATASET_WITH_REWARDS \
     --output_dataset $DATASET_EVOLVED \
     --data_root $DATA_ROOT \
-    --gen_model_name gpt-4-turbo \
+    --gen_model_name gpt-4o-mini \
     --num_evolutions 4 \
-    --num_workers 30 \
+    --num_workers 20 \
     --do_adaptive_sample 1 \
-    --sample_metric reward_mean \
+    --sample_metric $SAMPLE_METRIC \
     --sample_frac 0.25 \
     --sample_method importance_weighted
 
