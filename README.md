@@ -108,6 +108,12 @@ See detailed instructions for different benchmarks in `./benchmark`.
 
 ## TODO
 - [ ] Fix the naming issue (more like a tree adding suffix)
+- [ ] Make a spreadsheet
+- [ ] Dump the configs
+- [ ] Create our own evaluation datasets
+- [ ] Adding reward model candidates and make a correlation plots on different reward models
+- [ ] Increasing number of generations (check the log linear relationship)
+- [ ] Adding hints to generate better responses to contrast
 
 <!-- - Alpaca Eval
    ```bash

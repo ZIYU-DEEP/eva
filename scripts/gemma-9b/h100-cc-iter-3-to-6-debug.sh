@@ -23,7 +23,7 @@ N_EPOCHS=9
 BATCH_SIZE=2
 ACCUMULATE=4
 
-for ((i=3; i<=n_splits; i++))
+for ((i=4; i<=4; i++))
 do
   echo "Split $i"
 
@@ -35,8 +35,8 @@ do
          N_PAIRS DATA_ROOT MAX_TOKENS DTYPE TEMPERATURE TOP_P \
          LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE
 
-  # # Source the gen.sh script
-  source ./scripts/gemma-9b/gen.sh
+  # # # Source the gen.sh script
+  # source ./scripts/gemma-9b/gen.sh
 
   # Source the train.sh script
   source ./scripts/gemma-9b/train.sh 
