@@ -23,7 +23,7 @@ N_EPOCHS=9
 BATCH_SIZE=2
 ACCUMULATE=4
 
-for ((i=4; i<=4; i++))
+for ((i=3; i<=3; i++))
 do
   echo "Split $i"
 
