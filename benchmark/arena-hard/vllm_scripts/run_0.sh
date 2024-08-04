@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-MODEL_PATH="cat-searcher/gemma-2-9b-it-sppo-iter-0"
-MODEL_NAME="gemma-2-9b-it-sppo-iter-0"
+MODEL_PATH="google/gemma-2-9b-it"
+MODEL_NAME="gemma-2-9b-it"
 
 # Start the vllm serve command in the background
 CUDA_VISIBLE_DEVICES=0 \
