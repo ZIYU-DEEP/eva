@@ -1,9 +1,11 @@
 # Arena-Hard-Auto
 Arena-Hard-Auto-v0.1 is an automatic evaluation tool for instruction-tuned LLMs. It contains 500 challenging user queries. We prompt GPT-4-Turbo as judge to compare the models' responses against a baseline model (default: GPT-4-0314). Although both Arena-Hard-Auto and Chatbot Arena Category Hard employ similar pipeline to select hard prompts, Arena-Hard-Auto employs automatic judge as a cheaper and faster approximator to human preference. Notably, Arena-Hard-Auto has the highest correlation and separability to Chatbot Arena among popular open-ended LLM benchmarks (see our paper). If you are curious to see how well your model might perform on Chatbot Arena, we recommend trying Arena-Hard-Auto. 
 
-Check out our paper for more details about how Arena Hard Auto v0.1 works -> [Paper link](https://arxiv.org/abs/2406.11939).
+<!-- Check out our paper for more details about how Arena Hard Auto v0.1 works -> [Paper link](https://arxiv.org/abs/2406.11939). -->
 
-## Full Leaderboard (Updated: 07/05)
+This folder is forked from [Arena-Hard-Auto](https://arxiv.org/abs/2406.11939).
+
+<!-- ## Full Leaderboard (Updated: 07/05)
 ```console
 claude-3-5-sonnet-20240620     | score: 79.3  | 95% CI: (-2.1, 2.0)  | average #tokens: 567
 gpt-4o                         | score: 79.2  | 95% CI: (-1.9, 1.7)  | average #tokens: 696          
@@ -57,7 +59,7 @@ gemma-7b-it                    | score:  7.5  | 95% CI: (-1.2, 1.3)  | average #
 Llama-2-7b-chat-hf             | score:  4.6  | 95% CI: (-0.8, 0.8)  | average #tokens: 561                                                                                
 gemma-1.1-2b-it                | score:  3.4  | 95% CI: (-0.6, 0.8)  | average #tokens: 316                                                                                
 gemma-2b-it                    | score:  3.0  | 95% CI: (-0.6, 0.6)  | average #tokens: 369
-```
+``` -->
 
 ## Install Dependencies
 ```
@@ -67,7 +69,7 @@ pip install -r requirements.txt
 pip install -r requirements-optional.txt  # Optional dependencies (e.g., anthropic sdk)
 ```
 
-## Download dataset
+<!-- ## Download dataset
 We have pre-generated many popular models answers and judgments. You can browse them with an online [demo](https://huggingface.co/spaces/lmsys/arena-hard-browser) or download them (with [`git-lfs`](https://git-lfs.com) installed) by
 ```console
 > git clone https://huggingface.co/spaces/lmsys/arena-hard-browser
@@ -87,7 +89,7 @@ mistral-large-2402             | score: 37.7  | 95% CI: (-2.9, 2.8)  | average #
 Qwen1.5-72B-Chat               | score: 36.1  | 95% CI: (-2.1, 2.4)  | average #tokens: 474
 command-r-plus                 | score: 33.1  | 95% CI: (-2.0, 1.9)  | average #tokens: 541
 ```
-Running `show_result.py` will save generated battles into `data/arena_hard_battles.jsonl` and bootstrapping statistics into `data/bootstrapping_results.jsonl`. If you don't want to regenerate battles or bootstrapping statistics, simply toggle argument `--load-battles` or `--load-bootstrap`, respectively.
+Running `show_result.py` will save generated battles into `data/arena_hard_battles.jsonl` and bootstrapping statistics into `data/bootstrapping_results.jsonl`. If you don't want to regenerate battles or bootstrapping statistics, simply toggle argument `--load-battles` or `--load-bootstrap`, respectively. -->
 
 ## Evaluate a new model on Arena-Hard-Auto v0.1:
 
@@ -95,33 +97,45 @@ Running `show_result.py` will save generated battles into `data/arena_hard_battl
 
 Fill in your API endpoint in `config/api_config.yaml`. We support OpenAI compatible API server. You can specify `parallel` to indicate the number of concurrent API requests (default: 1).
 ```yaml
-# example
+# Example of OpenAI
 gpt-3.5-turbo-0125:
     model_name: gpt-3.5-turbo-0125
     endpoints: null
     api_type: openai
     parallel: 8
 
-[YOUR-MODEL-NAME]:
-    model_name: [YOUR-MODEL-NAME]
-    endpoints:
-        - api_base: [YOUR-ENDPOINT-URL]
-          api_key: [YOUR-API-KEY]
+# Example in VLLM format
+gemma-1.1-2b-it:
+    model_name: google/gemma-1.1-2b-it
+    endpoints: 
+        - api_base: http://localhost:8964/v1
+          api_key: eva
     api_type: openai
-    parallel: 8
+    parallel: 1 
 ```
-You may use inference engine such as [Latest TGI version](https://huggingface.co/docs/text-generation-inference/en/messages_api) or [vLLM](https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html) or [SGLang](https://github.com/sgl-project/sglang?tab=readme-ov-file#using-local-models) to host your model with an OpenAI compatible API server.
+You may use inference engine such as [Latest TGI version](https://huggingface.co/docs/text-generation-inference/en/messages_api) or [vLLM](https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html) or [SGLang](https://github.com/sgl-project/sglang?tab=readme-ov-file#using-local-models) to host your model with an OpenAI compatible API server before the next step.
 
-TGI Quick start
+#### Setup for VLLM
+Check `./vllm_scripts` for scripts for serving models locally or on HuggingFace. Example command with `vllm`:
+```bash
+export VLLM_ATTENTION_BACKEND=XFORMERS
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+    vllm serve "google/gemma-1.1-2b-it" \
+    --dtype bfloat16 \
+    --host localhost \
+    --port 8964 \
+    --tensor-parallel-size 8 \
+    --api-key eva
 ```
-hf_pat=
-model=
-volume=/path/to/cache
-port=1996
 
-huggingface-cli download $model
-sudo docker run --gpus 8 -e HUGGING_FACE_HUB_TOKEN=$hf_pat --shm-size 2000g -p $port:80 -v $volume:/data ghcr.io/huggingface/text-generation-inference:2.0.4 --model-id $model --max-input-length 8192 --max-batch-total-tokens 8193 --max-batch-prefill-tokens 8193 --max-total-tokens 8193
+For running Gemma-2 models, the following setup is tested:
+```bash
+pip install vllm==0.5.3
+wget https://github.com/flashinfer-ai/flashinfer/releases/download/v0.1.1/flashinfer-0.1.1+cu121torch2.3-cp310-cp310-linux_x86_64.whl
+pip install flashinfer-0.1.1+cu121torch2.3-cp310-cp310-linux_x86_64.whl
+export VLLM_ATTENTION_BACKEND=FLASHINFER
 ```
+
 
 ### Step 2. Generate Model Answers
 
@@ -132,13 +146,14 @@ temperature: 0.0
 max_tokens: 4096
 num_choices: 1
 
-
 model_list:
   - [YOUR-MODEL-NAME]
 ```
 Run the command to generate answers:
-```console
-python gen_answer.py
+```bash
+python gen_answer.py \
+    --setting-file config/gen_answer_config.yaml \
+    --endpoint-file config/api_config.yaml
 ```
 Caching feature is implemented. The code will skip generating an answer when there is already an existing answer/judgment to the same prompt. 
 
@@ -154,15 +169,17 @@ model_list:
 ```
 
 Run the command to generate judgments:
-```console
-python gen_judgment.py
+```bash
+python gen_judgment.py \
+    --setting-file config/judge_config.yaml \
+    --endpoint-file config/api_config.yaml
 ```
 Judgment caching is also implemented. It will skip generating judgments that has already been generated or lacks one of the model answers.  
 
 ### Step 4. Show result
 Output model win rates.  Optionally, use `--full-stats` for detailed results. To save a csv file of the model rankings, use `--output`
-```console
-> python show_result.py
+```bash
+python show_result.py
 ```
 
 ### Step 5. Arena Hard UI
@@ -170,9 +187,9 @@ You can review individual judgment results using our UI code.
 ```console
 > python qa_browser.py --share
 ```
-
+<!-- 
 ## Community Contribution
-Coming soon...
+Coming soon... -->
 
 ## Citation
 The code in this repository is mostly developed for or derived from the papers below. Please cite it if you find the repository helpful.
@@ -202,7 +219,7 @@ The code in this repository is mostly developed for or derived from the papers b
 }
 ```
 
-# Local Setup
+<!-- # Local Setup
 ```bash
 vllm serve  --dtype auto
-```
+``` -->

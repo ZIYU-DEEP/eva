@@ -197,7 +197,7 @@ checkpoints-*/
 push_model_to_hub.py
 **/local/
 **/.DS_Store
-**/arena-hard
+
 
 **/data/
 !benchmark/arena-hard/data/

@@ -3,8 +3,8 @@ set -x
 
 # This file should be run under the project directory
 # Number of iterations
-end_split=${1:-6}
 start_split=${1:-1}
+end_split=${2:-6}
 
 # General parameters
 MODEL_FAMILY="gemma-2-9b-it"

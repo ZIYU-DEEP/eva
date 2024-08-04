@@ -26,6 +26,12 @@ gpt-4-1106-preview:
     api_type: openai
     parallel: 8
 
+gpt-4o-mini:
+    model_name: gpt-4o-mini
+    endpoints: null
+    api_type: openai
+    parallel: 40  # Use a larger number as we only use it for judge
+
 gemma-1.1-2b-it:
     model_name: google/gemma-1.1-2b-it
     endpoints: 
@@ -33,5 +39,3 @@ gemma-1.1-2b-it:
           api_key: eva
     api_type: openai
     parallel: 1 
-
-    
