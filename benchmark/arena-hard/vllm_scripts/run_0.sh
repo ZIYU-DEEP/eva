@@ -6,12 +6,12 @@ MODEL_NAME="gemma-2-9b-it-sppo-iter-0"
 
 # Start the vllm serve command in the background
 CUDA_VISIBLE_DEVICES=0 \
-nohup vllm serve $MODEL_PATH \
---dtype bfloat16 \
---host localhost \
---port 8000 \
---tensor-parallel-size 1 \
---api-key eva > local_vllm_serve_0.log 2>&1 &
+    vllm serve $MODEL_PATH \
+        --dtype bfloat16 \
+        --host localhost \
+        --port 8000 \
+        --tensor-parallel-size 1 \
+        --api-key eva > local_vllm_serve_0.log 2>&1 &
 
 # Capture the PID of the vllm serve process
 VLLM_PID=$!
