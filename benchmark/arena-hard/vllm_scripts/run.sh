@@ -2,7 +2,7 @@
 set -e
 
 model_name=${1:-"google/gemma-1.1-2b-it"}
-dtype=${2:-"float16"}
+dtype=${2:-"bfloat16"}
 host=${3:-"localhost"}
 port=${4:-8964}
 tensor_parallel_size=${5:-8}
