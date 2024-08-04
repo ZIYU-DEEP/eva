@@ -191,7 +191,7 @@ You can review individual judgment results using our UI code.
 ## Community Contribution
 Coming soon... -->
 
-## Citation
+<!-- ## Citation
 The code in this repository is mostly developed for or derived from the papers below. Please cite it if you find the repository helpful.
 ```
 @misc{li2024crowdsourced,
@@ -217,7 +217,10 @@ The code in this repository is mostly developed for or derived from the papers b
     month = {April},
     year = {2024}
 }
-```
+``` -->
+
+## Note
+Currently Gemma-2's 8K context length is not supported by VLLM (cf., https://github.com/vllm-project/vllm/issues/6220). Need to adjust.
 
 <!-- # Local Setup
 ```bash
