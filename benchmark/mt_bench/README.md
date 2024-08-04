@@ -69,30 +69,32 @@ Checkout plots in `plot_result.py`.
 
 To add new models and get updated results:
 ```bash
-MODEL_PATHS+=("mistralai/Mistral-7B-Instruct-v0.2")
-MODEL_IDS+=("mistral-7b-instruct-v0.2")
+_MODEL="cat-searcher/gemma-2-9b-it-sppo-iter-4"
+_MODEL_ID="gemma-2-9b-it-sppo-iter-4"
+
+MODEL_PATHS+=($_MODEL)
+MODEL_IDS+=($_MODEL_ID)
 
 # 1. Download the model if it is not already in HF cache
 python download_model.py \
-    --model-path "mistralai/Mistral-7B-Instruct-v0.2"
+    --model-path $_MODEL
 
 # 2. Generate answers
 python gen_model_answer.py \
-    --model-path "mistralai/Mistral-7B-Instruct-v0.2" \
-    --model-id "mistral-7b-instruct-v0.2" \
+    --model-path $_MODEL \
+    --model-id $_MODEL_ID \
     --num-gpus-total 8
 
 # 3. Generate judgement
 python gen_judgment_single.py \
     --model-list "${MODEL_IDS[@]}" \
     --parallel 40 \
-    --filename-suffix _new  # Use any suffix to differentiate
+    --filename-suffix _latest  # Use any suffix to differentiate
 
 # 4. Show result
 python show_result.py \
     --model-list "${MODEL_IDS[@]}" \
-    --filename-suffix _combined_new
+    --filename-suffix _combined_latest
 ```
 
 We have modifed the original MT-Bench file so that you would not waste API calls on previously judged models.
-
