@@ -1,5 +1,6 @@
 """
 Adaptively sample and evolve the prompts.
+TODO: add stratified resampling.
 """
 
 from multiprocessing import Pool
@@ -49,7 +50,7 @@ def evolve_chunk(instructions, gen_model_name, num_evolutions):
     # Get the llm
     llm = OpenAILLM(model=gen_model_name)
     llm.generation_kwargs = {
-        "max_new_tokens": 512,  # TODO: too large may lead to api error; original 2048
+        "max_new_tokens": 1024,  # TODO: too large may lead to api error; original 2048
         "temperature": 1.0,
         }  
     
@@ -93,13 +94,15 @@ def adaptive_sample(
     # ----------------------------------------------------------------------------------
     # Calculate weights based on the metric
     if sample_metric in ['reward_mean']:
+        # Encourage where you are weak
         values = df[sample_metric]
         min_value, max_value = values.min(), values.max()
         normalized_values = (values - min_value) / (max_value - min_value)
         inverted_weights = 1 - normalized_values
         weights = inverted_weights / inverted_weights.sum()
-        
-    elif sample_metric in ['reward_var', 'reward_gap']:
+    
+    elif sample_metric in ['reward_maxmean', 'reward_loo', 'reward_var', 'reward_gap']:
+        # Encourage where we there are improvement room or more contrast
         values = df[sample_metric]
         min_value, max_value = values.min(), values.max()
         normalized_values = (values - min_value) / (max_value - min_value)

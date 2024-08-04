@@ -9,7 +9,7 @@ import pandas as pd
 def display_result_single(args):
     if args.input_file is None:
         input_file = (
-            f"data/{args.bench_name}/model_judgment/{args.judge_model}_single.jsonl"
+            f"data/{args.bench_name}/model_judgment/{args.judge_model}_single{args.filename_suffix}.jsonl"
         )
     else:
         input_file = args.input_file
@@ -39,7 +39,7 @@ def display_result_single(args):
 def display_result_pairwise(args):
     if args.input_file is None:
         input_file = (
-            f"data/{args.bench_name}/model_judgment/{args.judge_model}_pair.jsonl"
+            f"data/{args.bench_name}/model_judgment/{args.judge_model}_pair{args.filename_suffix}.jsonl"
         )
     else:
         input_file = args.input_file
@@ -116,6 +116,13 @@ if __name__ == "__main__":
             "`pairwise-all` runs pairwise comparision between all pairs. "
             "`single` runs single answer grading."
         ),
+    )
+
+    parser.add_argument(
+        "--filename-suffix", "-fs", 
+        type=str, 
+        help="Suffix for the filename",
+        default="",
     )
     args = parser.parse_args()
 

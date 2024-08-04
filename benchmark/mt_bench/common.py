@@ -12,6 +12,7 @@ import time
 from typing import Optional
 
 import openai
+from openai import OpenAI
 import anthropic
 
 from fastchat.model.model_adapter import (
@@ -405,30 +406,48 @@ def play_a_match_pair(match: MatchPair, output_file: str):
 
 
 def chat_completion_openai(model, conv, temperature, max_tokens, api_dict=None):
+
+    # Set the openai client
+    client = OpenAI()
+    
+    # Set the api base and key
     if api_dict is not None:
         openai.api_base = api_dict["api_base"]
         openai.api_key = api_dict["api_key"]
+    
+    # Get the output
     output = API_ERROR_OUTPUT
     for _ in range(API_MAX_RETRY):
         try:
             messages = conv.to_openai_api_messages()
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 model=model,
                 messages=messages,
                 n=1,
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
-            output = response["choices"][0]["message"]["content"]
+            output = response.choices[0].message.content
             break
-        except openai.error.OpenAIError as e:
-            print(type(e), e)
+        except openai.RateLimitError as e:
+            print(f"OpenAI API request exceeded rate limit: {e}")
+            time.sleep(API_RETRY_SLEEP) 
+        except openai.APIConnectionError as e:
+            print(f"Failed to connect to OpenAI API: {e}")
             time.sleep(API_RETRY_SLEEP)
-
+        except openai.APIError as e:
+            print(f"OpenAI API returned an API Error: {e}")
+            time.sleep(API_RETRY_SLEEP)
+            
     return output
 
 
 def chat_completion_openai_azure(model, conv, temperature, max_tokens, api_dict=None):
+
+    # Set the openai client
+    client = OpenAI()
+    
+    # Set the api things
     openai.api_type = "azure"
     openai.api_version = "2023-07-01-preview"
     if api_dict is not None:
@@ -441,25 +460,32 @@ def chat_completion_openai_azure(model, conv, temperature, max_tokens, api_dict=
     if "azure-" in model:
         model = model[6:]
 
+    # Get the outputs
     output = API_ERROR_OUTPUT
     for _ in range(API_MAX_RETRY):
         try:
             messages = conv.to_openai_api_messages()
-            response = openai.ChatCompletion.create(
+            response = client.chat.completions.create(
                 engine=model,
                 messages=messages,
                 n=1,
                 temperature=temperature,
                 max_tokens=max_tokens,
             )
-            output = response["choices"][0]["message"]["content"]
+            output = response.choices[0].message.content
             break
-        except openai.error.OpenAIError as e:
-            print(type(e), e)
+        except openai.BadRequestError as e:
+            print(f"OpenAI API returned a Bad Request Error: {e}")
+            break
+        except openai.RateLimitError as e:
+            print(f"OpenAI API request exceeded rate limit: {e}")
+            time.sleep(API_RETRY_SLEEP) 
+        except openai.APIConnectionError as e:
+            print(f"Failed to connect to OpenAI API: {e}")
             time.sleep(API_RETRY_SLEEP)
-        except openai.error.InvalidRequestError as e:
-            print(type(e), e)
-            break
+        except openai.APIError as e:
+            print(f"OpenAI API returned an API Error: {e}")
+            time.sleep(API_RETRY_SLEEP)
         except KeyError:
             print(response)
             break

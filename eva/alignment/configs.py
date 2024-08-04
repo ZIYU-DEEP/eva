@@ -125,6 +125,14 @@ class ModelArguments:
             )
         },
     )
+    # attn_implementation: Optional[str] = field(
+    #     default='sdpa',
+    #     metadata={
+    #         "help": (
+    #             "See instructions on sdpa and eager options."
+    #         )
+    #     },
+    # )
     model_revision: str = field(
         default="main",
         metadata={"help": "The specific model version to use (can be a branch name, tag name or commit id)."},

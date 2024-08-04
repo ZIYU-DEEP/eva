@@ -154,7 +154,23 @@ def hf_reward(
     return list(zip(scores, [''] * len(scores)))
 
 
-def save_temp_results(rank, all_prompts, all_rewards, all_critiques, all_responses, n_generations):
+def leave_one_out(rewards):
+    """
+    Calculate the leave one out advantage for every reward.
+    """
+    n = len(rewards)
+    leave_one_out_rewards = [
+        rewards[i] - (sum(rewards) - rewards[i]) / (n - 1) for i in range(n)
+    ]
+    return np.mean(leave_one_out_rewards)
+
+
+def save_temp_results(rank, 
+                      all_prompts, 
+                      all_rewards, 
+                      all_critiques, 
+                      all_responses,
+                      n_generations):
     # Get the dataframe
     results_df = pd.DataFrame({
         'prompt': all_prompts,
@@ -166,6 +182,9 @@ def save_temp_results(rank, all_prompts, all_rewards, all_critiques, all_respons
     results_df['reward_mean'] = results_df['rewards'].apply(np.mean)
     results_df['reward_var'] = results_df['rewards'].apply(np.var)
     results_df['reward_gap'] = results_df['rewards'].apply(lambda x: max(x) - min(x))
+    results_df['reward_maxmean'] = results_df['rewards'].apply(
+        lambda x: max(x) - np.mean(x))
+    results_df['reward_loo'] = results_df['rewards'].apply(leave_one_out)
 
     # Add response columns
     for i in range(n_generations):
@@ -213,12 +232,12 @@ def parse_arguments():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_dataset", type=str, 
-                        default="cat-searcher/responses-gemma-1.1-2b-it-split-0-all",
+                        default="cat-searcher/ultrafeedback-gemma-2-9b-it-split-1-all",
                         help='The dataset with prompts and multiple response generations.')
-    parser.add_argument("--n_generations", type=int, default=5,
-                        help='The number of response generations in the datast.')
+    parser.add_argument("--n_generations", type=int, default=6,
+                        help='The number of response generations in the dataset.')
     parser.add_argument("--output_dir", type=str, 
-                        default="responses-gemma-1.1-2b-it-split-0")
+                        default="ultrafeedback-gemma-2-9b-it-split-1")
     parser.add_argument("--data_root", type=str, 
                         default="./data")
     parser.add_argument("--hf_username", type=str, 

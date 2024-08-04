@@ -207,6 +207,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--first-n", type=int, help="A debug option. Only run the first `n` judgments."
     )
+    parser.add_argument(
+        "--filename-suffix", "-fs", 
+        type=str, 
+        help="Suffix for the filename",
+        default="",
+    )
     args = parser.parse_args()
 
     question_file = f"data/{args.bench_name}/question.jsonl"
@@ -235,7 +241,7 @@ if __name__ == "__main__":
         judges = make_judge_single(args.judge_model, judge_prompts)
         play_a_match_func = play_a_match_single
         output_file = (
-            f"data/{args.bench_name}/model_judgment/{args.judge_model}_single.jsonl"
+            f"data/{args.bench_name}/model_judgment/{args.judge_model}_single{args.filename_suffix}.jsonl"
         )
         make_match_func = make_match_single
         baseline_model = None
@@ -243,7 +249,7 @@ if __name__ == "__main__":
         judges = make_judge_pairwise(args.judge_model, judge_prompts)
         play_a_match_func = play_a_match_pair
         output_file = (
-            f"data/{args.bench_name}/model_judgment/{args.judge_model}_pair.jsonl"
+            f"data/{args.bench_name}/model_judgment/{args.judge_model}_pair{args.filename_suffix}.jsonl"
         )
         if args.mode == "pairwise-all":
             make_match_func = make_match_all_pairs

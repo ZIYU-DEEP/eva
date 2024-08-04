@@ -27,15 +27,25 @@ We present a new self-play framework for language model alignment and a new lear
    pip install -e .
    ```
 
-4. **Set up external accounts:**
+4. **Misc:**
    ```bash
    huggingface-cli login       
    wandb login                 
    export OPENAI_API_KEY="..."  # get a key at platform.openai.com/api-keys
+
+   # To run VLLM with Gemma-2 models, we currently use the following setup:
+   cd ..
+
+   pip install vllm==0.5.3
+   wget https://github.com/flashinfer-ai/flashinfer/releases/download/v0.1.1/flashinfer-0.1.1+cu121torch2.3-cp310-cp310-linux_x86_64.whl
+   pip install flashinfer-0.1.1+cu121torch2.3-cp310-cp310-linux_x86_64.whl
+   export VLLM_ATTENTION_BACKEND=FLASHINFER
+
+   cd eva
    ```
 
 ## Training Scripts (TEMP)
-Execute the training scripts based on the base model you choose:
+Execute the training scripts based on the base model you choose. Be sure to modify the iteration number during the training.
 
 1. Default training
    ```bash
@@ -54,9 +64,13 @@ Execute the training scripts based on the base model you choose:
    python ./data_gen/combine_df.py
 
    # Standard training
-   bash ./scripts/evolve/generate.sh
    bash ./scripts/evolve/train.sh 
    ```
+
+To run the gemma baseline, do:
+```
+bash ./scripts/gemma-baseline/iterate.sh
+```
 
 <!-- - Generation for Y|X:
   ```bash
@@ -91,6 +105,15 @@ See detailed instructions for different benchmarks in `./benchmark`.
    cd ./benchmark/arena_hard
    bash ./run.sh # Be sure to modify the models to compare with
    ```
+
+## TODO
+- [ ] Fix the naming issue (more like a tree adding suffix)
+- [ ] Make a spreadsheet
+- [ ] Dump the configs
+- [ ] Create our own evaluation datasets
+- [ ] Adding reward model candidates and make a correlation plots on different reward models
+- [ ] Increasing number of generations (check the log linear relationship)
+- [ ] Adding hints to generate better responses to contrast
 
 <!-- - Alpaca Eval
    ```bash

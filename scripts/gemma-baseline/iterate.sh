@@ -1,4 +1,5 @@
 #!/bin/bash
+set -x
 
 # This file should be run under the project directory
 # Number of iterations
@@ -32,8 +33,8 @@ do
          N_PAIRS DATA_ROOT MAX_TOKENS DTYPE TEMPERATURE TOP_P \
          LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE
 
-  # Source the generate.sh script
-  source ./scripts/gemma-baseline/generate.sh 
+  # Source the gen.sh script
+  source ./scripts/gemma-baseline/gen.sh 
 
   # Source the train.sh script
   source ./scripts/gemma-baseline/train.sh 

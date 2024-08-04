@@ -1,41 +1,44 @@
+#!/bin/bash
 set -e
 # set -x  # Print the commands
 
 # ------------------------------------------------------------------
 # Below is to be re-written by source iterate.sh in other bash files
-ITER=0
-MODEL_FAMILY="gemma-1.1-2b-it"
-LOSS_TYPE="sppo"
-PREF="sppo_score"
+ITER=${ITER:-0}
+SPLIT=${SPLIT:-1}
+MODEL_FAMILY=${MODEL_FAMILY:-"gemma-1.1-2b-it"}
+LOSS_TYPE=${LOSS_TYPE:-"sppo"}
+PREF=${PREF:-"sppo_score"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
 # Other general parameter to be reset
-HF_USERNAME='cat-searcher'
-LEARNING_RATE="5.0e-7"
-BETA="0.001"
-OPTIM="rmsprop"
-N_EPOCHS=18
-BATCH_SIZE=4
-ACCUMULATE=2
+HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
+LEARNING_RATE=${LEARNING_RATE:-"5.0e-7"}
+BETA=${BETA:-"0.001"}
+OPTIM=${OPTIM:-"rmsprop"}
+N_EPOCHS=${N_EPOCHS:-18}
+BATCH_SIZE=${BATCH_SIZE:-4}
+ACCUMULATE=${ACCUMULATE:-2}
 # ------------------------------------------------------------------
+
 
 
 # ##################################################################
 # 0. PREPARATION
 # ##################################################################
 # ------------------------------------------------------------------
-NEXT_ITER=$((ITER + 1))
+# NEXT_ITER=$((ITER + 1))
 
 # The base model to train
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  
 
 # The preference data from the base model
-DATASET="${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${NEXT_ITER}-pair"
+DATASET="${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-pair"
 
 # The directory for the saved model
-SAVE_DIR="checkpoints/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
-HUB_MODEL_ID="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
+SAVE_DIR="checkpoints/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${SPLIT}"
+HUB_MODEL_ID="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${SPLIT}-iter-${ITER}"
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
@@ -55,6 +58,7 @@ echo "logging to $log_file.log"
 # Save the new recipe (in fact, only data mixer name is updated)
 dataset_name=$(echo "$DATASET" | cut -d '/' -f2) 
 new_config_file="./recipes/default/config_full_${dataset_name}.yaml"
+cat $new_config_file
 cp ./recipes/default/config_full.yaml "$new_config_file"
 
 # Update the dataset, model name, and hub model ID

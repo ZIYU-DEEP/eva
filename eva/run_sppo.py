@@ -123,8 +123,30 @@ def setup_model(model_args, training_args):
     return model, ref_model, model_kwargs, ref_model_kwargs
 
 def train_and_evaluate(trainer, raw_datasets, training_args):
-    checkpoint = None
+
+    # -------------------------------------------------------------------------------- 
+    # Set up the checkpoint
+    last_checkpoint = get_checkpoint(training_args)
+    
+    # Set up the checkpoint
+    # Train from a specified checkpoint given in the recipe
+    if training_args.resume_from_checkpoint is not None:
+        checkpoint = training_args.resume_from_checkpoint
+        logger.info(f"Resuming training from the specified checkpoint.")
+        
+    # Train from the auto-saved checkpoint
+    elif last_checkpoint is not None:
+        checkpoint = last_checkpoint
+        logger.info(f"Checkpoint detected, resuming training at {last_checkpoint=}.")
+    
+    else:
+        checkpoint = None
+        logger.info(f"No checkpoint with {last_checkpoint}. Starting from scratch.")
+    
+    # Set the train result
     train_result = trainer.train(resume_from_checkpoint=checkpoint)
+    # --------------------------------------------------------------------------------
+    
     metrics = train_result.metrics
     metrics["train_samples"] = len(raw_datasets["train"])
     trainer.log_metrics("train", metrics)
@@ -184,9 +206,11 @@ def main_inner(model_args, data_args, training_args):
     logger.info(f"Data parameters {data_args}")
     logger.info(f"Training/evaluation parameters {training_args}")
 
-    last_checkpoint = get_checkpoint(training_args)
-    if last_checkpoint is not None and training_args.resume_from_checkpoint is None:
-        logger.info(f"Checkpoint detected, resuming training at {last_checkpoint=}.")
+    # last_checkpoint = get_checkpoint(training_args)
+    # if last_checkpoint is not None and training_args.resume_from_checkpoint is None:
+    #     logger.info(f"Checkpoint detected, resuming training at {last_checkpoint=}.")
+    # else:
+    #     logger.info(f"No checkpoint with {last_checkpoint}. Starting from scratch.")
 
     set_seed(training_args.seed)
 
