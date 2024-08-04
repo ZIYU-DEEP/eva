@@ -128,7 +128,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
     --api-key eva
 ```
 
-For running Gemma-2 models, the following setup is tested:
+For running Gemma-2 models, the following setup is tested with a single gpu:
 ```bash
 pip install vllm==0.5.3
 wget https://github.com/flashinfer-ai/flashinfer/releases/download/v0.1.1/flashinfer-0.1.1+cu121torch2.3-cp310-cp310-linux_x86_64.whl
