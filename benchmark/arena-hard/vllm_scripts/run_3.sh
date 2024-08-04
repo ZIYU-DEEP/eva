@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 MODEL_PATH="cat-searcher/gemma-2-9b-it-sppo-iter-3"
 MODEL_NAME="gemma-2-9b-it-sppo-iter-3"
@@ -8,7 +9,7 @@ CUDA_VISIBLE_DEVICES=3 \
 nohup vllm serve $MODEL_PATH \
 --dtype bfloat16 \
 --host localhost \
---port 8964 \
+--port 8003 \
 --tensor-parallel-size 1 \
 --api-key eva > local_vllm_serve_3.log 2>&1 &
 
@@ -17,7 +18,7 @@ VLLM_PID=$!
 
 # Function to check if the server is running
 check_server() {
-  nc -z localhost 8964
+  nc -z localhost 8003
 }
 
 # Wait until the server is ready

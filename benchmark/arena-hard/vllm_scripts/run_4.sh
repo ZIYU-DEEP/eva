@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 MODEL_PATH="cat-searcher/gemma-2-9b-it-sppo-iter-4"
 MODEL_NAME="gemma-2-9b-it-sppo-iter-4"
