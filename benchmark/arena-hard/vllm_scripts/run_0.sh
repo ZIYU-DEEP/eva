@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-MODEL_PATH="google/gemma-2-9b-it"
-MODEL_NAME="gemma-2-9b-it"
+MODEL_PATH="cat-searcher/gemma-2-9b-it-sppo-iter-0"
+MODEL_NAME="gemma-2-9b-it-sppo-iter-0"
 
 # Start the vllm serve command in the background
 CUDA_VISIBLE_DEVICES=0 \
@@ -11,6 +11,8 @@ CUDA_VISIBLE_DEVICES=0 \
         --host localhost \
         --port 8000 \
         --tensor-parallel-size 1 \
+        --disable-sliding-window \
+        --max-model-len 4096 \
         --api-key eva > local_vllm_serve_0.log 2>&1 &
 
 # Capture the PID of the vllm serve process
