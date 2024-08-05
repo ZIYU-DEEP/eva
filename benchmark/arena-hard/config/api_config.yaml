@@ -30,7 +30,7 @@ gpt-4o-mini:
     model_name: gpt-4o-mini
     endpoints: null
     api_type: openai
-    parallel: 40  # Use a larger number as we only use it for judge
+    parallel: 20  # Use a larger number as we only use it for judge
 
 gemma-1.1-2b-it:
     model_name: google/gemma-1.1-2b-it
@@ -40,10 +40,26 @@ gemma-1.1-2b-it:
     api_type: openai
     parallel: 1 
 
+gemma-2-9b-it:
+    model_name: google/gemma-2-9b-it
+    endpoints: 
+        - api_base: http://localhost:8000/v1
+          api_key: eva
+    api_type: openai
+    parallel: 1 
+
+gemma-2-9b-it-sppo-iter-0:
+    model_name: cat-searcher/gemma-2-9b-it-sppo-iter-0
+    endpoints: 
+        - api_base: http://localhost:8000/v1
+          api_key: eva
+    api_type: openai
+    parallel: 1 
+
 gemma-2-9b-it-sppo-iter-1:
     model_name: cat-searcher/gemma-2-9b-it-sppo-iter-1
     endpoints: 
-        - api_base: http://localhost:8964/v1
+        - api_base: http://localhost:8001/v1
           api_key: eva
     api_type: openai
     parallel: 1 
@@ -51,7 +67,7 @@ gemma-2-9b-it-sppo-iter-1:
 gemma-2-9b-it-sppo-iter-2:
     model_name: cat-searcher/gemma-2-9b-it-sppo-iter-2
     endpoints: 
-        - api_base: http://localhost:8964/v1
+        - api_base: http://localhost:8002/v1
           api_key: eva
     api_type: openai
     parallel: 1 
@@ -59,7 +75,7 @@ gemma-2-9b-it-sppo-iter-2:
 gemma-2-9b-it-sppo-iter-3:
     model_name: cat-searcher/gemma-2-9b-it-sppo-iter-3
     endpoints: 
-        - api_base: http://localhost:8964/v1
+        - api_base: http://localhost:8003/v1
           api_key: eva
     api_type: openai
     parallel: 1 
@@ -67,7 +83,23 @@ gemma-2-9b-it-sppo-iter-3:
 gemma-2-9b-it-sppo-iter-4:
     model_name: cat-searcher/gemma-2-9b-it-sppo-iter-4
     endpoints: 
-        - api_base: http://localhost:8964/v1
+        - api_base: http://localhost:8004/v1
+          api_key: eva
+    api_type: openai
+    parallel: 1 
+
+gemma-2-9b-it-sppo-iter-5:
+    model_name: cat-searcher/gemma-2-9b-it-sppo-iter-5
+    endpoints: 
+        - api_base: http://localhost:8005/v1
+          api_key: eva
+    api_type: openai
+    parallel: 1 
+
+gemma-2-9b-it-sppo-iter-6:
+    model_name: cat-searcher/gemma-2-9b-it-sppo-iter-6
+    endpoints: 
+        - api_base: http://localhost:8006/v1
           api_key: eva
     api_type: openai
     parallel: 1 
@@ -79,3 +111,11 @@ llama-3.1-8b-instruct:
           api_key: eva
     api_type: openai
     parallel: 1 
+
+gemma-2-9b-it-sppo-iter-1-evol-1:
+    model_name: cat-searcher/gemma-2-9b-it-sppo-iter-1-evol-1
+    endpoints: 
+        - api_base: http://localhost:8008/v1
+          api_key: eva
+    api_type: openai
+    parallel: 1

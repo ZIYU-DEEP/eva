@@ -1,7 +1,7 @@
 #!/bin/bash
 
-MODEL_PATH="cat-searcher/gemma-2-9b-it-sppo-iter-1"
-MODEL_NAME="gemma-2-9b-it-sppo-iter-1"
+MODEL_PATH="cat-searcher/gemma-2-9b-it-sppo-iter-0"
+MODEL_NAME="gemma-2-9b-it-sppo-iter-0"
 
 # Start the vllm serve command in the background
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
@@ -30,7 +30,7 @@ echo "Server is up and running."
 
 # Define the source and temporary configuration file paths for gen_answer_config
 SOURCE_CONFIG_GEN="config/gen_answer_config.yaml"
-TEMP_CONFIG_GEN="config/temp_gen_answer_config.yaml"
+TEMP_CONFIG_GEN="config/temp_gen_answer_config_${MODEL_NAME}.yaml"
 
 # Copy the source configuration file to the temporary configuration file
 cp $SOURCE_CONFIG_GEN $TEMP_CONFIG_GEN
@@ -44,7 +44,7 @@ awk -v model_name="$MODEL_NAME" '
 
 # Define the source and temporary configuration file paths for judge_config
 SOURCE_CONFIG_JUDGE="config/judge_config.yaml"
-TEMP_CONFIG_JUDGE="config/temp_judge_config.yaml"
+TEMP_CONFIG_JUDGE="config/temp_judge_config_${MODEL_NAME}.yaml"
 
 # Copy the source configuration file to the temporary configuration file
 cp $SOURCE_CONFIG_JUDGE $TEMP_CONFIG_JUDGE

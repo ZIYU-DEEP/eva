@@ -115,7 +115,7 @@ gemma-1.1-2b-it:
 ```
 You may use inference engine such as [Latest TGI version](https://huggingface.co/docs/text-generation-inference/en/messages_api) or [vLLM](https://docs.vllm.ai/en/latest/serving/openai_compatible_server.html) or [SGLang](https://github.com/sgl-project/sglang?tab=readme-ov-file#using-local-models) to host your model with an OpenAI compatible API server before the next step.
 
-#### Setup for VLLM
+#### Setup for Open-Source Models - VLLM
 Check `./vllm_scripts` for scripts for serving models locally or on HuggingFace. Example command with `vllm`:
 ```bash
 export VLLM_ATTENTION_BACKEND=XFORMERS
@@ -128,7 +128,7 @@ CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
     --api-key eva
 ```
 
-For running Gemma-2 models, the following setup is tested:
+For running Gemma-2 models, the following setup is tested with a single gpu:
 ```bash
 pip install vllm==0.5.3
 wget https://github.com/flashinfer-ai/flashinfer/releases/download/v0.1.1/flashinfer-0.1.1+cu121torch2.3-cp310-cp310-linux_x86_64.whl
@@ -136,6 +136,17 @@ pip install flashinfer-0.1.1+cu121torch2.3-cp310-cp310-linux_x86_64.whl
 export VLLM_ATTENTION_BACKEND=FLASHINFER
 ```
 
+#### Setup for Open-Source Models - SGLang
+Check `./sglang_scripts` for scripts for serving models locally or on HuggingFace. Example command with `sglang==0.2.10`:
+```bash
+CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
+    python -m sglang.launch_server --model-path "cat-searcher/gemma-2-9b-it-sppo-iter-0" \
+    --dtype bfloat16 \
+    --host localhost \
+    --port 8964 \
+    --tp 8 \
+    --api-key eva
+```
 
 ### Step 2. Generate Model Answers
 
@@ -191,7 +202,7 @@ You can review individual judgment results using our UI code.
 ## Community Contribution
 Coming soon... -->
 
-## Citation
+<!-- ## Citation
 The code in this repository is mostly developed for or derived from the papers below. Please cite it if you find the repository helpful.
 ```
 @misc{li2024crowdsourced,
@@ -217,7 +228,10 @@ The code in this repository is mostly developed for or derived from the papers b
     month = {April},
     year = {2024}
 }
-```
+``` -->
+
+## Note
+Currently Gemma-2's 8K context length is not supported by VLLM (cf., https://github.com/vllm-project/vllm/issues/6220). Need to adjust.
 
 <!-- # Local Setup
 ```bash
