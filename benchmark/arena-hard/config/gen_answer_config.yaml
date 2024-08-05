@@ -8,4 +8,4 @@ num_choices: 1
 
 # a list of model to generate answers
 model_list:
-  - gemma-2-9b-it-sppo-iter-1
+  - gemma-2-9b-it-sppo-iter-1-evol-1
