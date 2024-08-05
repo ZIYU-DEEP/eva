@@ -37,9 +37,9 @@ do
          LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE 
 
   # # # Source the gen.sh script
-  source ./scripts/gemma-9b/gen.sh
+  source ./scripts/llama-8b/gen.sh
 
   # Source the train.sh script
-  source ./scripts/gemma-9b/train.sh 
+  source ./scripts/llama-8b/train.sh 
 
 done
