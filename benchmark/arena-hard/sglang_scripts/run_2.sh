@@ -8,27 +8,14 @@ port=8002
 dtype="bfloat16"
 tensor_parallel_size=1
 
-# Start the serve command in the background
-CUDA_VISIBLE_DEVICES=$cuda_visible_devices \
-    python -m sglang.launch_server --model-path $MODEL_PATH \
-    --dtype $dtype \
-    --host localhost  \
-    --port $port \
-    --tp $tensor_parallel_size \
-    --api-key eva > local_sglang_serve_${MODEL_NAME}.log 2>&1 &
-
-# Capture the PID of the  serve process
-SERVE_PID=$!
-
 # Function to check if the server is running
 check_server() {
-  curl --output /dev/null --silent --head --fail http://localhost:$port
+  nc -z localhost $port
 }
 
 # Wait until the server is ready
 echo "Waiting for the server to start..."
 until check_server; do
-  echo "Server is not ready yet. Sleeping for 5 seconds..."
   sleep 5
 done
 
@@ -86,7 +73,7 @@ rm $TEMP_CONFIG_JUDGE
 # Show the results
 python show_result.py
 
-# Stop the vllm server
-echo "Stopping the server..."
-kill $SERVE_PID
-echo "Server stopped."
+# # Stop the vllm server
+# echo "Stopping the server..."
+# kill $SERVE_PID
+# echo "Server stopped."
