@@ -5,7 +5,7 @@ model_name=${1:-"cat-searcher/gemma-2-9b-it-sppo-iter-1"}
 dtype=${2:-"bfloat16"}
 host=${3:-"localhost"}
 port=${4:-8001}
-tensor_parallel_size=${5:-8}
+tensor_parallel_size=${5:-1}
 attention_backend=${6:-"FLASHINFER"}  # Use FLASHINFER for gemma-2 models and XFORMERS for other models
 cuda_visible_devices=${7:-"1"}
 
