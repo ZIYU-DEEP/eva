@@ -48,15 +48,7 @@ export CUDA_VISIBLE_DEVICES="0,1,2,3,4,5,6,7"
 N_GPUS=8
 VLLM_WORLD_SIZE=1
 
-
 # ------------------------------------------------------------------
-# TODO - The naming fashion is a bit inconvenient
-# Currently 0 refers to the SFT model - to fix later
-# So dataset iter starts with 1, while model iter starts with 0
-# X_1 & theta_0 --> Y_1
-# X_1 & Y_1 --> theta_1
-# NEXT_ITER=$((ITER + 1))
-
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  # TODO: this naming fashion only works at iter-1
 # DATASET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${ITER}"  # INPUT - Only to get prompts from X_t
 OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
@@ -74,28 +66,39 @@ mkdir -p ./logs
 
 # We skipped the generation part, as this is the same as the gen.sh, only using different iter and split number.
 
+# ##################################################################
+# 1. Generate responses with the current split and iter to eval prompts
+# ##################################################################
+export  SPLIT ITER \
+        MODEL_FAMILY LOSS_TYPE PREF HF_USERNAME \
+        N_PAIRS DATA_ROOT MAX_TOKENS DTYPE TEMPERATURE TOP_P \
+        LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE
+
+# # Source the gen.sh script
+source ./scripts/gemma-9b/gen.sh
+
 
 
 # ##################################################################
-# 3. EVOLVE-RELEVANT Get Rewards for the responses
+# 2. EVOLVE-RELEVANT Get Rewards for the responses
 # ##################################################################
 # TODO: REPLACE ALL WITH POINTWISE RM - REMOVE THE PAIRRM PART
 DATASET_TO_REWARD="${HF_USERNAME}/${OUTPUT_DIR}-all"
 
-# python src/reward_hf.py \
-#     --input_dataset $DATASET_TO_REWARD \
-#     --output_dir $OUTPUT_DIR \
-#     --n_generations $N_PAIRS \
-#     --data_root $DATA_ROOT \
-#     --hf_username  $HF_USERNAME\
-#     --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
-#     --torch_dtype $DTYPE
+python src/reward_hf.py \
+    --input_dataset $DATASET_TO_REWARD \
+    --output_dir $OUTPUT_DIR \
+    --n_generations $N_PAIRS \
+    --data_root $DATA_ROOT \
+    --hf_username  $HF_USERNAME\
+    --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
+    --torch_dtype $DTYPE
 
 echo "Pushed the annotated data to ${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards."
 
 
 # ##################################################################
-# 4. EVOLVE-RELEVANT Create a new dataset with ONLY evolved prompts
+# 3. EVOLVE-RELEVANT Create a new dataset with ONLY evolved prompts
 # ##################################################################
 DATASET_WITH_REWARDS="${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards"
 DATASET_SUBSET="${HF_USERNAME}/${OUTPUT_DIR}-subset-${SAMPLE_METRIC}-${SAMPLE_FRAC}"
@@ -122,12 +125,3 @@ echo "Pushed the annotated data to ${DATASET_EVOLVED}."
 
 # Next, we will run the gen again, with the newly specified dataset name.
 # Then, we will combine the two pairs dataset, and train a new model on the combined dataset.
-
-
-# # ##################################################################
-# # 5. Combine the dataset
-# # ##################################################################
-# # This step is relatively redundant, as essentially we can specify the dataset to mix in the alignment receipe.
-
-# python src/snippets/combine_ds.py \
-#     --datasets 

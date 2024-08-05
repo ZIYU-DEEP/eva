@@ -5,7 +5,7 @@ set -e  # Exit if failing
 # ------------------------------------------------------------------
 # Below is to be re-written by source generate.sh in other bash files
 ITER=${ITER:-1}
-SPLIT=${SPLIT:-1}
+SPLIT=${SPLIT:-1}  # Specifically for evol
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
 LOSS_TYPE=${LOSS_TYPE:-"sppo"}
 # ------------------------------------------------------------------

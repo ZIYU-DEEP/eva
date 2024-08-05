@@ -32,6 +32,7 @@ We present a new self-play framework for language model alignment and a new lear
    huggingface-cli login       
    wandb login                 
    export OPENAI_API_KEY="..."  # get a key at platform.openai.com/api-keys
+   export WANDB_PROJECT=EVA
 
    # To run VLLM with Gemma-2 models, we currently use the following setup:
    cd ..
