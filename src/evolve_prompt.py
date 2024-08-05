@@ -25,16 +25,18 @@ def parse_arguments():
     
     parser.add_argument("--hf_username", type=str, default="cat-searcher")
     parser.add_argument("--input_dataset", type=str, 
-                        default="cat-searcher/responses-gemma-1.1-2b-it-split-0-all-hf-rewards",
+                        default="cat-searcher/responses-gemma-1.1-2b-it-split-1-iter-1-all-hf-rewards",
                         help='The dataset with prompts to evolve.')
     parser.add_argument("--output_dataset", type=str, 
-                        default="cat-searcher/responses-gemma-1.1-2b-it-split-0-all-hf-rewards-resample-evol",
+                        default="cat-searcher/responses-gemma-1.1-2b-it-split-1-iter-1-resample-evol-metric-reward-gap-frac-0.25",
                         help='The evolved dataset.')
     
     parser.add_argument("--data_root", type=str, default="./data")
-    parser.add_argument("--gen_model_name", type=str, default="gpt-4-turbo")
+    parser.add_argument("--gen_model_name", type=str, default="gpt-4o-mini")
     parser.add_argument("--num_evolutions", type=int, default=4)
     parser.add_argument("--num_workers", type=int, default=20)
+    parser.add_argument("--max_prompt_length", type=int, default=512)
+    parser.add_argument("--evolve_temperature", type=float, default=1.0)
     
     parser.add_argument("--do_adaptive_sample", type=int, default=1,
                         choices=[0, 1], 
@@ -46,12 +48,16 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def evolve_chunk(instructions, gen_model_name, num_evolutions):
+def evolve_chunk(instructions,
+                 gen_model_name: str='gpt-4o-mini', 
+                 num_evolutions: int=4, 
+                 max_prompt_length: int=512,
+                 evolve_temperature: float=1.0):
     # Get the llm
     llm = OpenAILLM(model=gen_model_name)
     llm.generation_kwargs = {
-        "max_new_tokens": 1024,  # TODO: too large may lead to api error; original 2048
-        "temperature": 1.0,
+        "max_new_tokens": max_prompt_length,  # TODO: too large may lead to api error; original 2048
+        "temperature": evolve_temperature,
         }  
     
     # Create the task for evolving instructions

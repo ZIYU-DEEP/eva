@@ -23,7 +23,7 @@ src/
 ├── compute_prob.py      # Computes probabilities for ranking
 ```
 Given a prompt set and a model:
-- `generate.py`: generate response paris and save in the json formats
+- `generate.py`: generate response pairs and save in the json formats
 - `combine_generate.py`: 
     - this is slightly silly as we could do things with DDP.
     - anyway, we now put the the j-th response for all prompts in response_j.json.

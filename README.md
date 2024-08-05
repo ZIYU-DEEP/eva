@@ -60,8 +60,8 @@ Execute the training scripts based on the base model you choose. Be sure to modi
    python ./src/reward_hf.py
 
    # Generate new prompt set
-   python ./data_gen/evol_prompt.py
-   python ./data_gen/combine_df.py
+   python ./src/evolve_prompt.py
+   python ./src/combine_ds.py
 
    # Standard training
    bash ./scripts/evolve/train.sh 
@@ -114,6 +114,7 @@ See detailed instructions for different benchmarks in `./benchmark`.
 - [ ] Adding reward model candidates and make a correlation plots on different reward models
 - [ ] Increasing number of generations (check the log linear relationship)
 - [ ] Adding hints to generate better responses to contrast
+- [ ] Fix the Arena-Hard Evaluation
 
 <!-- - Alpaca Eval
    ```bash

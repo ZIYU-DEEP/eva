@@ -13,6 +13,7 @@ set -e  # Exit if failing
 
 # Below is to be re-written by source generate.sh in other bash files
 ITER=${ITER:-1}  # the ind should start from at least 1, as 0 means unaligned in our notation
+SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
 LOSS_TYPE=${LOSS_TYPE:-"sppo"}
 # ------------------------------------------------------------------
@@ -26,7 +27,15 @@ DTYPE=${DTYPE:-"bfloat16"}
 TEMPERATURE=${TEMPERATURE:-0.9}
 TOP_P=${TOP_P:-0.9}
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
+# ------------------------------------------------------------------
+
+# ------------------------------------------------------------------
+# Specifically for evol
 SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_gap'}
+SAMPLE_FRAC=${SAMPLE_METRIC:-0.25}
+NUM_EVOLUTIONS=${NUM_EVOLUTIONS:-4}
+MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-512}
+EVOLVE_TEMPERATURE=${EVOLVE_TEMPERATURE:-1.0}
 # ------------------------------------------------------------------
 
 
@@ -44,11 +53,12 @@ VLLM_WORLD_SIZE=1
 # So dataset iter starts with 1, while model iter starts with 0
 # X_1 & theta_0 --> Y_1
 # X_1 & Y_1 --> theta_1
-NEXT_ITER=$((ITER + 1))
+# NEXT_ITER=$((ITER + 1))
 
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  # TODO: this naming fashion only works at iter-1
 # DATASET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${ITER}"  # INPUT - Only to get prompts from X_t
 OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
+# Notice this is different from default training, where the split is plus one of iter.
 
 echo "The base model used to generate responses is set to $MODEL_PATH."
 echo "The generated responses will be uploaded to $OUTPUT_DIR with suffix pair and all."
@@ -59,6 +69,8 @@ TIMESTAMP=$(date +"%b-%d-%H-%M")
 START_TIME=$(date +%s)
 mkdir -p ./logs
 # ------------------------------------------------------------------
+
+# We skipped the generation part, as this is the same as the gen.sh, only using different iter and split number.
 
 
 
@@ -84,7 +96,7 @@ echo "Pushed the annotated data to ${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards."
 # 4. EVOLVE-RELEVANT Create a new dataset with ONLY evolved prompts
 # ##################################################################
 DATASET_WITH_REWARDS="${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards"
-DATASET_EVOLVED="${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards-resample-evol-${}"  
+DATASET_EVOLVED="${HF_USERNAME}/${OUTPUT_DIR}-resample-evol-metric-${SAMPLE_METRIC}-frac-${SAMPLE_FRAC}"  
 
 python src/evolve_prompt.py \
     --hf_username  $HF_USERNAME \
@@ -92,11 +104,25 @@ python src/evolve_prompt.py \
     --output_dataset $DATASET_EVOLVED \
     --data_root $DATA_ROOT \
     --gen_model_name gpt-4o-mini \
-    --num_evolutions 4 \
+    --num_evolutions $NUM_EVOLUTIONS \
     --num_workers 20 \
     --do_adaptive_sample 1 \
     --sample_metric $SAMPLE_METRIC \
-    --sample_frac 0.25 \
-    --sample_method importance_weighted
+    --sample_frac $SAMPLE_FRAC \
+    --sample_method importance_weighted \
+    --max_prompt_length $MAX_PROMPT_LENGTH \
+    --evolve_temperature $EVOLVE_TEMPERATURE
 
 echo "Pushed the annotated data to ${DATASET_EVOLVED}."
+
+# Next, we will run the gen again, with the newly specified dataset name.
+# Then, we will combine the two pairs dataset, and train a new model on the combined dataset.
+
+
+# # ##################################################################
+# # 5. Combine the dataset
+# # ##################################################################
+# # This step is relatively redundant, as essentially we can specify the dataset to mix in the alignment receipe.
+
+# python src/snippets/combine_ds.py \
+#     --datasets 

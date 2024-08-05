@@ -32,6 +32,7 @@ MODEL_PATHS=(
     "cat-searcher/gemma-2-9b-it-sppo-iter-2"
     "cat-searcher/gemma-2-9b-it-sppo-iter-3"
     "cat-searcher/gemma-2-9b-it-sppo-iter-4"
+    "cat-searcher/gemma-2-9b-it-sppo-iter-5"
 )
 
 MODEL_IDS=(
@@ -40,6 +41,7 @@ MODEL_IDS=(
     "gemma-2-9b-it-sppo-iter-2"
     "gemma-2-9b-it-sppo-iter-3"
     "gemma-2-9b-it-sppo-iter-4"
+    "cat-searcher/gemma-2-9b-it-sppo-iter-5"
 )
 
 
@@ -71,8 +73,8 @@ Checkout plots in `plot_result.py`.
 
 To add new models and get updated results:
 ```bash
-_MODEL="cat-searcher/gemma-2-9b-it-sppo-iter-5"
-_MODEL_ID="gemma-2-9b-it-sppo-iter-5"
+_MODEL="cat-searcher/gemma-2-9b-it-sppo-iter-6"
+_MODEL_ID="gemma-2-9b-it-sppo-iter-6"
 
 MODEL_PATHS+=($_MODEL)
 MODEL_IDS+=($_MODEL_ID)

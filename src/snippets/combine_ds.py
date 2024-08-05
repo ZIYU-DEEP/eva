@@ -24,6 +24,14 @@ def parse_arguments():
         ],
         help="List of datasets to combine"
     )
+    
+    parser.add_argument(
+        "--ratios", 
+        type=float, 
+        nargs='+', 
+        default=[0.5, 0.5],
+        help="List of ratios for each dataset"
+    )
 
     parser.add_argument(
         "--output_dataset", 
@@ -39,12 +47,24 @@ def main():
     # Parse command line arguments
     args = parse_arguments()
 
+    if len(args.datasets) != len(args.ratios):
+        raise ValueError(
+            "The number of datasets must match the number of ratios!")
+
     # Load and process datasets
     datasets = []
-    for dataset_name in args.datasets:
+    for dataset_name, ratio in zip(args.datasets, args.ratios):
+        # Load the dataset
         dataset = load_dataset(dataset_name, split='train')
-        dataset = dataset.remove_columns([col for col in dataset.column_names if col != 'prompt'])
-        datasets.append(dataset)
+        
+        # Sample the dataset based on the given ratio
+        num_samples = int(len(dataset) * ratio)
+        
+        # Shuffle the dataset
+        sampled_dataset = dataset.shuffle(seed=42).select(range(num_samples))
+        
+        # Append to the full dataset
+        datasets.append(sampled_dataset)
 
     # Combine the datasets
     combined_dataset = concatenate_datasets(datasets)
@@ -53,7 +73,9 @@ def main():
     shuffled_dataset = combined_dataset.shuffle(seed=42)
 
     # Push the combined and shuffled dataset to the hub
-    shuffled_dataset.push_to_hub(args.output_dataset, split='train', private=True)
+    shuffled_dataset.push_to_hub(args.output_dataset, 
+                                 split='train', 
+                                 private=True)
 
 
 if __name__ == "__main__":
