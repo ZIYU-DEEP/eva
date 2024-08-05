@@ -22,16 +22,18 @@ SERVE_PID=$!
 
 # Function to check if the server is running
 check_server() {
-  nc -z localhost $port
+  curl --output /dev/null --silent --head --fail http://localhost:$port
 }
 
 # Wait until the server is ready
 echo "Waiting for the server to start..."
 until check_server; do
+  echo "Server is not ready yet. Sleeping for 5 seconds..."
   sleep 5
 done
 
 echo "Server is up and running."
+
 
 # Define the source and temporary configuration file paths for gen_answer_config
 SOURCE_CONFIG_GEN="config/gen_answer_config.yaml"
