@@ -1,18 +1,19 @@
 #!/bin/bash
 set -e
 
-MODEL_PATH="cat-searcher/gemma-2-9b-it-sppo-iter-2"
-MODEL_NAME="gemma-2-9b-it-sppo-iter-2"
-cuda_visible_devices="2"
-port=8002
-dtype="bfloat16"
-tensor_parallel_size=1
+model_name=${1:-"cat-searcher/gemma-2-9b-it-sppo-iter-2"}
+dtype=${2:-"bfloat16"}
+host=${3:-"localhost"}
+port=${4:-8002}
+tensor_parallel_size=${5:-1}
+attention_backend=${6:-"FLASHINFER"}  # Use FLASHINFER for gemma-2 models and XFORMERS for other models
+cuda_visible_devices=${7:-"1"}
 
-# Start the serve command in the background
+export VLLM_ATTENTION_BACKEND=$attention_backend
 CUDA_VISIBLE_DEVICES=$cuda_visible_devices \
-    python -m sglang.launch_server --model-path $MODEL_PATH \
+    python -m sglang.launch_server --model-path $model_name \
     --dtype $dtype \
-    --host localhost  \
+    --host $host \
     --port $port \
     --tp $tensor_parallel_size \
-    --api-key eva > local_sglang_serve_${MODEL_NAME}.log 2>&1
+    --api-key eva
