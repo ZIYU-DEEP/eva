@@ -2,6 +2,8 @@
 set -e
 # set -x  # Print the commands
 
+export VLLM_ATTENTION_BACKEND=XFORMERS
+
 # ------------------------------------------------------------------
 # Below is to be re-written by source iterate.sh in other bash files
 ITER=${ITER:-0}
