@@ -154,7 +154,7 @@ def main():
         sampling_params = SamplingParams(
             temperature=temperature,
             top_p=top_p,
-            max_tokens=max_tokens,
+            max_tokens=max_tokens,  # Maximum number of tokens to generate
             seed=p * 50,
         )
         
