@@ -32,7 +32,7 @@ HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 # ------------------------------------------------------------------
 # Specifically for evol
 SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_gap'}
-SAMPLE_FRAC=${SAMPLE_METRIC:-0.25}
+SAMPLE_FRAC=${SAMPLE_FRAC:-0.25}
 NUM_EVOLUTIONS=${NUM_EVOLUTIONS:-4}
 MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-512}
 EVOLVE_TEMPERATURE=${EVOLVE_TEMPERATURE:-1.0}
