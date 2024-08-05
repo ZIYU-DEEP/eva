@@ -87,7 +87,8 @@ def adaptive_sample(
     hf_username: str = 'cat-searcher',
     sample_metric: str = 'reward_mean',
     sample_frac: float = 0.25,
-    sample_method: str = 'importance_weighted'
+    sample_method: str = 'importance_weighted',
+    subset_dataset: str = 'cat-searcher/responses-gemma-1.1-2b-it-split-0-subset-reward_gap-0.25',
 ) -> str:
     """
     Sample prompts based on a specified metric with conditional logic and advanced sampling.
@@ -141,14 +142,13 @@ def adaptive_sample(
 
     # Save and push to hub
     new_dataset = Dataset.from_pandas(sampled_df)
-    ds_name = f"{hf_username}/{input_dataset}-re-sample-{sample_metric}-{sample_method}-{sample_frac}"
     new_dataset.push_to_hub(
-        ds_name, 
+        subset_dataset, 
         split="train", 
         private=True
     )
     
-    return ds_name
+    return subset_dataset
 
 
 def main():
@@ -169,6 +169,9 @@ def main():
     sample_metric = args.sample_metric
     sample_frac = args.sample_frac
     sample_method = args.sample_method
+    subset_dataset = args.subset_dataset
+    max_prompt_length = args.max_prompt_length
+    evolve_temperature = args.evolve_temperature
     
     evolve_dir = Path(data_root) / 'evolved'
     evolve_dir.mkdir(parents=True, exist_ok=True)
@@ -187,7 +190,8 @@ def main():
             hf_username=hf_username,
             sample_metric=sample_metric,
             sample_frac=sample_frac,
-            sample_method=sample_method
+            sample_method=sample_method,
+            subset_dataset=subset_dataset,
         )
         dataset = load_dataset(input_dataset, split='train')
         
@@ -209,7 +213,9 @@ def main():
     # Wrap evolve_chunk to handle multiple arguments
     evolve_chunk_wrapper = partial(evolve_chunk, 
                                    gen_model_name=gen_model_name, 
-                                   num_evolutions=num_evolutions)
+                                   num_evolutions=num_evolutions,
+                                   max_prompt_length=max_prompt_length,
+                                   evolve_temperature=evolve_temperature)
     
     # Process the chunks in parallel with progress bar
     with Pool(num_workers) as pool:

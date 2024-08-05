@@ -96,24 +96,27 @@ echo "Pushed the annotated data to ${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards."
 # 4. EVOLVE-RELEVANT Create a new dataset with ONLY evolved prompts
 # ##################################################################
 DATASET_WITH_REWARDS="${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards"
-DATASET_EVOLVED="${HF_USERNAME}/${OUTPUT_DIR}-resample-evol-metric-${SAMPLE_METRIC}-frac-${SAMPLE_FRAC}"  
+DATASET_SUBSET="${HF_USERNAME}/${OUTPUT_DIR}-subset-${SAMPLE_METRIC}-${SAMPLE_FRAC}"
+DATASET_EVOLVED="${HF_USERNAME}/${OUTPUT_DIR}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}"  
 
-python src/evolve_prompt.py \
-    --hf_username  $HF_USERNAME \
-    --input_dataset $DATASET_WITH_REWARDS \
-    --output_dataset $DATASET_EVOLVED \
-    --data_root $DATA_ROOT \
-    --gen_model_name gpt-4o-mini \
-    --num_evolutions $NUM_EVOLUTIONS \
-    --num_workers 20 \
-    --do_adaptive_sample 1 \
-    --sample_metric $SAMPLE_METRIC \
-    --sample_frac $SAMPLE_FRAC \
-    --sample_method importance_weighted \
-    --max_prompt_length $MAX_PROMPT_LENGTH \
-    --evolve_temperature $EVOLVE_TEMPERATURE
+echo $DATASET_EVOLVED
 
-echo "Pushed the annotated data to ${DATASET_EVOLVED}."
+# python src/evolve_prompt.py \
+#     --hf_username  $HF_USERNAME \
+#     --input_dataset $DATASET_WITH_REWARDS \
+#     --output_dataset $DATASET_EVOLVED \
+#     --data_root $DATA_ROOT \
+#     --gen_model_name gpt-4o-mini \
+#     --num_evolutions $NUM_EVOLUTIONS \
+#     --num_workers 20 \
+#     --do_adaptive_sample 1 \
+#     --sample_metric $SAMPLE_METRIC \
+#     --sample_frac $SAMPLE_FRAC \
+#     --sample_method importance_weighted \
+#     --max_prompt_length $MAX_PROMPT_LENGTH \
+#     --evolve_temperature $EVOLVE_TEMPERATURE
+
+# echo "Pushed the annotated data to ${DATASET_EVOLVED}."
 
 # Next, we will run the gen again, with the newly specified dataset name.
 # Then, we will combine the two pairs dataset, and train a new model on the combined dataset.
