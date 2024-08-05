@@ -27,8 +27,11 @@ def parse_arguments():
     parser.add_argument("--input_dataset", type=str, 
                         default="cat-searcher/responses-gemma-1.1-2b-it-split-1-iter-1-all-hf-rewards",
                         help='The dataset with prompts to evolve.')
+    parser.add_argument("--subset_dataset", type=str, 
+                        default="cat-searcher/responses-gemma-1.1-2b-it-split-1-iter-1-resample-subset-reward_gap-0.25",
+                        help='The evolved dataset.')
     parser.add_argument("--output_dataset", type=str, 
-                        default="cat-searcher/responses-gemma-1.1-2b-it-split-1-iter-1-resample-evol-metric-reward-gap-frac-0.25",
+                        default="cat-searcher/responses-gemma-1.1-2b-it-split-1-iter-1-resample-evol-reward_gap-0.25",
                         help='The evolved dataset.')
     
     parser.add_argument("--data_root", type=str, default="./data")
