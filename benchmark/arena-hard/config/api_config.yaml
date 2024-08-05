@@ -30,7 +30,7 @@ gpt-4o-mini:
     model_name: gpt-4o-mini
     endpoints: null
     api_type: openai
-    parallel: 10  # Use a larger number as we only use it for judge
+    parallel: 20  # Use a larger number as we only use it for judge
 
 gemma-1.1-2b-it:
     model_name: google/gemma-1.1-2b-it
