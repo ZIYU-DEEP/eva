@@ -50,28 +50,15 @@ Execute the training scripts based on the base model you choose. Be sure to modi
 
 1. Default training
    ```bash
-   bash ./scripts/default/generate.sh
-   bash ./scripts/default/train.sh 
+   bash ./scripts/gemma-9b/iterate.sh
    ```
 
-2. Evolving training
+2. Evolving training (example for one iteration)
    ```bash
-   # Evaluate the prompt quality
-   bash ./scripts/default/generate.sh
-   python ./src/reward_hf.py
-
-   # Generate new prompt set
-   python ./src/evolve_prompt.py
-   python ./src/combine_ds.py
-
-   # Standard training
-   bash ./scripts/evolve/train.sh 
+   bash ./scripts/gemma-9b/evolve-create-iter-1.sh
+   bash ./scripts/gemma-9b/evolve-gen-iter-1.sh
+   bash ./scripts/gemma-9b/evolve-train-iter-1.sh
    ```
-
-To run the gemma baseline, do:
-```
-bash ./scripts/gemma-baseline/iterate.sh
-```
 
 <!-- - Generation for Y|X:
   ```bash
@@ -109,13 +96,12 @@ See detailed instructions for different benchmarks in `./benchmark`.
 
 ## TODO
 - [ ] Fix the naming issue (more like a tree adding suffix)
-- [ ] Make a spreadsheet
-- [ ] Dump the configs
+- [x] Make a spreadsheet
 - [ ] Create our own evaluation datasets
 - [ ] Adding reward model candidates and make a correlation plots on different reward models
 - [ ] Increasing number of generations (check the log linear relationship)
-- [ ] Adding hints to generate better responses to contrast
-- [ ] Fix the Arena-Hard Evaluation
+- [ ] Adding hints/critique to generate better responses to contrast
+- [x] Fix the Arena-Hard Evaluation
 
 <!-- - Alpaca Eval
    ```bash
