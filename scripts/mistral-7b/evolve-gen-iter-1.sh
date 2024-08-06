@@ -6,7 +6,7 @@ set -e  # Exit if failing
 # Below is to be re-written by source generate.sh in other bash files
 ITER=${ITER:-1}
 SPLIT=${SPLIT:-1}  # Specifically for evol
-MODEL_FAMILY=${MODEL_FAMILY:-"Meta-Llama-3.1-8B-Instruct"}
+MODEL_FAMILY=${MODEL_FAMILY:-"Mistral-7B-Instruct-v0.2"}
 LOSS_TYPE=${LOSS_TYPE:-"sppo"}
 # ------------------------------------------------------------------
 
