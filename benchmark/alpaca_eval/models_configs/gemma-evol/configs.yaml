@@ -4,7 +4,7 @@ gemma-1.1-2b-it-sppo-iter0-evol-mixed: # this should be the same as the name as 
   completions_kwargs:
     model_name: "cat-searcher/gemma-1.1-2b-it-sppo-iter0-evol-mixed"
     model_kwargs:
-      dtype: 'float16'
+      dtype: 'bfloat16'
       tokenizer_mode: "auto"
       trust_remote_code: True
     max_new_tokens: 2048
