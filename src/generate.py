@@ -129,6 +129,7 @@ def main():
 
     # Apply template to the prompt
     print(dataset_name)
+    print(model_path)
     prompts_raw = [data[idx]["prompt"] for idx in range(len(data))]
     breakpoint()
     prompts = [apply_template(prompt, tokenizer) for prompt in prompts_raw]
