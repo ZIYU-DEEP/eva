@@ -14,4 +14,4 @@ envsubst '${CONFIG_PATH}' < "${CONFIG_PATH}/configs.yaml" > "${CONFIG_PATH}/loca
 alpaca_eval evaluate_from_model \
   --model_configs "${CONFIG_PATH}/local_configs.yaml" \
   --annotators_config 'weighted_alpaca_eval_gpt4_turbo' \
-  --reference_output 'gpt4_turbo'
+  --reference_outputs 'gpt4_turbo'
