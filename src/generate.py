@@ -128,8 +128,13 @@ def main():
     tokenizer.pad_token = tokenizer.eos_token
 
     # Apply template to the prompt
-    prompts = [apply_template(data[idx]["prompt"], tokenizer) 
-               for idx in range(len(data))]
+    print(dataset_name)
+    prompts_raw = [data[idx]["prompt"] for idx in range(len(data))]
+    breakpoint()
+    prompts = [apply_template(prompt, tokenizer) for prompt in prompts_raw]
+    
+    # prompts = [apply_template(data[idx]["prompt"], tokenizer) 
+    #            for idx in range(len(data))]
     
     # Check the prompts
     print(prompts[0])
