@@ -54,12 +54,14 @@ Execute the training scripts based on the base model you choose. Be sure to modi
    ```
 
 2. Evolving training (example for one iteration)
-   ```bash
+   <!-- ```bash
    bash ./scripts/gemma-9b/evolve-create-iter-1.sh
    bash ./scripts/gemma-9b/evolve-gen-iter-1.sh
    bash ./scripts/gemma-9b/evolve-train-iter-1.sh
+   ``` -->
+   ```bash
+   bash ./scripts/llama-8b/evolve-1.sh
    ```
-
 <!-- - Generation for Y|X:
   ```bash
   bash ./scripts/generate.sh

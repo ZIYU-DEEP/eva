@@ -109,6 +109,7 @@ echo $DATASET_EVOLVED
 python src/evolve_prompt.py \
     --hf_username  $HF_USERNAME \
     --input_dataset $DATASET_WITH_REWARDS \
+    --subset_dataset $DATASET_SUBSET \
     --output_dataset $DATASET_EVOLVED \
     --data_root $DATA_ROOT \
     --gen_model_name $GEN_MODEL_NAME \
