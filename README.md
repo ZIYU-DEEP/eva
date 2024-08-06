@@ -60,7 +60,7 @@ Execute the training scripts based on the base model you choose. Be sure to modi
    bash ./scripts/gemma-9b/evolve-train-iter-1.sh
    ``` -->
    ```bash
-   bash ./scripts/llama-8b/evolve-iter-1.sh
+   bash ./scripts/llama-8b/evolve-1.sh
    ```
 <!-- - Generation for Y|X:
   ```bash
