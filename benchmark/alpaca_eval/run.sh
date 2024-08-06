@@ -6,5 +6,6 @@ echo ${CONFIG_PATH}
 
 alpaca_eval evaluate_from_model \
   --model_configs $CONFIG_PATH \
-  --annotators_config 'alpaca_eval_gpt4_turbo_fn'   
+  --annotators_config 'weighted_alpaca_eval_gpt4_turbo' \
+  --reference_output 'gpt4_turbo'
  
