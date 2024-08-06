@@ -1,0 +1,15 @@
+gemma-1.1-2b-it: # this should be the same as the name as the current directory
+  prompt_template: "./prompt.txt"
+  fn_completions: "vllm_local_completions"
+  completions_kwargs:
+    model_name: "cat-searcher/gemma-2-9b-it-sppo-iter-4"
+    model_kwargs:
+      dtype: 'float16'
+      tokenizer_mode: "auto"
+      trust_remote_code: True
+    max_new_tokens: 2048
+    temperature: 0.7
+    top_p: 0.9
+    batch_size: 900
+  pretty_name: "gemma-2-9b-it-sppo-iter-4" # name in the leaderboard
+  link: "https://huggingface.co/cat-searcher/gemma-2-9b-it-sppo-iter-4"
