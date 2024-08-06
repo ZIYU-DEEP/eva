@@ -1,5 +1,6 @@
 #!/bin/bash
 set -e
+set -x
 
 model_name=${1:-"cat-searcher/gemma-2-9b-it-sppo-iter-5"}
 port=${2:-8005}
