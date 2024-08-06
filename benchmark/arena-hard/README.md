@@ -137,7 +137,7 @@ export VLLM_ATTENTION_BACKEND=FLASHINFER
 ```
 
 #### Setup for Open-Source Models - SGLang
-Check `./sglang_scripts` for scripts for serving models locally or on HuggingFace. Example command with `sglang==0.2.10`:
+Check `./sglang_scripts` for scripts for serving models locally or on HuggingFace. Example command with `sglang==0.2.10` (`pip install "sglang[all]"`):
 ```bash
 CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
     python -m sglang.launch_server --model-path "cat-searcher/gemma-2-9b-it-sppo-iter-0" \
