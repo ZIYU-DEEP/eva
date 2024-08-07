@@ -4,7 +4,7 @@ set -e  # Exit if failing
 
 # ------------------------------------------------------------------
 # Below is to be re-written by source generate.sh in other bash files
-ITER=${ITER:-0}c
+ITER=${ITER:-0}
 SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"meta-llama-3.1-8b-it"}
 SFT_MODEL_PATH=${SFT_MODEL_PATH:-"meta-llama/Meta-Llama-3.1-8B-Instruct"}
