@@ -10,7 +10,7 @@ set -x  # Print the commands
 # General parameters
 SPLIT=1
 ITER=1
-MODEL_FAMILY="meta-mistral-7b-it"
+MODEL_FAMILY="mistral-7b-it-v0.2"
 SFT_MODEL_PATH="mistralai/Mistral-7B-Instruct-v0.2"
 LOSS_TYPE="sppo"
 PREF="sppo_score"
