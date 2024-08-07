@@ -38,7 +38,7 @@ do
          LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE 
 
   # # # Source the gen.sh script
-  if [ "$ITER" -eq 2 ] || [ "$ITER" -eq 3 ]; then
+  if [ "$ITER" -eq 1 ] || [ "$ITER" -eq 2 ] || [ "$ITER" -eq 3 ]; then
     source ./scripts/split-3-llama-3.1-8b/gen.sh
   fi
 
