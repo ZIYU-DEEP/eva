@@ -6,7 +6,7 @@ set -e  # Exit if failing
 # Below is to be re-written by source generate.sh in other bash files
 ITER=${ITER:-1}
 SPLIT=${SPLIT:-1}  # Specifically for evol
-MODEL_FAMILY=${MODEL_FAMILY:-"Meta-Llama-3.1-8B-Instruct"}
+MODEL_FAMILY=${MODEL_FAMILY:-"meta-llama-3.1-8b-it"}
 LOSS_TYPE=${LOSS_TYPE:-"sppo"}
 # ------------------------------------------------------------------
 
@@ -16,7 +16,7 @@ N_PAIRS=${N_PAIRS:-6}  # number of response generated for each prompt (better ch
 DATA_ROOT=${DATA_ROOT:-"./data"}  # assume the script is run at the project directory
 MAX_TOKENS=${MAX_TOKENS:-2048}
 DTYPE=${DTYPE:-"bfloat16"}
-TEMPERATURE=${TEMPERATURE:-0.9}
+TEMPERATURE=${TEMPERATURE:-0.7}
 TOP_P=${TOP_P:-0.9}
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 # ------------------------------------------------------------------
@@ -53,7 +53,7 @@ MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
 OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}" 
 PROMPT_SET_NAME="${HF_USERNAME}/${OUTPUT_DIR}"
 
-# PROMPT_SET_NAME="cat-searcher/ultrafeedback-gemma-2-9b-it-split-1-iter-1-evol-reward_gap-0.25"
+# PROMPT_SET_NAME="cat-searcher/ultrafeedback-2-9b-it-split-1-iter-1-evol-reward_gap-0.25"
 # That is the name generated previously.
 # ------------------------------------------------------------------
 

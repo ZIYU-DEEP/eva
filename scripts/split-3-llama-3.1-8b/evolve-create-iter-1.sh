@@ -14,7 +14,7 @@ set -e  # Exit if failing
 # Below is to be re-written by source generate.sh in other bash files
 ITER=${ITER:-1}  # the ind should start from at least 1, as 0 means unaligned in our notation
 SPLIT=${SPLIT:-1}
-MODEL_FAMILY=${MODEL_FAMILY:-"Meta-Llama-3.1-8B-Instruct"}
+MODEL_FAMILY=${MODEL_FAMILY:-"meta-llama-3.1-8b-it"}
 LOSS_TYPE=${LOSS_TYPE:-"sppo"}
 # ------------------------------------------------------------------
 
@@ -24,7 +24,7 @@ N_PAIRS=${N_PAIRS:-6}  # number of response generated for each prompt (better ch
 DATA_ROOT=${DATA_ROOT:-"./data"}  # assume the script is run at the project directory
 MAX_TOKENS=${MAX_TOKENS:-2048}
 DTYPE=${DTYPE:-"bfloat16"}
-TEMPERATURE=${TEMPERATURE:-0.9}
+TEMPERATURE=${TEMPERATURE:-0.7}
 TOP_P=${TOP_P:-0.9}
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 # ------------------------------------------------------------------
@@ -50,7 +50,7 @@ VLLM_WORLD_SIZE=1
 
 # ------------------------------------------------------------------
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  # TODO: this naming fashion only works at iter-1
-# DATASET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${ITER}"  # INPUT - Only to get prompts from X_t
+# DATASET_NAME="${HF_USERNAME}/ultrafeedback-split-${ITER}"  # INPUT - Only to get prompts from X_t
 OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
 # Notice this is different from default training, where the split is plus one of iter.
 
