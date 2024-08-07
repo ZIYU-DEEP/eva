@@ -38,9 +38,12 @@ do
          LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE 
 
   # # # Source the gen.sh script
-  source ./scripts/split-3-llama-3.1-8b/gen.sh
+  if [ "$ITER" -eq 2 ] || [ "$ITER" -eq 3 ]; then
+    source ./scripts/split-3-llama-3.1-8b/gen.sh
+  fi
 
   # Source the train.sh script
   source ./scripts/split-3-llama-3.1-8b/train.sh 
 
 done
+# Setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
