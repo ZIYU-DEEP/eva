@@ -26,5 +26,5 @@ alpaca_eval evaluate_from_model \
 <!-- ```bash
                             length_controlled_winrate  win_rate  standard_error  n_total  avg_length
 gemma-1.1-2b-it-sppo-iter0                      19.85     13.04            1.19      805        1220
-gemma-1.1-2b-it-sppo-iter0-evol 
+gemma-2-9b-it                                   47.11     38.39            1.71      805        1567
 ``` -->
