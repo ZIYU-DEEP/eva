@@ -3,7 +3,7 @@
 # e.g., YOUR_ROOT/benchmark/alpaca_eval
 
 # Define CONFIG_PATH to point to your configuration directory
-CONFIG_PATH=$(pwd)/models_configs/gemma-2-9b-it-sppo-iter-0
+CONFIG_PATH=$(pwd)/models_configs/gemma-2-9b-it
 export CONFIG_PATH
 echo ${CONFIG_PATH}
 

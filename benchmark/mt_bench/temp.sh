@@ -1,16 +1,16 @@
 MODEL_PATHS=(
-    # "meta-llama/Meta-Llama-3.1-8B-Instruct"
-    # "mistralai/Mistral-7B-Instruct-v0.2"
-    # "cat-searcher/meta-llama-3.1-8b-it-sppo-iter-1"
-    # "cat-searcher/mistral-7b-it-v0.2-sppo-iter-1"
+    "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    "mistralai/Mistral-7B-Instruct-v0.2"
+    "cat-searcher/meta-llama-3.1-8b-it-sppo-iter-1"
+    "cat-searcher/mistral-7b-it-v0.2-sppo-iter-1"
     "cat-searcher/meta-llama-3.1-8b-it-sppo-iter-1-evol-1"
 )
 
 MODEL_IDS=(
-    # "llama-3.1-8b-instruct"
-    # "mistral-7b-instruct-v0.2"
-    # "meta-llama-3.1-8b-it-sppo-iter-1"
-    # "mistral-7b-it-v0.2-sppo-iter-1"
+    "meta-llama-3.1-8b-it"
+    "mistral-7b-instruct-v0.2"
+    "meta-llama-3.1-8b-it-sppo-iter-1"
+    "mistral-7b-it-v0.2-sppo-iter-1"
     "meta-llama-3.1-8b-it-sppo-iter-1-evol-1"
 )
 
