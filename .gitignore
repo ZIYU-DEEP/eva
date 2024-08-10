@@ -203,8 +203,8 @@ push_model_to_hub.py
 # !benchmark/arena-hard/data/
 !benchmark/mt_bench/data/
 
-# !benchmark/alpaca_eval
-benchmark/alpaca_eval
+!benchmark/alpaca_eval
+# benchmark/alpaca_eval
 
 **.npy
 **/dataset_with_topics/
