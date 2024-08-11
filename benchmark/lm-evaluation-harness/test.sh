@@ -5,4 +5,4 @@ lm_eval --model hf \
     --batch_size 4 \
     --log_samples \
     --output_path results \
-    --hf_hub_log_args hub_results_org=cat-searcher,hub_repo_name=lm-eval-results,push_results_to_hub=True,push_samples_to_hub=True,public_repo=False 
+    # --hf_hub_log_args hub_results_org=cat-searcher,hub_repo_name=lm-eval-results,push_results_to_hub=True,push_samples_to_hub=True,public_repo=False 
