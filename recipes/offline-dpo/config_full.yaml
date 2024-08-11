@@ -34,14 +34,14 @@ num_train_epochs: 2
 warmup_ratio: 0.1
 
 # Gradient accumulation settings
-gradient_accumulation_steps: 4
+gradient_accumulation_steps: 8
 gradient_checkpointing: true
 gradient_checkpointing_kwargs:
   use_reentrant: False
 
 # Batch size
-per_device_train_batch_size: 2
-per_device_eval_batch_size: 2
+per_device_train_batch_size: 1
+per_device_eval_batch_size: 1
 
 # effective_batch_size == batch_size * accumulate_grad_batches * devices
 
