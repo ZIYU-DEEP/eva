@@ -1022,9 +1022,20 @@ class SPPOTrainer(Trainer):
             policy_rejected_logits,
         ) = self.concatenated_forward(model, batch)
 
-        chosen_probs = torch.tensor(batch["chosen_probs"], dtype=float, device=policy_chosen_logps.device)
-        chosen_probs_win = torch.tensor(batch["chosen_probs_win"], dtype=float, device=policy_chosen_logps.device)
-        chosen_probs_lose = torch.tensor(batch["chosen_probs_lose"], dtype=float, device=policy_chosen_logps.device)
+        # DEBUG: THIS WILL RAISE ERROR FOR DPO
+        try:
+            chosen_probs = torch.tensor(
+                batch["chosen_probs"], dtype=float, device=policy_chosen_logps.device)
+            chosen_probs_win = torch.tensor(
+                batch["chosen_probs_win"], dtype=float, device=policy_chosen_logps.device)
+            chosen_probs_lose = torch.tensor(
+                batch["chosen_probs_lose"], dtype=float, device=policy_chosen_logps.device)
+        except Exception as e:
+            print(f"No chosen probs in dataset: {e}")
+            chosen_probs = None
+            chosen_probs_win = None
+            chosen_probs_lose = None
+
         
         # if reference_chosen_logps and reference_rejected_logps in batch use them, otherwise use the reference model
         if "reference_chosen_logps" in batch and "reference_rejected_logps" in batch:
