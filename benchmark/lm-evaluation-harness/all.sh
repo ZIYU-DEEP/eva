@@ -1,6 +1,11 @@
 #!/bin/bash
 
-task=${1:-arc_challenge}
+# Candidate tasks
+# gsm_plus_mini
+# mathqa
+
+
+task=${1:-mathqa}
 
 accelerate launch -m lm_eval --model hf \
     --model_args pretrained=cat-searcher/gemma-2-9b-it-sppo-iter-0 \
