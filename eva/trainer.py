@@ -1031,7 +1031,6 @@ class SPPOTrainer(Trainer):
             chosen_probs_lose = torch.tensor(
                 batch["chosen_probs_lose"], dtype=float, device=policy_chosen_logps.device)
         except Exception as e:
-            print(f"No chosen probs in dataset: {e}")
             chosen_probs = None
             chosen_probs_win = None
             chosen_probs_lose = None
