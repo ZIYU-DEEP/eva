@@ -15,7 +15,7 @@ accelerate launch -m lm_eval --model hf \
     --log_samples \
     --trust_remote_code \
     --output_path results \
-    --hf_hub_log_args hub_results_org=cat-searcher,hub_repo_name=lm-eval-results,push_results_to_hub=True,push_samples_to_hub=True,public_repo=False 
+    # --hf_hub_log_args hub_results_org=cat-searcher,hub_repo_name=lm-eval-results,push_results_to_hub=True,push_samples_to_hub=True,public_repo=False 
 
 sleep 20
 
@@ -27,7 +27,7 @@ accelerate launch -m lm_eval --model hf \
     --log_samples \
     --trust_remote_code \
     --output_path results \
-    --hf_hub_log_args hub_results_org=cat-searcher,hub_repo_name=lm-eval-results,push_results_to_hub=True,push_samples_to_hub=True,public_repo=False 
+    # --hf_hub_log_args hub_results_org=cat-searcher,hub_repo_name=lm-eval-results,push_results_to_hub=True,push_samples_to_hub=True,public_repo=False 
 
 
 sleep 20
@@ -40,6 +40,6 @@ accelerate launch -m lm_eval --model hf \
     --log_samples \
     --trust_remote_code \
     --output_path results \
-    --hf_hub_log_args hub_results_org=cat-searcher,hub_repo_name=lm-eval-results,push_results_to_hub=True,push_samples_to_hub=True,public_repo=False 
+    # --hf_hub_log_args hub_results_org=cat-searcher,hub_repo_name=lm-eval-results,push_results_to_hub=True,push_samples_to_hub=True,public_repo=False 
 
 
