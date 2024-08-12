@@ -310,9 +310,13 @@ def main():
                     df_path=df_path,
                     parquet_path=parquet_path)
 
-    # Push to Hugging Face
+    # TODO: make this more efficient; we push twice just to lazily keep the naming fashion consistent
     push_to_hf(hf_username=args.hf_username,
-               hf_reward_repo_name=hf_reward_repo_name,
+               hf_reward_repo_name=args.output_dir + "-all-hf-rewards",
+               parquet_path=parquet_path)
+
+    push_to_hf(hf_username=args.hf_username,
+               hf_reward_repo_name=args.output_dir + "-pair",
                parquet_path=parquet_path)
 
 
