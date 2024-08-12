@@ -191,8 +191,13 @@ def save_temp_results(rank,
     #     results_df[f'generate_{i}'] = all_responses[f'generate_{i}']
     for i in range(n_generations):
         results_df[f'generate_{i}'] = [
-            [{"role": "user", "content": prompt}, 
-            {"role": "assistant", "content": response[1]['content']}]
+            [
+                {"content": prompt,
+                 "role": "user"}, 
+            
+                {"content": response[1]['content'],
+                 "role": "assistant"},
+            ]
             for prompt, response in zip(all_prompts, all_responses[f'generate_{i}'])
         ]
 
