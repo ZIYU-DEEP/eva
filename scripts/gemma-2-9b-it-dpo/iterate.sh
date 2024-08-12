@@ -42,7 +42,7 @@ do
          LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE 
 
   # # # Source the gen.sh script
-  source ./scripts/${folder_name}/gen.sh
+  source ./scripts/${folder_name}/gen_debug.sh
 
   # Source the train.sh script
   source ./scripts/${folder_name}/train.sh 
