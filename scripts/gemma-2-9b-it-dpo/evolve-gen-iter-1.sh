@@ -147,7 +147,7 @@ python src/generate_to_hub.py \
 
 # ------------------------------------------------------------------
 # 2.2. Rank the responses and push to huggingface
-TO_HF_DATASET_SUFFIX="-pair"
+TO_HF_DATASET_SUFFIX="pair"
 
 python src/reward_hf.py \
     --input_dataset $DATASET_TO_REWARD \

@@ -289,7 +289,7 @@ def main():
     if not args.to_hf_dataset_suffix:
         hf_reward_repo_name = args.output_dir + "-all-hf-rewards"
     else:
-        hf_reward_repo_name = args.output_dir + args.to_hf_dataset_suffix 
+        hf_reward_repo_name = args.output_dir + '-' + args.to_hf_dataset_suffix 
     
     # -------------- Set up the datasets and get rewards --------------- #
     dataset = load_dataset(args.input_dataset)
