@@ -35,7 +35,7 @@ def parse_arguments():
                         help='The evolved dataset.')
     
     parser.add_argument("--data_root", type=str, default="./data")
-    parser.add_argument("--gen_model_name", type=str, default="gpt-4o-mini")
+    parser.add_argument("--gen_model_name", type=str, default="gpt-4-0125-preview")
     parser.add_argument("--num_evolutions", type=int, default=4)
     parser.add_argument("--num_workers", type=int, default=20)
     parser.add_argument("--max_prompt_length", type=int, default=512)
@@ -52,7 +52,7 @@ def parse_arguments():
 
 
 def evolve_chunk(instructions,
-                 gen_model_name: str='gpt-4o-mini', 
+                 gen_model_name: str='gpt-4-0125-preview', 
                  num_evolutions: int=4, 
                  max_prompt_length: int=512,
                  evolve_temperature: float=1.0):
