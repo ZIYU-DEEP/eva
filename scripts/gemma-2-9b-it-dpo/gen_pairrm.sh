@@ -7,9 +7,10 @@ export WANDB_PROJECT="dpo"
 
 # ------------------------------------------------------------------
 # Below is to be re-written by source generate.sh in other bash files
-ITER=${ITER:-1}
-SPLIT=${SPLIT:-1}  # Specifically for evol
+ITER=${ITER:-0}
+SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
+SFT_MODEL_PATH=${SFT_MODEL_PATH:-"cat-searcher/gemma-2-9b-it-dpo-iter-0"}
 LOSS_TYPE=${LOSS_TYPE:-"dpo"}
 # ------------------------------------------------------------------
 
@@ -22,13 +23,6 @@ DTYPE=${DTYPE:-"bfloat16"}
 TEMPERATURE=${TEMPERATURE:-0.7}
 TOP_P=${TOP_P:-0.9}
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
-# ------------------------------------------------------------------
-
-
-# ------------------------------------------------------------------
-# Specifically for evol
-SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_gap'}
-SAMPLE_FRAC=${SAMPLE_FRAC:-0.25}
 # ------------------------------------------------------------------
 
 
@@ -47,18 +41,16 @@ VLLM_WORLD_SIZE=1
 # X_1 & Y_1 --> theta_1
 # NEXT_ITER=$((ITER + 1))
 
-MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
+if [ "$ITER" -eq 0 ]; then
+    MODEL_PATH=${SFT_MODEL_PATH}
+else
+    MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
+fi
 
-# ------------------------------------------------------------------
-# Specifically for evol
+PROMPT_SET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${SPLIT}"
 
 # The below will be used for local folder, and HF upload
-OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}" 
-PROMPT_SET_NAME="${HF_USERNAME}/${OUTPUT_DIR}"
-
-# PROMPT_SET_NAME="cat-searcher/ultrafeedback-gemma-2-9b-it-split-1-iter-1-evol-reward_gap-0.25"
-# That is the name generated previously.
-# ------------------------------------------------------------------
+OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  
 
 echo "The prompt set being used to generate responses is $PROMPT_SET_NAME."
 echo "The base model used to generate responses is set to $MODEL_PATH."
@@ -128,38 +120,65 @@ python src/combine_generate.py \
 
 
 # ##################################################################
-# 2. Get the chosen and rejected responses by reward models
+# 2. RANK the data
 # ##################################################################
 # ------------------------------------------------------------------
-# 2.1. Push the generated responses in local to huggingface
-DATASET_TO_REWARD="${HF_USERNAME}/${OUTPUT_DIR}-all"
+# 2.1. Preload the reward model
+python src/preload.py  # Initialize the checkpoints
+# ------------------------------------------------------------------
 
-python src/generate_to_hub.py \
+
+# ------------------------------------------------------------------
+# 2.2. Rank the responses
+for gpu_id in $(seq 0 $((N_GPUS-1))); do
+
+    ################################################################
+    # Common command for all GPUs
+    rank="CUDA_VISIBLE_DEVICES=$gpu_id python src/rank.py \
         --output_dir $OUTPUT_DIR \
         --dataset_name $PROMPT_SET_NAME \
         --model_path $MODEL_PATH \
         --data_root $DATA_ROOT \
         --n_pairs $N_PAIRS \
-        --to_hf_dataset $DATASET_TO_REWARD
+        --n_gpus $N_GPUS \
+        --local_rank $gpu_id"
+    ################################################################
 
-# This will push a dataset to https://huggingface.co/datasets/${HF_USERNAME}/ultrafeeback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-all
+    if [ $gpu_id -eq 0 ]; then
+        # Print output for GPU 0 to screen and log file
+        eval "$rank 2>&1 | tee logs/rank_${TIMESTAMP}_${gpu_id}.log" &
+    else
+        # Log output for other GPUs
+        eval "$rank > logs/rank_${TIMESTAMP}_${gpu_id}.log 2>&1" &
+    fi
+done
+wait
 # ------------------------------------------------------------------
 
-# ------------------------------------------------------------------
-# 2.2. Rank the responses and push to huggingface
-TO_HF_DATASET_SUFFIX="-pair"
+# Record Time in the log files
+END_TIME_=$(date +%s)  
+DURATION=$((END_TIME_ - END_TIME)) 
+echo "All ranking completed at $(date)"
+echo "Time elapsed: $((DURATION / 3600))h $((DURATION % 3600 / 60))m $((DURATION % 60))s" | tee -a logs/rank_${TIMESTAMP}_*.log 
 
-python src/reward_hf.py \
-    --input_dataset $DATASET_TO_REWARD \
+# ------------------------------------------------------------------
+# 2.3. Compute the probability
+################################################################
+python src/compute_prob.py \
     --output_dir $OUTPUT_DIR \
-    --n_generations $N_PAIRS \
+    --dataset_name $PROMPT_SET_NAME \
     --data_root $DATA_ROOT \
-    --hf_username  $HF_USERNAME\
-    --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
-    --torch_dtype $DTYPE \
-    --to_hf_dataset_suffix $TO_HF_DATASET_SUFFIX 
+    --n_pairs $N_PAIRS \
+    --n_gpus $N_GPUS \
+    --hf_username $HF_USERNAME
+################################################################
+# ------------------------------------------------------------------
 
-echo "Pushed the annotated data to ${HF_USERNAME}/${OUTPUT_DIR}${TO_HF_DATASET_SUFFIX}."
+# In the end, we will push two datasets to HF
 
-# This will push https://huggingface.co/datasets/${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-pair.
-# And this dataset will be used for training.
+# One is ${OUTPUT_DIR}-all
+# See https://huggingface.co/datasets/${HF_USERNAME}/ultrafeeback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-all
+
+# One is ${OUTPUT_DIR}-pair, 
+# With columns: chosen, rejected, chosen_probs, chosen_probs_win, chosen_probs_lose
+# See https://huggingface.co/datasets/${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-pair

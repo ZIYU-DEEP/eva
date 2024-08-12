@@ -269,6 +269,7 @@ def parse_arguments():
                         default="RLHFlow/ArmoRM-Llama3-8B-v0.1",
                         help='The reward function used to judge the response.')
     parser.add_argument("--torch_dtype", type=str, default='bfloat16')
+    parser.add_argument("--to_hf_dataset_suffix", type=str, default='')
 
     return parser.parse_args()
 
@@ -285,7 +286,10 @@ def main():
     filename_suffix = f"{args.reward_model_path.split('/')[-1]}"
     df_path = reward_dir / f'rewards_{filename_suffix}.csv'
     parquet_path = reward_dir / f'rewards_{filename_suffix}.parquet'
-    hf_reward_repo_name = args.output_dir + "-all-hf-rewards"
+    if not args.to_hf_dataset_suffix:
+        hf_reward_repo_name = args.output_dir + "-all-hf-rewards"
+    else:
+        hf_reward_repo_name = args.output_dir + args.to_hf_dataset_suffix 
     
     # -------------- Set up the datasets and get rewards --------------- #
     dataset = load_dataset(args.input_dataset)

@@ -34,62 +34,10 @@ def parse_arguments():
     parser.add_argument("--data_root", type=str, 
                         default="./data")
     parser.add_argument("--n_pairs", type=int, default=5)
+    parser.add_argument("--to_hf_dataset", type=str, 
+                        default="cat-searcher/sppo-gemma-1.1-2b-it-split-0-all")
     
     return parser.parse_args()
-
-def ranking(prompts: List[str], 
-            candidates: List[Tuple[str, ...]],
-            ranking_dir: str='./data/ranking/gemma',
-            local_rank: int=0):
-    """
-    Rank the candidate models.
-    """
-    
-    # Load the blender object
-    blender = llm_blender.Blender()
-    blender.loadranker("llm-blender/PairRM")
-    
-    # Rank the prompts by pair RM score
-    ranks = blender.rank(prompts,     # note: the i-th split
-                         candidates,  # note: the i-th split
-                         return_scores=True, 
-                         batch_size=1)
-    
-    # Save file (note each gpu takes care of a split of the data)
-    filepath = Path(ranking_dir) / f'{local_rank}_{local_rank}.npy'
-    np.save(filepath, ranks)
-
-
-def split_prompts(prompts, n_gpus, local_rank):
-    """
-    Split the prompts into chunks for distributed processing across multiple GPUs.
-
-    Args:
-        prompts (list): The full list of prompts to be split.
-        n_gpus (int): The total number of GPUs to split the work across.
-        local_rank (int): The index of the fraction to return (0 to n_gpus-1).
-
-    Returns:
-        list: A subset of the prompts for the specified GPU to process.
-    """
-    n_prompts = len(prompts)
-    frac_len = math.ceil(n_prompts / n_gpus)
-    start = local_rank * frac_len
-    end = min((local_rank + 1) * frac_len, n_prompts)
-    return prompts[start:end]
-
-
-def apply_template(text, tokenizer):
-    """
-    Apply chat template to the tokenizer.
-    """
-    
-    return tokenizer.apply_chat_template(
-        [{"role": "user", "content": text}, 
-         {"role": "assistant", "content": "None"}],
-        tokenize=False, 
-        add_generate_prompt=True,
-    ).split("None")[0]
 
 
 def main():
@@ -99,14 +47,13 @@ def main():
     
     model_path = args.model_path
     dataset_name = args.dataset_name
+    to_hf_dataset = args.to_hf_dataset
     
     n_pairs = args.n_pairs
     
     output_dir = Path(args.output_dir)  # Shared across files
     data_root = Path(args.data_root)
     gen_dir = data_root / 'generated' / output_dir
-    ranking_dir = data_root / 'ranking' / output_dir
-    ranking_dir.mkdir(parents=True, exist_ok=True)
 
 
     # -------------- Set up the data --------------- #
@@ -144,10 +91,7 @@ def main():
     
     # Push to hub
     hf_dataset = Dataset.from_pandas(df)
-    hf_dataset.push_to_hub(
-        'cat-searcher/test-again', 
-        split='train', 
-        private=True)
+    hf_dataset.push_to_hub(to_hf_dataset, split='train', private=True)
 
 
 if __name__ == "__main__":
