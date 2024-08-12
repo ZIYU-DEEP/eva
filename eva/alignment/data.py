@@ -53,7 +53,7 @@ def apply_chat_template(
         else:
             prompt_messages = example["chosen"][:-1]
             # DDEBUG
-            print(prompt_messages)
+            # print(prompt_messages)
             chosen_messages = example["chosen"]
             rejected_messages = example["rejected"]
             print(chosen_messages)
