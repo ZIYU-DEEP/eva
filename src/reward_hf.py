@@ -190,6 +190,28 @@ def save_temp_results(rank,
     for i in range(n_generations):
         results_df[f'generate_{i}'] = all_responses[f'generate_{i}']
 
+    # -------------------------------------------------------------------
+    # Add chosen and rejected columns
+    results_df['chosen'] = results_df.apply(
+        lambda row: [
+            {"role": "user", 
+             "content": row['prompt']},
+            {"role": "assistant", 
+             "content": row[f'generate_{np.argmax(row["rewards"])}']}
+        ],
+        axis=1
+    )
+    results_df['rejected'] = results_df.apply(
+        lambda row: [
+            {"role": "user", 
+             "content": row['prompt']},
+            {"role": "assistant", 
+             "content": row[f'generate_{np.argmin(row["rewards"])}']}
+        ],
+        axis=1
+    )
+    # -------------------------------------------------------------------
+
     # Save temporary results
     results_df.to_csv(f'./temp_results_gpu_{rank}.csv', index=False)
     results_df.to_parquet(f'./temp_results_gpu_{rank}.parquet', index=False)

@@ -1,169 +1,319 @@
 """
-Rank the responses for each prompt.
-
-Input: prompts (list[str]) and responses (list[tuple]).
-Output: a numpy array ranks,
-        where ransks[i][j] represents the rank of 
-        the j-th response for the i-th prompt.
+Get the absolute rewards for each responses, and annotate the chosen and rejected responses to be used by contrastive preference learning.
 """
 
-from datasets import load_dataset
-import json
-import pandas as pd
-import argparse
-import llm_blender
-import os
-import numpy as np
-import warnings
-from transformers import AutoTokenizer
+import torch
+import torch.multiprocessing as mp
+import torch.distributed as dist
+from torch.nn.parallel import DistributedDataParallel as DDP
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from datasets import load_dataset, Dataset
+from typing import List, Tuple
 from pathlib import Path
-from typing import List, Tuple, Any
-import math
+import os
+import pandas as pd
+import numpy as np
+import tqdm
+import argparse
 
-warnings.filterwarnings("ignore")
 
+def setup_distributed(rank: int, world_size: int):
+    """
+    Prepare for DDP.
+    """
+    os.environ['MASTER_ADDR'] = 'localhost'
+    os.environ['MASTER_PORT'] = '12355'
+    dist.init_process_group("nccl", rank=rank, world_size=world_size)
+    torch.cuda.set_device(rank)
+
+
+def cleanup_distributed():
+    """
+    Clean DDP.
+    """
+    dist.destroy_process_group()
+
+
+def process_dataset(rank: int, 
+                    world_size: int, 
+                    dataset: dict, 
+                    reward_model_path: str, 
+                    torch_dtype: str,
+                    n_generations: int=5,
+                    batch_size: int=10):
+    
+    # Set up DDP
+    setup_distributed(rank, world_size)
+
+    # Split dataset
+    n_samples = len(dataset)
+    per_gpu_samples = (n_samples + world_size - 1) // world_size  # Ensure at least one sample per GPU
+    start_idx = rank * per_gpu_samples
+    end_idx = min(start_idx + per_gpu_samples, n_samples)
+
+    # Create the dataframe per gpu
+    df = dataset.select(range(start_idx, end_idx)).to_pandas()
+
+    # Load progress if exists
+    progress_file = f'./progress_gpu_{rank}.csv'
+    if os.path.exists(progress_file):
+        processed_indices = pd.read_csv(progress_file)['index'].tolist()
+    else:
+        processed_indices = []
+
+    # Initialize the lists to store the results
+    all_rewards = []
+    all_critiques = []
+    all_prompts = []
+    all_responses = {f'generate_{i}': [] for i in range(n_generations)}
+
+    # Initialize the model and tokenizer only once
+    model = AutoModelForSequenceClassification.from_pretrained(
+        reward_model_path, 
+        device_map='cuda', 
+        trust_remote_code=True, 
+        torch_dtype=torch_dtype).to(torch.device('cuda'))
+    tokenizer = AutoTokenizer.from_pretrained(reward_model_path, use_fast=True)
+
+    # Populate the lists
+    for idx, row in tqdm.tqdm(df.iterrows(), 
+                              total=len(df), 
+                              desc=f"Rewarding on GPU {rank}", 
+                              disable=rank != 0):
+        if idx in processed_indices:
+            continue  # Skip already processed rows
+        
+        prompt = row['prompt']
+        responses = [
+            row[f'generate_{i}'] for i in range(n_generations) 
+        ]
+        
+        # Calculate the rewards
+        rewards = hf_reward(prompt=prompt, 
+                            responses=[r[1]['content'] for r in responses], 
+                            model=model, 
+                            tokenizer=tokenizer)
+        row_rewards, row_critiques = zip(*rewards)
+        
+        # Update the lists
+        all_prompts.append(prompt)
+        all_rewards.append(row_rewards)
+        all_critiques.append(row_critiques)
+        for i in range(n_generations): all_responses[f'generate_{i}'].append(responses[i])
+
+        # Save progress
+        processed_indices.append(idx)
+        pd.DataFrame({'index': processed_indices}).to_csv(progress_file, index=False)
+        
+        # Save results periodically
+        if len(processed_indices) % batch_size == 0:
+            save_temp_results(rank, all_prompts, all_rewards, all_critiques, all_responses, n_generations)
+
+    # Clean DDP
+    cleanup_distributed()
+
+    # Save final results
+    save_temp_results(rank, all_prompts, all_rewards, all_critiques, all_responses, n_generations)
+
+    # Remove progress file after completion
+    if os.path.exists(progress_file):
+        os.remove(progress_file)
+
+
+def hf_reward(
+    prompt: str, 
+    responses: List[str], 
+    model, 
+    tokenizer) -> List[Tuple[float, str]]:
+    
+    """
+    Calculate reward using a Hugging Face model.
+    """
+    if "armorm-llama3-8b" in model.config._name_or_path.lower():
+        
+        # Reformat the input
+        messages = [
+            [{"role": "user", "content": prompt},
+             {"role": "assistant", "content": response}]
+            for response in responses
+        ]
+        
+        # Apply the chat template for tokens
+        input_ids = tokenizer.apply_chat_template(
+            messages, return_tensors="pt", padding=True).to(torch.device('cuda'))
+        
+        # Get the scores
+        with torch.no_grad():
+            output = model(input_ids)
+            scores = output.logits.cpu().float().tolist()
+            
+    else:
+        raise NotImplementedError(
+            f"Reward calculation not implemented for model: {model.config._name_or_path}")
+
+    return list(zip(scores, [''] * len(scores)))
+
+
+def leave_one_out(rewards):
+    """
+    Calculate the leave one out advantage for every reward.
+    """
+    n = len(rewards)
+    leave_one_out_rewards = [
+        rewards[i] - (sum(rewards) - rewards[i]) / (n - 1) for i in range(n)
+    ]
+    return np.mean(leave_one_out_rewards)
+
+
+def save_temp_results(rank, 
+                      all_prompts, 
+                      all_rewards, 
+                      all_critiques, 
+                      all_responses,
+                      n_generations):
+    # -------------------------------------------------------------------
+    # Get the dataframe
+    results_df = pd.DataFrame({
+        'prompt': all_prompts,
+        'rewards': all_rewards,
+        'critiques': all_critiques,
+    })
+    # -------------------------------------------------------------------
+
+    # -------------------------------------------------------------------
+    # Add additional information
+    results_df['reward_mean'] = results_df['rewards'].apply(np.mean)
+    results_df['reward_var'] = results_df['rewards'].apply(np.var)
+    results_df['reward_gap'] = results_df['rewards'].apply(lambda x: max(x) - min(x))
+    results_df['reward_maxmean'] = results_df['rewards'].apply(
+        lambda x: max(x) - np.mean(x))
+    results_df['reward_loo'] = results_df['rewards'].apply(leave_one_out)
+
+    # Add response columns
+    for i in range(n_generations):
+        results_df[f'generate_{i}'] = all_responses[f'generate_{i}']
+    # -------------------------------------------------------------------
+
+    # -------------------------------------------------------------------
+    # Add chosen and rejected columns
+    results_df['chosen'] = results_df.apply(
+        lambda row: [
+            {"role": "user", 
+             "content": row['prompt']},
+            {"role": "assistant", 
+             "content": row[f'generate_{np.argmax(row["rewards"])}']}
+        ],
+        axis=1
+    )
+    results_df['rejected'] = results_df.apply(
+        lambda row: [
+            {"role": "user", 
+             "content": row['prompt']},
+            {"role": "assistant", 
+             "content": row[f'generate_{np.argmin(row["rewards"])}']}
+        ],
+        axis=1
+    )
+    # -------------------------------------------------------------------
+
+    # Save temporary results
+    results_df.to_csv(f'./temp_results_gpu_{rank}.csv', index=False)
+    results_df.to_parquet(f'./temp_results_gpu_{rank}.parquet', index=False)
+
+
+def combine_results(world_size: int,
+                    df_path: str,
+                    parquet_path: str):
+    """
+    Combine results from different GPUs in DDP.
+    """
+    combined_df = pd.concat(
+        [pd.read_csv(f'./temp_results_gpu_{rank}.csv') for rank in range(world_size)],
+        ignore_index=True
+    )
+    combined_df.to_csv(df_path, index=False)
+    combined_df.to_parquet(parquet_path, index=False)
+
+    # Clean up temporary files
+    for rank in range(world_size):
+        os.remove(f'./temp_results_gpu_{rank}.csv')
+        os.remove(f'./temp_results_gpu_{rank}.parquet')
+
+
+def push_to_hf(hf_username: str = 'cat-searcher',
+               hf_reward_repo_name: str = 'responses-gemma-1.1-2b-it-split-0-rewards',
+               parquet_path: str = './data/rewards/output_dir/reward.parquet'):
+    """
+    Push to huggingface repo.
+    """
+    repo = Dataset.from_parquet(str(parquet_path))
+    repo.push_to_hub(f'{hf_username}/{hf_reward_repo_name}', 
+                     split='train',
+                     private=True)
+    
 
 def parse_arguments():
     """
     Parse command line arguments.
     """
-    
     parser = argparse.ArgumentParser()
-
-    parser.add_argument("--model_path", type=str, 
-                        default="google/gemma-1.1-2b-it")
-    parser.add_argument("--dataset_name", type=str, 
-                        default="cat-searcher/ultra-feedback-split-0")
+    parser.add_argument("--input_dataset", type=str, 
+                        default="cat-searcher/ultrafeedback-gemma-2-9b-it-split-1-all",
+                        help='The dataset with prompts and multiple response generations.')
+    parser.add_argument("--n_generations", type=int, default=6,
+                        help='The number of response generations in the dataset.')
     parser.add_argument("--output_dir", type=str, 
-                        default="responses-gemma-1.1-2b-it-split-0")
+                        default="ultrafeedback-gemma-2-9b-it-split-1")
     parser.add_argument("--data_root", type=str, 
                         default="./data")
-    parser.add_argument("--n_gpus", type=int, default=8)
-    parser.add_argument("--local_rank", type=int, default=0)
-    parser.add_argument("--n_pairs", type=int, default=5)
-    
+    parser.add_argument("--hf_username", type=str, 
+                        default="cat-searcher",
+                        help='The username to push the results to on Hugging Face.')
+    parser.add_argument("--reward_model_path", type=str, 
+                        default="RLHFlow/ArmoRM-Llama3-8B-v0.1",
+                        help='The reward function used to judge the response.')
+    parser.add_argument("--torch_dtype", type=str, default='bfloat16')
+
     return parser.parse_args()
 
-def ranking(prompts: List[str], 
-            candidates: List[Tuple[str, ...]],
-            ranking_dir: str='./data/ranking/gemma',
-            local_rank: int=0):
-    """
-    Rank the candidate models.
-    """
-    
-    # Load the blender object
-    blender = llm_blender.Blender()
-    blender.loadranker("llm-blender/PairRM")
-    
-    # Rank the prompts by pair RM score
-    ranks = blender.rank(prompts,     # note: the i-th split
-                         candidates,  # note: the i-th split
-                         return_scores=True, 
-                         batch_size=1)
-    
-    # Save file (note each gpu takes care of a split of the data)
-    filepath = Path(ranking_dir) / f'{local_rank}_{local_rank}.npy'
-    np.save(filepath, ranks)
-
-
-def split_prompts(prompts, n_gpus, local_rank):
-    """
-    Split the prompts into chunks for distributed processing across multiple GPUs.
-
-    Args:
-        prompts (list): The full list of prompts to be split.
-        n_gpus (int): The total number of GPUs to split the work across.
-        local_rank (int): The index of the fraction to return (0 to n_gpus-1).
-
-    Returns:
-        list: A subset of the prompts for the specified GPU to process.
-    """
-    n_prompts = len(prompts)
-    frac_len = math.ceil(n_prompts / n_gpus)
-    start = local_rank * frac_len
-    end = min((local_rank + 1) * frac_len, n_prompts)
-    return prompts[start:end]
-
-
-def apply_template(text, tokenizer):
-    """
-    Apply chat template to the tokenizer.
-    """
-    
-    return tokenizer.apply_chat_template(
-        [{"role": "user", "content": text}, 
-         {"role": "assistant", "content": "None"}],
-        tokenize=False, 
-        add_generate_prompt=True,
-    ).split("None")[0]
-
-
 def main():
-
+    
     # -------------- Set up the arguments --------------- #
     args = parse_arguments()
+    output_dir = Path(args.output_dir)
     
-    model_path = args.model_path
-    dataset_name = args.dataset_name
-    
-    n_gpus = args.n_gpus
-    local_rank = args.local_rank
-    n_pairs = args.n_pairs
-    
-    output_dir = Path(args.output_dir)  # Shared across files
     data_root = Path(args.data_root)
-    gen_dir = data_root / 'generated' / output_dir
-    ranking_dir = data_root / 'ranking' / output_dir
-    ranking_dir.mkdir(parents=True, exist_ok=True)
-
-
-    # -------------- Set up the data --------------- #
-    # Load the dataset
-    data = load_dataset(dataset_name, split="train")
-
-    # Set the tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    tokenizer.pad_token = tokenizer.eos_token
-
-    # Get all the prompts
-    prompts_all = [apply_template(data[idx]["prompt"], tokenizer) 
-                   for idx in range(len(data))]
-    print(prompts_all[0])
-
-    # Get all the responses
-    all_generated = []
-
-    for i in range(n_pairs):
-        file_path = gen_dir / f'responses_{i}.json'
-        
-        with open(file_path) as f:
-            generated = json.load(f)
-            all_generated.append(generated)
-
-    candidates_texts = list(zip(*all_generated))  # Make it a list of tuples
-    assert len(data) == len(candidates_texts)
-    print(f'Length of data: {len(data)}')
-
-
-    # -------------- Get the ranking --------------- #
-    # Split prompts into chunks by gpu
-    prompts_i = split_prompts(
-        prompts=prompts_all, 
-        n_gpus=n_gpus, 
-        local_rank=local_rank)
+    reward_dir = data_root / 'eval' / output_dir
+    reward_dir.mkdir(parents=True, exist_ok=True)
     
-    # Split responses into chunks by gpu
-    candidates_texts_i = split_prompts(
-        prompts=candidates_texts,
-        n_gpus=n_gpus, 
-        local_rank=local_rank)
+    filename_suffix = f"{args.reward_model_path.split('/')[-1]}"
+    df_path = reward_dir / f'rewards_{filename_suffix}.csv'
+    parquet_path = reward_dir / f'rewards_{filename_suffix}.parquet'
+    hf_reward_repo_name = args.output_dir + "-all-hf-rewards"
+    
+    # -------------- Set up the datasets and get rewards --------------- #
+    dataset = load_dataset(args.input_dataset)
+    subset = dataset['train']
+    # subset = dataset['train'].select(range(20))  # DEBUG TODO: Remove this line
 
-    # Get the ranking and save the results
-    ranking(prompts=prompts_i,
-            candidates=candidates_texts_i,
-            ranking_dir=ranking_dir,
-            local_rank=local_rank)
+    # Get the rewards
+    world_size = torch.cuda.device_count()
+    mp.spawn(
+        process_dataset,
+        args=(world_size, subset, args.reward_model_path, args.torch_dtype, args.n_generations),
+        nprocs=world_size,
+        join=True
+    )
+
+    # Combine the temporary files into a single CSV and Parquet file
+    combine_results(world_size=world_size,
+                    df_path=df_path,
+                    parquet_path=parquet_path)
+
+    # Push to Hugging Face
+    push_to_hf(hf_username=args.hf_username,
+               hf_reward_repo_name=hf_reward_repo_name,
+               parquet_path=parquet_path)
 
 
 if __name__ == "__main__":
