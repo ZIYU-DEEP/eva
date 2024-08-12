@@ -187,8 +187,6 @@ def save_temp_results(rank,
     results_df['reward_loo'] = results_df['rewards'].apply(leave_one_out)
 
     # Add response columns
-    # for i in range(n_generations):
-    #     results_df[f'generate_{i}'] = all_responses[f'generate_{i}']
     for i in range(n_generations):
         results_df[f'generate_{i}'] = [
             [
