@@ -180,5 +180,5 @@ python src/compute_prob.py \
 # See https://huggingface.co/datasets/${HF_USERNAME}/ultrafeeback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-all
 
 # One is ${OUTPUT_DIR}-pair, 
-# With columns: chosen, rejected, chosen_probs, chosen_probs_win, chosen_probs_lose
+# With csolumns: chosen, rejected, chosen_probs, chosen_probs_win, chosen_probs_lose
 # See https://huggingface.co/datasets/${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-pair
