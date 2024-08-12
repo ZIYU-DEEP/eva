@@ -6,20 +6,20 @@ set -e
 # Below is to be re-written by source iterate.sh in other bash files
 ITER=${ITER:-1}
 SPLIT=${SPLIT:-1}  # Specifically for evol
-MODEL_FAMILY=${MODEL_FAMILY:-"Mistral-7B-Instruct-v0.2"}
-LOSS_TYPE=${LOSS_TYPE:-"sppo"}
-PREF=${PREF:-"sppo_score"}
+MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
+LOSS_TYPE=${LOSS_TYPE:-"dpo"}
+PREF=${PREF:-"dpo_score"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
 # Other general parameter to be reset
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 LEARNING_RATE=${LEARNING_RATE:-"5.0e-7"}
-BETA=${BETA:-"0.001"}
-OPTIM=${OPTIM:-"rmsprop"}
-N_EPOCHS=${N_EPOCHS:-9}
-BATCH_SIZE=${BATCH_SIZE:-2}
-ACCUMULATE=${ACCUMULATE:-4}
+BETA=${BETA:-"0.05"}
+OPTIM=${OPTIM:-"adamw_torch"}
+N_EPOCHS=${N_EPOCHS:-2}
+BATCH_SIZE=${BATCH_SIZE:-1}
+ACCUMULATE=${ACCUMULATE:-8}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
@@ -42,7 +42,7 @@ RATIO_EVOL=${RATIO_EVOL:-0.8}  # Use more new evolved
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"   
 
 # The preference data from the base model
-DATASET_PREFIX="${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"
+DATASET_PREFIX="${HF_USERNAME}/ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"
 DATASET_BASE="${DATASET_PREFIX}-pair"
 DATASET_EVOL="${DATASET_PREFIX}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}-pair"
 DATASET="${DATASET_BASE}-evol-${EVOL_NO}-mixed-${RATIO_BASE}-${RATIO_EVOL}-pair"
@@ -69,10 +69,10 @@ echo "logging to $log_file.log"
 # Save the new recipe
 # TODO: make the config as an argument
 config_name=$(echo "$DATASET" | cut -d '/' -f2) # identify with model-split-iter
-new_config_file="./recipes/default/config_full_${config_name}.yaml"
+new_config_file="./recipes/iterative-dpo/config_full_${config_name}.yaml"
 
 # TODO: make this optional
-cp ./recipes/default/config_full.yaml "$new_config_file"
+cp ./recipes/iterative-dpo/config_full.yaml "$new_config_file"
 
 # Update the dataset, model name, and hub model ID
 python src/update_config.py \

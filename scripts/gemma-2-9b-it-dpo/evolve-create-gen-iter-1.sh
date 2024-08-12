@@ -6,9 +6,9 @@ set -e  # Exit if failing
 # Below is to be re-written by source generate.sh in other bash files
 ITER=${ITER:-1}
 SPLIT=${SPLIT:-1}
-MODEL_FAMILY=${MODEL_FAMILY:-"Mistral-7B-Instruct-v0.2"}
-SFT_MODEL_PATH=${SFT_MODEL_PATH:-"mistralai/Mistral-7B-Instruct-v0.2"}
-LOSS_TYPE=${LOSS_TYPE:-"sppo"}
+MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
+SFT_MODEL_PATH=${SFT_MODEL_PATH:-"cat-searcher/gemma-2-9b-it-dpo-iter-0"}
+LOSS_TYPE=${LOSS_TYPE:-"dpo"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
@@ -17,8 +17,8 @@ N_PAIRS=${N_PAIRS:-6}  # number of response generated for each prompt (better ch
 DATA_ROOT=${DATA_ROOT:-"./data"}  # assume the script is run at the project directory
 MAX_TOKENS=${MAX_TOKENS:-2048}
 DTYPE=${DTYPE:-"bfloat16"}
-TEMPERATURE=${TEMPERATURE:-1.0}
-TOP_P=${TOP_P:-1.0}
+TEMPERATURE=${TEMPERATURE:-0.7}
+TOP_P=${TOP_P:-0.9}
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 # ------------------------------------------------------------------
 
@@ -47,7 +47,7 @@ fi
 PROMPT_SET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${SPLIT}"
 
 # The below will be used for local folder, and HF upload
-OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  
+OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  
 
 echo "The prompt set being used to generate responses is $PROMPT_SET_NAME."
 echo "The base model used to generate responses is set to $MODEL_PATH."

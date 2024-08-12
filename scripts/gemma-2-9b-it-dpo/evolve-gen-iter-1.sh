@@ -6,8 +6,8 @@ set -e  # Exit if failing
 # Below is to be re-written by source generate.sh in other bash files
 ITER=${ITER:-1}
 SPLIT=${SPLIT:-1}  # Specifically for evol
-MODEL_FAMILY=${MODEL_FAMILY:-"Mistral-7B-Instruct-v0.2"}
-LOSS_TYPE=${LOSS_TYPE:-"sppo"}
+MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
+LOSS_TYPE=${LOSS_TYPE:-"dpo"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
@@ -16,7 +16,7 @@ N_PAIRS=${N_PAIRS:-6}  # number of response generated for each prompt (better ch
 DATA_ROOT=${DATA_ROOT:-"./data"}  # assume the script is run at the project directory
 MAX_TOKENS=${MAX_TOKENS:-2048}
 DTYPE=${DTYPE:-"bfloat16"}
-TEMPERATURE=${TEMPERATURE:-0.9}
+TEMPERATURE=${TEMPERATURE:-0.7}
 TOP_P=${TOP_P:-0.9}
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 # ------------------------------------------------------------------
@@ -50,7 +50,7 @@ MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
 # Specifically for evol
 
 # The below will be used for local folder, and HF upload
-OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}" 
+OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}" 
 PROMPT_SET_NAME="${HF_USERNAME}/${OUTPUT_DIR}"
 
 # PROMPT_SET_NAME="cat-searcher/ultrafeedback-gemma-2-9b-it-split-1-iter-1-evol-reward_gap-0.25"

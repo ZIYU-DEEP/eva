@@ -14,8 +14,8 @@ set -e  # Exit if failing
 # Below is to be re-written by source generate.sh in other bash files
 ITER=${ITER:-1}  # the ind should start from at least 1, as 0 means unaligned in our notation
 SPLIT=${SPLIT:-1}
-MODEL_FAMILY=${MODEL_FAMILY:-"Mistral-7B-Instruct-v0.2"}
-LOSS_TYPE=${LOSS_TYPE:-"sppo"}
+MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
+LOSS_TYPE=${LOSS_TYPE:-"dpo"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
@@ -24,7 +24,7 @@ N_PAIRS=${N_PAIRS:-6}  # number of response generated for each prompt (better ch
 DATA_ROOT=${DATA_ROOT:-"./data"}  # assume the script is run at the project directory
 MAX_TOKENS=${MAX_TOKENS:-2048}
 DTYPE=${DTYPE:-"bfloat16"}
-TEMPERATURE=${TEMPERATURE:-0.9}
+TEMPERATURE=${TEMPERATURE:-0.7}
 TOP_P=${TOP_P:-0.9}
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 # ------------------------------------------------------------------
@@ -34,12 +34,13 @@ HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_gap'}
 SAMPLE_FRAC=${SAMPLE_FRAC:-0.25}
 NUM_EVOLUTIONS=${NUM_EVOLUTIONS:-4}
-MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-512}
-EVOLVE_TEMPERATURE=${EVOLVE_TEMPERATURE:-1.0}
+MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-666}  # Test longer length
+EVOLVE_TEMPERATURE=${EVOLVE_TEMPERATURE:-0.88}  # Test lower temperature
 SAMPLE_METHOD=${SAMPLE_METHOD:-'importance_weighted'}
 GEN_MODEL_NAME=${GEN_MODEL_NAME:-'gpt-4-0125-preview'}
 # ------------------------------------------------------------------
 
+# NOTICE THERE SHOULD BE DEDUPLICATION BUT WE TEMPORARIALLY IGNORED!
 
 # ##################################################################
 # 0. PREPARATION
@@ -51,7 +52,7 @@ VLLM_WORLD_SIZE=1
 # ------------------------------------------------------------------
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  # TODO: this naming fashion only works at iter-1
 # DATASET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${ITER}"  # INPUT - Only to get prompts from X_t
-OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
+OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
 # Notice this is different from default training, where the split is plus one of iter.
 
 echo "The base model used to generate responses is set to $MODEL_PATH."
