@@ -1,5 +1,9 @@
 #!/bin/bash
 set -x
+set -e
+
+# Set the environmental variable
+export WANDB_PROJECT="dpo"
 
 # This file should be run under the project directory
 # Number of iterations

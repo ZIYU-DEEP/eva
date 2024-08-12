@@ -2,6 +2,8 @@
 set -e
 # set -x  # Print the commands
 
+# Set the environmental variable
+export WANDB_PROJECT="dpo"
 export VLLM_ATTENTION_BACKEND=FLASHINFER
 
 # ------------------------------------------------------------------

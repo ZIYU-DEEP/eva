@@ -2,6 +2,9 @@
 set -e  # Exit if failing
 # set -x  # Print the commands
 
+# Set the environmental variable
+export WANDB_PROJECT="dpo"
+
 # GENERAL IDEA
 # 1. Given X_t and theta_t, we first generate responses from theta_t
 #    (Notice that theta_t is trained from X_t)

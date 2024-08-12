@@ -2,6 +2,9 @@
 set -e  # Exit if failing
 # set -x  # Print the commands
 
+# Set the environmental variable
+export WANDB_PROJECT="dpo"
+
 # ------------------------------------------------------------------
 # Below is to be re-written by source generate.sh in other bash files
 ITER=${ITER:-0}

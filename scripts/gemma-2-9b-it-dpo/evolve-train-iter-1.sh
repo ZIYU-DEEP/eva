@@ -2,6 +2,9 @@
 set -e
 # set -x  # Print the commands
 
+# Set the environmental variable
+export WANDB_PROJECT="dpo"
+
 # ------------------------------------------------------------------
 # Below is to be re-written by source iterate.sh in other bash files
 ITER=${ITER:-1}
