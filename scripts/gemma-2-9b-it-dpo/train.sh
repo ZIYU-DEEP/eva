@@ -39,7 +39,7 @@ else
 fi
 
 # Set the loss type in trainer
-if [ "$LOSS_TYPE" -eq 'dpo' ]; then
+if [ "$LOSS_TYPE" = 'dpo' ]; then
     LOSS_TYPE_TRAIN="sigmoid"
 else
     LOSS_TYPE_TRAIN=${LOSS_TYPE}
