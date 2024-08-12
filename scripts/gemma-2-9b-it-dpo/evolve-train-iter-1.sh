@@ -41,6 +41,13 @@ RATIO_EVOL=${RATIO_EVOL:-0.8}  # Use more new evolved
 # The base model to train
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"   
 
+# Set the loss type in trainer
+if [ "$LOSS_TYPE" -eq 'dpo' ]; then
+    LOSS_TYPE_TRAIN="sigmoid"
+else
+    LOSS_TYPE_TRAIN=${LOSS_TYPE}
+fi
+
 # The preference data from the base model
 DATASET_PREFIX="${HF_USERNAME}/ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"
 DATASET_BASE="${DATASET_PREFIX}-pair"
@@ -104,7 +111,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --beta=$BETA \
     --optim="$OPTIM" \
     --output_dir="$SAVE_DIR" \
-    --loss_type=$LOSS_TYPE \
+    --loss_type=$LOSS_TYPE_TRAIN \
     --per_device_train_batch_size=$BATCH_SIZE \
     --gradient_accumulation_steps=$ACCUMULATE \
     --model_name_or_path=$MODEL_PATH \
