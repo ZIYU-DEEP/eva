@@ -86,12 +86,18 @@ def main():
     # -------------- Push to hub --------------- #
     # Create a DataFrame
     df = pd.DataFrame({'prompt': prompts_all_raw})
+    
     for i in range(n_pairs):
-        df[f'generate_{i}'] = [gen[i] for gen in candidates_texts]
+        df[f'generate_{i}'] = [
+            [{"role": "user", "content": prompt}, 
+             {"role": "assistant", "content": response}]
+            for prompt, response in zip(prompts_all_raw, [gen[i] for gen in candidates_texts])
+        ]
     
     # Push to hub
     hf_dataset = Dataset.from_pandas(df)
     hf_dataset.push_to_hub(to_hf_dataset, split='train', private=True)
+    print(f'Pushed to {to_hf_dataset}.')
 
 
 if __name__ == "__main__":

@@ -191,23 +191,13 @@ def save_temp_results(rank,
         results_df[f'generate_{i}'] = all_responses[f'generate_{i}']
 
     # -------------------------------------------------------------------
-    # Add chosen and rejected columns
+    # Add chosen and rejected columns (no reformatting needed)
     results_df['chosen'] = results_df.apply(
-        lambda row: [
-            {"role": "user", 
-             "content": row['prompt']},
-            {"role": "assistant", 
-             "content": row[f'generate_{np.argmax(row["rewards"])}']}
-        ],
+        lambda row: row[f'generate_{np.argmax(row["rewards"])}'],
         axis=1
     )
     results_df['rejected'] = results_df.apply(
-        lambda row: [
-            {"role": "user", 
-             "content": row['prompt']},
-            {"role": "assistant", 
-             "content": row[f'generate_{np.argmin(row["rewards"])}']}
-        ],
+        lambda row: row[f'generate_{np.argmin(row["rewards"])}'],
         axis=1
     )
     # -------------------------------------------------------------------
