@@ -185,10 +185,14 @@ def save_temp_results(rank,
     results_df['reward_maxmean'] = results_df['rewards'].apply(
         lambda x: max(x) - np.mean(x))
     results_df['reward_loo'] = results_df['rewards'].apply(leave_one_out)
+    
+    # DDDEBUG
+    tokenizer = AutoTokenizer.from_pretrained('cat-searcher/gemma-2-9b-it-dpo-iter-0')
+    tokenizer.pad_token = tokenizer.eos_token
 
     # Add response columns
     for i in range(n_generations):
-        results_df[f'generate_{i}'] = [
+        formatted_texts = [
             [
                 {"content": prompt,
                  "role": "user"}, 
@@ -198,6 +202,7 @@ def save_temp_results(rank,
             ]
             for prompt, response in zip(all_prompts, all_responses[f'generate_{i}'])
         ]
+        results_df[f'generate_{i}'] = formatted_texts
 
 
     # -------------------------------------------------------------------

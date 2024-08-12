@@ -34,8 +34,6 @@ def apply_chat_template(
 ):
     if all(k in example.keys() for k in ("chosen", "rejected")):
         prompt_messages = example["chosen"][:-1]
-        # DDEBUG
-        print(prompt_messages)
         # Prepend a system message if the first message is not a system message
         if not skip_system_message:
             if example["chosen"][0]["role"] != "system":
