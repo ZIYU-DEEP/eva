@@ -157,7 +157,7 @@ python src/reward_hf.py \
     --hf_username  $HF_USERNAME\
     --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
     --torch_dtype $DTYPE \
-    --to_hf_dataset_suffix $TO_HF_DATASET_SUFFIX 
+    --to_hf_dataset_suffix "$TO_HF_DATASET_SUFFIX" 
 
 echo "Pushed the annotated data to ${HF_USERNAME}/${OUTPUT_DIR}${TO_HF_DATASET_SUFFIX}."
 
