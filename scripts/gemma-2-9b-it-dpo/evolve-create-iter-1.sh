@@ -98,6 +98,8 @@ DATASET_EVOLVED="${HF_USERNAME}/${OUTPUT_DIR}-evol-${SAMPLE_METRIC}-${SAMPLE_FRA
 
 echo $DATASET_EVOLVED
 
+# WARNING
+# Depending on the max tokens and the method of generation, the num_workers should be adjusted, otherwise it will lead to API rate issue and will hang.
 python src/evolve_prompt.py \
     --hf_username  $HF_USERNAME \
     --input_dataset $DATASET_WITH_REWARDS \
@@ -106,7 +108,7 @@ python src/evolve_prompt.py \
     --data_root $DATA_ROOT \
     --gen_model_name $GEN_MODEL_NAME \
     --num_evolutions $NUM_EVOLUTIONS \
-    --num_workers 20 \
+    --num_workers 5 \
     --do_adaptive_sample 1 \
     --sample_metric $SAMPLE_METRIC \
     --sample_frac $SAMPLE_FRAC \
