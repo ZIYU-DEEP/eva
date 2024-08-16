@@ -52,12 +52,8 @@ def apply_chat_template(
             )
         else:
             prompt_messages = example["chosen"][:-1]
-            # DDEBUG
-            # print(prompt_messages)
             chosen_messages = example["chosen"]
             rejected_messages = example["rejected"]
-            print(chosen_messages)
-            print(rejected_messages)
             example["text_prompt"] = tokenizer.apply_chat_template(
                 prompt_messages, tokenize=False, add_generate_prompt=True
             )

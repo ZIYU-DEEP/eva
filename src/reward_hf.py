@@ -251,18 +251,6 @@ def push_to_hf(hf_username: str = 'cat-searcher',
     repo.push_to_hub(f'{hf_username}/{hf_reward_repo_name}', 
                      split='train',
                      private=True)
-
-
-def push_to_hf_df(hf_username: str = 'cat-searcher',
-                  hf_reward_repo_name: str = 'responses-gemma-1.1-2b-it-split-0-rewards',
-                  df=None):
-    """
-    Push to huggingface repo.
-    """
-    repo = Dataset.from_pandas(df)
-    repo.push_to_hub(f'{hf_username}/{hf_reward_repo_name}', 
-                     split='train',
-                     private=True)
     
 
 def parse_arguments():
