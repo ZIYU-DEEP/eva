@@ -2,6 +2,7 @@
 Get the absolute rewards for each responses.
 """
 
+import ast
 import torch
 import torch.multiprocessing as mp
 import torch.distributed as dist
@@ -228,10 +229,43 @@ def combine_results(world_size: int,
     """
     Combine results from different GPUs in DDP.
     """
+    # Get the combined dataframe
     combined_df = pd.concat(
         [pd.read_csv(f'./temp_results_gpu_{rank}.csv') for rank in range(world_size)],
         ignore_index=True
     )
+    
+    # ----------------------------------------------------------------------------
+    # Process the combined dataframe to avoid type issues
+    def convert_to_list_of_dicts(s):
+        """
+        Convert a string representation to a list of dictionaries.
+        """
+        try:
+            return ast.literal_eval(s) if isinstance(s, str) else s
+        except (ValueError, SyntaxError) as e:
+            print(f"Failed to convert: {s[:50]}... Error: {str(e)}")
+            return s  # Return the original string if conversion fails
+
+    def ensure_correct_format(df, columns_to_fix):
+        """
+        Ensure that the specified columns are lists of dictionaries.
+        """
+        for column in columns_to_fix:
+            df[column] = df[column].apply(lambda x: convert_to_list_of_dicts(x))
+        return df
+    
+    def find_columns_to_fix(df):
+        columns_to_fix = [col for col in df.columns if col.startswith('generate_')]
+        columns_to_fix.extend(['chosen', 'rejected'])
+        return columns_to_fix
+    
+    # Set the columns to fix
+    columns_to_fix = find_columns_to_fix(combined_df)
+    combined_df = ensure_correct_format(combined_df, columns_to_fix)
+    # ----------------------------------------------------------------------------
+    
+    # Save the combined dataframe
     combined_df.to_csv(df_path, index=False)
     combined_df.to_parquet(parquet_path, index=False)
 
