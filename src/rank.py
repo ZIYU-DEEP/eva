@@ -86,17 +86,31 @@ def split_prompts(prompts, n_gpus, local_rank):
     return prompts[start:end]
 
 
+# def apply_template(text, tokenizer):
+#     """
+#     Apply chat template to the tokenizer.
+#     """
+    
+#     return tokenizer.apply_chat_template(
+#         [{"role": "user", "content": text}, 
+#          {"role": "assistant", "content": "None"}],
+#         tokenize=False, 
+#         add_generate_prompt=True,
+#     ).split("None")[0]
+
 def apply_template(text, tokenizer):
     """
     Apply chat template to the tokenizer.
     """
+    # Define a unique delimiter that is unlikely to appear in user input
+    delimiter = "<|flowmytearsthepolicemansaidonmars|>"
     
     return tokenizer.apply_chat_template(
         [{"role": "user", "content": text}, 
-         {"role": "assistant", "content": "None"}],
+         {"role": "assistant", "content": delimiter}],
         tokenize=False, 
         add_generate_prompt=True,
-    ).split("None")[0]
+    ).split(delimiter)[0]
 
 
 def main():

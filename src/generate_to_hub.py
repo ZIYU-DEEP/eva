@@ -40,19 +40,6 @@ def parse_arguments():
     return parser.parse_args()
 
 
-def apply_template(text, tokenizer):
-    """
-    Apply chat template to the tokenizer.
-    """
-    
-    return tokenizer.apply_chat_template(
-        [{"role": "user", "content": text}, 
-         {"role": "assistant", "content": "None"}],
-        tokenize=False, 
-        add_generate_prompt=True,
-    ).split("None")[0]
-
-
 def main():
 
     # -------------- Set up the arguments --------------- #
@@ -78,9 +65,12 @@ def main():
     tokenizer.pad_token = tokenizer.eos_token
 
     # Get all the prompts
-    prompts_all = [apply_template(data[idx]["prompt"], tokenizer) 
-                   for idx in range(len(data))]
-    print(prompts_all[0])
+    # prompts_all = [apply_template(data[idx]["prompt"], tokenizer) 
+    #                for idx in range(len(data))]
+    # print(prompts_all[0])
+    prompts_all_raw = [data[idx]["prompt"] 
+                       for idx in range(len(data))]
+    print(prompts_all_raw[0])
 
     # Get all the responses
     all_generated = []
@@ -99,13 +89,15 @@ def main():
 
     # -------------- Push to hub --------------- #
     # Create a DataFrame
-    df = pd.DataFrame({'prompt': prompts_all})
+    # df = pd.DataFrame({'prompt': prompts_all})
+    df = pd.DataFrame({'prompt': prompts_all_raw})
     
     for i in range(n_pairs):
         df[f'generate_{i}'] = [
             [{"role": "user", "content": prompt}, 
              {"role": "assistant", "content": response}]
-            for prompt, response in zip(prompts_all, [gen[i] for gen in candidates_texts])
+            # for prompt, response in zip(prompts_all, [gen[i] for gen in candidates_texts])
+            for prompt, response in zip(prompts_all_raw, [gen[i] for gen in candidates_texts])
         ]
     
     # Push to hub
