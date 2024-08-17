@@ -37,7 +37,7 @@ NUM_EVOLUTIONS=${NUM_EVOLUTIONS:-4}
 MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-512}
 EVOLVE_TEMPERATURE=${EVOLVE_TEMPERATURE:-1.0}
 SAMPLE_METHOD=${SAMPLE_METHOD:-'importance_weighted'}
-GEN_MODEL_NAME=${GEN_MODEL_NAME:-'gpt-4o-mini'}
+GEN_MODEL_NAME=${GEN_MODEL_NAME:-'gpt-4-0125-preview'}
 # ------------------------------------------------------------------
 
 

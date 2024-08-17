@@ -104,6 +104,7 @@ See detailed instructions for different benchmarks in `./benchmark`.
 - [ ] Increasing number of generations (check the log linear relationship)
 - [ ] Adding hints/critique to generate better responses to contrast
 - [x] Fix the Arena-Hard Evaluation
+- [x] Using absolute reward model for dpo
 
 <!-- - Alpaca Eval
    ```bash

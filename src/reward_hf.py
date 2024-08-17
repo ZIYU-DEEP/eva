@@ -2,6 +2,7 @@
 Get the absolute rewards for each responses.
 """
 
+import ast
 import torch
 import torch.multiprocessing as mp
 import torch.distributed as dist
@@ -185,10 +186,37 @@ def save_temp_results(rank,
     results_df['reward_maxmean'] = results_df['rewards'].apply(
         lambda x: max(x) - np.mean(x))
     results_df['reward_loo'] = results_df['rewards'].apply(leave_one_out)
+    
+    # DDDEBUG
+    tokenizer = AutoTokenizer.from_pretrained('cat-searcher/gemma-2-9b-it-dpo-iter-0')
+    tokenizer.pad_token = tokenizer.eos_token
 
     # Add response columns
     for i in range(n_generations):
-        results_df[f'generate_{i}'] = all_responses[f'generate_{i}']
+        formatted_texts = [
+            [
+                {"content": prompt,
+                 "role": "user"}, 
+            
+                {"content": response[1]['content'],
+                 "role": "assistant"},
+            ]
+            for prompt, response in zip(all_prompts, all_responses[f'generate_{i}'])
+        ]
+        results_df[f'generate_{i}'] = formatted_texts
+
+
+    # -------------------------------------------------------------------
+    # Add chosen and rejected columns (no reformatting needed)
+    results_df['chosen'] = results_df.apply(
+        lambda row: row[f'generate_{np.argmax(row["rewards"])}'],
+        axis=1
+    )
+    results_df['rejected'] = results_df.apply(
+        lambda row: row[f'generate_{np.argmin(row["rewards"])}'],
+        axis=1
+    )
+    # -------------------------------------------------------------------
 
     # Save temporary results
     results_df.to_csv(f'./temp_results_gpu_{rank}.csv', index=False)
@@ -201,10 +229,43 @@ def combine_results(world_size: int,
     """
     Combine results from different GPUs in DDP.
     """
+    # Get the combined dataframe
     combined_df = pd.concat(
         [pd.read_csv(f'./temp_results_gpu_{rank}.csv') for rank in range(world_size)],
         ignore_index=True
     )
+    
+    # ----------------------------------------------------------------------------
+    # Process the combined dataframe to avoid type issues
+    def convert_to_list_of_dicts(s):
+        """
+        Convert a string representation to a list of dictionaries.
+        """
+        try:
+            return ast.literal_eval(s) if isinstance(s, str) else s
+        except (ValueError, SyntaxError) as e:
+            print(f"Failed to convert: {s[:50]}... Error: {str(e)}")
+            return s  # Return the original string if conversion fails
+
+    def ensure_correct_format(df, columns_to_fix):
+        """
+        Ensure that the specified columns are lists of dictionaries.
+        """
+        for column in columns_to_fix:
+            df[column] = df[column].apply(lambda x: convert_to_list_of_dicts(x))
+        return df
+    
+    def find_columns_to_fix(df):
+        columns_to_fix = [col for col in df.columns if col.startswith('generate_')]
+        columns_to_fix.extend(['chosen', 'rejected'])
+        return columns_to_fix
+    
+    # Set the columns to fix
+    columns_to_fix = find_columns_to_fix(combined_df)
+    combined_df = ensure_correct_format(combined_df, columns_to_fix)
+    # ----------------------------------------------------------------------------
+    
+    # Save the combined dataframe
     combined_df.to_csv(df_path, index=False)
     combined_df.to_parquet(parquet_path, index=False)
 
@@ -247,6 +308,7 @@ def parse_arguments():
                         default="RLHFlow/ArmoRM-Llama3-8B-v0.1",
                         help='The reward function used to judge the response.')
     parser.add_argument("--torch_dtype", type=str, default='bfloat16')
+    parser.add_argument("--to_hf_dataset_suffix", type=str, default='')
 
     return parser.parse_args()
 
@@ -263,7 +325,10 @@ def main():
     filename_suffix = f"{args.reward_model_path.split('/')[-1]}"
     df_path = reward_dir / f'rewards_{filename_suffix}.csv'
     parquet_path = reward_dir / f'rewards_{filename_suffix}.parquet'
-    hf_reward_repo_name = args.output_dir + "-all-hf-rewards"
+    if not args.to_hf_dataset_suffix:
+        hf_reward_repo_name = args.output_dir + "-all-hf-rewards"
+    else:
+        hf_reward_repo_name = args.output_dir + '-' + args.to_hf_dataset_suffix 
     
     # -------------- Set up the datasets and get rewards --------------- #
     dataset = load_dataset(args.input_dataset)
@@ -284,9 +349,13 @@ def main():
                     df_path=df_path,
                     parquet_path=parquet_path)
 
-    # Push to Hugging Face
+    # TODO: make this more efficient; we push twice just to lazily keep the naming fashion consistent
     push_to_hf(hf_username=args.hf_username,
-               hf_reward_repo_name=hf_reward_repo_name,
+               hf_reward_repo_name=args.output_dir + "-all-hf-rewards",
+               parquet_path=parquet_path)
+
+    push_to_hf(hf_username=args.hf_username,
+               hf_reward_repo_name=args.output_dir + "-pair",
                parquet_path=parquet_path)
 
 

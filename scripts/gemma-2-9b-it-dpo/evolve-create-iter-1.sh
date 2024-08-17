@@ -2,6 +2,9 @@
 set -e  # Exit if failing
 # set -x  # Print the commands
 
+# Set the environmental variable
+export WANDB_PROJECT="dpo"
+
 # GENERAL IDEA
 # 1. Given X_t and theta_t, we first generate responses from theta_t
 #    (Notice that theta_t is trained from X_t)
@@ -15,7 +18,7 @@ set -e  # Exit if failing
 ITER=${ITER:-1}  # the ind should start from at least 1, as 0 means unaligned in our notation
 SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
-LOSS_TYPE=${LOSS_TYPE:-"sppo"}
+LOSS_TYPE=${LOSS_TYPE:-"dpo"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
@@ -24,7 +27,7 @@ N_PAIRS=${N_PAIRS:-6}  # number of response generated for each prompt (better ch
 DATA_ROOT=${DATA_ROOT:-"./data"}  # assume the script is run at the project directory
 MAX_TOKENS=${MAX_TOKENS:-2048}
 DTYPE=${DTYPE:-"bfloat16"}
-TEMPERATURE=${TEMPERATURE:-0.9}
+TEMPERATURE=${TEMPERATURE:-0.7}
 TOP_P=${TOP_P:-0.9}
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 # ------------------------------------------------------------------
@@ -34,12 +37,13 @@ HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_gap'}
 SAMPLE_FRAC=${SAMPLE_FRAC:-0.25}
 NUM_EVOLUTIONS=${NUM_EVOLUTIONS:-4}
-MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-512}
-EVOLVE_TEMPERATURE=${EVOLVE_TEMPERATURE:-1.0}
+MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-666}  # Test longer length
+EVOLVE_TEMPERATURE=${EVOLVE_TEMPERATURE:-0.88}  # Test lower temperature
 SAMPLE_METHOD=${SAMPLE_METHOD:-'importance_weighted'}
 GEN_MODEL_NAME=${GEN_MODEL_NAME:-'gpt-4-0125-preview'}
 # ------------------------------------------------------------------
 
+# NOTICE THERE SHOULD BE DEDUPLICATION BUT WE TEMPORARIALLY IGNORED!
 
 # ##################################################################
 # 0. PREPARATION
@@ -51,7 +55,7 @@ VLLM_WORLD_SIZE=1
 # ------------------------------------------------------------------
 MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  # TODO: this naming fashion only works at iter-1
 # DATASET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${ITER}"  # INPUT - Only to get prompts from X_t
-OUTPUT_DIR="ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
+OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
 # Notice this is different from default training, where the split is plus one of iter.
 
 echo "The base model used to generate responses is set to $MODEL_PATH."
@@ -64,19 +68,7 @@ START_TIME=$(date +%s)
 mkdir -p ./logs
 # ------------------------------------------------------------------
 
-# We skipped the generation part, as this is the same as the gen.sh, only using different iter and split number.
-
-# ##################################################################
-# 1. Generate responses with the current split and iter to eval prompts
-# ##################################################################
-export  SPLIT ITER \
-        MODEL_FAMILY LOSS_TYPE PREF HF_USERNAME \
-        N_PAIRS DATA_ROOT MAX_TOKENS DTYPE TEMPERATURE TOP_P \
-        LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE
-
-# # Source the gen.sh script
-source ./scripts/gemma-9b/gen.sh
-
+# We skipped the generation part, as this is the same as the gen.sh, only using different iter number.
 
 
 # ##################################################################
@@ -106,6 +98,8 @@ DATASET_EVOLVED="${HF_USERNAME}/${OUTPUT_DIR}-evol-${SAMPLE_METRIC}-${SAMPLE_FRA
 
 echo $DATASET_EVOLVED
 
+# WARNING
+# Depending on the max tokens and the method of generation, the num_workers should be adjusted, otherwise it will lead to API rate issue and will hang.
 python src/evolve_prompt.py \
     --hf_username  $HF_USERNAME \
     --input_dataset $DATASET_WITH_REWARDS \
@@ -114,7 +108,7 @@ python src/evolve_prompt.py \
     --data_root $DATA_ROOT \
     --gen_model_name $GEN_MODEL_NAME \
     --num_evolutions $NUM_EVOLUTIONS \
-    --num_workers 20 \
+    --num_workers 5 \
     --do_adaptive_sample 1 \
     --sample_metric $SAMPLE_METRIC \
     --sample_frac $SAMPLE_FRAC \
