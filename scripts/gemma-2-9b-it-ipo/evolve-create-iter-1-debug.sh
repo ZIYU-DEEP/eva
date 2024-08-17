@@ -77,16 +77,16 @@ mkdir -p ./logs
 # TODO: REPLACE ALL WITH POINTWISE RM - REMOVE THE PAIRRM PART
 DATASET_TO_REWARD="${HF_USERNAME}/${OUTPUT_DIR}-all"
 
-python src/reward_hf.py \
-    --input_dataset $DATASET_TO_REWARD \
-    --output_dir $OUTPUT_DIR \
-    --n_generations $N_PAIRS \
-    --data_root $DATA_ROOT \
-    --hf_username  $HF_USERNAME\
-    --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
-    --torch_dtype $DTYPE
+# python src/reward_hf.py \
+#     --input_dataset $DATASET_TO_REWARD \
+#     --output_dir $OUTPUT_DIR \
+#     --n_generations $N_PAIRS \
+#     --data_root $DATA_ROOT \
+#     --hf_username  $HF_USERNAME\
+#     --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
+#     --torch_dtype $DTYPE
 
-echo "Pushed the annotated data to ${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards."
+# echo "Pushed the annotated data to ${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards."
 
 
 # ##################################################################
