@@ -10,7 +10,7 @@ export WANDB_PROJECT="ipo"
 ITER=${ITER:-1}
 SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
-SFT_MODEL_PATH=${SFT_MODEL_PATH:-"cat-searcher/gemma-2-9b-it-ipo-iter-0"}
+SFT_MODEL_PATH=${SFT_MODEL_PATH:-"google/gemma-2-9b-it"}
 LOSS_TYPE=${LOSS_TYPE:-"ipo"}
 # ------------------------------------------------------------------
 
