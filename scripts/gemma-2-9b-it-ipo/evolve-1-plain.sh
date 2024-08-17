@@ -2,6 +2,8 @@
 set -e
 set -x  # Print the commands
 
+sleep 4h  # wait for me
+
 # Set the environmental variable
 export WANDB_PROJECT="ipo"
 
