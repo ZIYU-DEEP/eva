@@ -4,7 +4,7 @@ sleep 20
 
 MODEL_PATH="cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1"
 MODEL_NAME="gemma-2-9b-it-dpo-iter-1-evol-1"
-port=8000
+port=8964
 dtype="bfloat16"
 
 python gen_answer.py \
