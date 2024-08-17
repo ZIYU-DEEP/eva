@@ -3,18 +3,18 @@ set -x
 set -e
 
 # Set the environmental variable
-export WANDB_PROJECT="dpo"
+export WANDB_PROJECT="ipo"
 
 # This file should be run under the project directory
 # Number of iterations
 n_splits=${1:-1}
-folder_name="gemma-2-9b-it-dpo"
+folder_name="gemma-2-9b-it-ipo"
 
 # General parameters
 MODEL_FAMILY="gemma-2-9b-it"
 SFT_MODEL_PATH="google/gemma-2-9b-it"
-LOSS_TYPE="dpo"
-PREF="dpo_score"
+LOSS_TYPE="ipo"
+PREF="ipo_score"
 HF_USERNAME='cat-searcher'
 N_PAIRS=6
 DATA_ROOT="./data"

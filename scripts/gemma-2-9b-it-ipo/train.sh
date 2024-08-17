@@ -3,7 +3,7 @@ set -e
 # set -x  # Print the commands
 
 # Set the environmental variable
-export WANDB_PROJECT="dpo"
+export WANDB_PROJECT="ipo"
 export VLLM_ATTENTION_BACKEND=FLASHINFER
 
 # ------------------------------------------------------------------
@@ -11,9 +11,9 @@ export VLLM_ATTENTION_BACKEND=FLASHINFER
 ITER=${ITER:-0}
 SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
-SFT_MODEL_PATH=${SFT_MODEL_PATH:-"cat-searcher/gemma-2-9b-it-dpo-iter-0"}
-LOSS_TYPE=${LOSS_TYPE:-"dpo"}
-PREF=${PREF:-"dpo_score"}
+SFT_MODEL_PATH=${SFT_MODEL_PATH:-"cat-searcher/gemma-2-9b-it-ipo-iter-0"}
+LOSS_TYPE=${LOSS_TYPE:-"ipo"}
+PREF=${PREF:-"ipo_score"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
@@ -42,7 +42,7 @@ else
 fi
 
 # Set the loss type in trainer
-if [ "$LOSS_TYPE" = 'dpo' ]; then
+if [ "$LOSS_TYPE" = 'ipo' ]; then
     LOSS_TYPE_TRAIN="sigmoid"
 else
     LOSS_TYPE_TRAIN=${LOSS_TYPE}
@@ -74,10 +74,10 @@ echo "logging to $log_file.log"
 # Save the new recipe
 # TODO: make the config as an argument
 config_name=$(echo "$DATASET" | cut -d '/' -f2) # identify with model-split-iter
-new_config_file="./recipes/iterative-dpo/config_full_${config_name}.yaml"
+new_config_file="./recipes/iterative-ipo/config_full_${config_name}.yaml"
 
 # TODO: make this optional
-cp ./recipes/iterative-dpo/config_full.yaml "$new_config_file"
+cp ./recipes/iterative-ipo/config_full.yaml "$new_config_file"
 
 # Update the dataset, model name, and hub model ID
 python src/update_config.py \

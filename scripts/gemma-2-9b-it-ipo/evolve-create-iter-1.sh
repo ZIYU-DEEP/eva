@@ -3,7 +3,7 @@ set -e  # Exit if failing
 # set -x  # Print the commands
 
 # Set the environmental variable
-export WANDB_PROJECT="dpo"
+export WANDB_PROJECT="ipo"
 
 # GENERAL IDEA
 # 1. Given X_t and theta_t, we first generate responses from theta_t
@@ -18,7 +18,7 @@ export WANDB_PROJECT="dpo"
 ITER=${ITER:-1}  # the ind should start from at least 1, as 0 means unaligned in our notation
 SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
-LOSS_TYPE=${LOSS_TYPE:-"dpo"}
+LOSS_TYPE=${LOSS_TYPE:-"ipo"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
