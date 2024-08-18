@@ -72,7 +72,7 @@ Execute the training scripts based on the base model you choose. Be sure to modi
    ``` -->
    ```bash
    cd ${root}/eva
-   bash ./scripts/gemma-2-9b-it-dpo//evolve-1.sh
+   bash ./scripts/gemma-2-9b-it-dpo/evolve-1.sh
    ```
 <!-- - Generation for Y|X:
   ```bash
