@@ -53,13 +53,13 @@ We present a new self-play framework for language model alignment and a new lear
    pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/
    ```
 
-## Training Scripts (TEMP)
+## Training Scripts
 Execute the training scripts based on the base model you choose. Be sure to modify the iteration number during the training.
 
 1. Default training
    ```bash
    cd ${root}/eva
-   bash ./scripts/gemma-9b/iterate.sh
+   bash ./scripts/gemma-2-9b-it-dpo/iterate.sh
    ```
 
 2. Evolving training (example for one iteration)
@@ -70,7 +70,7 @@ Execute the training scripts based on the base model you choose. Be sure to modi
    ``` -->
    ```bash
    cd ${root}/eva
-   bash ./scripts/llama-8b/evolve-1.sh
+   bash ./scripts/gemma-2-9b-it-dpo//evolve-1.sh
    ```
 <!-- - Generation for Y|X:
   ```bash
