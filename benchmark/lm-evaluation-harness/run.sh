@@ -9,7 +9,6 @@
 # truthfulqa
 # toxigen
 
-
 task=${1:-gsm_plus_mini}
 hf_username=${2:-cat-searcher}
 
