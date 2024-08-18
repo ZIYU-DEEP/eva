@@ -9,6 +9,6 @@ export WANDB_PROJECT="ipo"
 folder_name="gemma-2-9b-it-ipo"
 
 # bash ./scripts/${folder_name}/evolve-create-gen-iter-1.sh
-bash ./scripts/${folder_name}/evolve-create-iter-1-debug.sh
-bash ./scripts/${folder_name}/evolve-gen-iter-1.sh
+# bash ./scripts/${folder_name}/evolve-create-iter-1-debug.sh
+# bash ./scripts/${folder_name}/evolve-gen-iter-1.sh
 bash ./scripts/${folder_name}/evolve-train-iter-1.sh
