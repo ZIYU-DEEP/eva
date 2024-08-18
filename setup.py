@@ -102,6 +102,8 @@ extras["torch"] = deps_list("torch")
 extras["quality"] = deps_list("black", "isort", "flake8")
 extras["docs"] = deps_list("hf-doc-builder")
 extras["dev"] = extras["docs"] + extras["quality"] + extras["tests"]
+extras["all"] = list(deps.values())
+
 
 # core dependencies shared across the whole project - keep this to a bare minimum :)
 install_requires = [
@@ -126,6 +128,7 @@ install_requires = [
     deps["tqdm"],  # progress bars in model download and training scripts
     deps["transformers"],
     deps["trl"],
+    deps["wandb"],
 ]
 
 setup(

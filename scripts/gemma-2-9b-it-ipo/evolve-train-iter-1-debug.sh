@@ -51,6 +51,8 @@ else
     LOSS_TYPE_TRAIN=${LOSS_TYPE}
 fi
 
+echo "Loss type for training set to be ${LOSS_TYPE_TRAIN}."
+
 # The preference data from the base model
 DATASET_PREFIX="${HF_USERNAME}/ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"
 DATASET_BASE="${DATASET_PREFIX}-pair"
