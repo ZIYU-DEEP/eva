@@ -71,11 +71,16 @@ _deps = [
     "trl>=0.9.6",
     "jinja2>=3.0.0",
     "tqdm>=4.64.1",
-    "vllm==0.3.1",
-    "wandb==0.16.3",
+    "vllm==0.5.4",
+    "wandb>=0.16.3",
     "distilabel==1.2.1",
     "pandas==2.2.2",
     "openai==1.35.14"
+    "sglang==0.2.10"
+    "shortuuid==1.0.13"
+    "httpx==0.25.2"
+    "gradio==3.40.0"
+    "plotly==5.22.0"
 ]
 
 # this is a lookup table with items like:

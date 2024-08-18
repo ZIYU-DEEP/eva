@@ -3,15 +3,15 @@ set -e  # Exit if failing
 # set -x  # Print the commands
 
 # Set the environmental variable
-export WANDB_PROJECT="ipo"
+export WANDB_PROJECT="dpo"
 
 # ------------------------------------------------------------------
 # Below is to be re-written by source generate.sh in other bash files
-ITER=${ITER:-1}
+ITER=${ITER:-0}
 SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
-SFT_MODEL_PATH=${SFT_MODEL_PATH:-"google/gemma-2-9b-it"}
-LOSS_TYPE=${LOSS_TYPE:-"ipo"}
+SFT_MODEL_PATH=${SFT_MODEL_PATH:-"cat-searcher/gemma-2-9b-it-dpo-iter-0"}
+LOSS_TYPE=${LOSS_TYPE:-"dpo"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
@@ -137,4 +137,21 @@ python src/generate_to_hub.py \
 # This will push a dataset to https://huggingface.co/datasets/${HF_USERNAME}/ultrafeeback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-all
 # ------------------------------------------------------------------
 
-# We do not need to rank the responses here as the next script will take care of it.
+# ------------------------------------------------------------------
+# 2.2. Rank the responses and push to huggingface
+TO_HF_DATASET_SUFFIX="pair"
+
+python src/reward_hf.py \
+    --input_dataset $DATASET_TO_REWARD \
+    --output_dir $OUTPUT_DIR \
+    --n_generations $N_PAIRS \
+    --data_root $DATA_ROOT \
+    --hf_username  $HF_USERNAME\
+    --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
+    --torch_dtype $DTYPE \
+    --to_hf_dataset_suffix "$TO_HF_DATASET_SUFFIX" 
+
+echo "Pushed the annotated data to ${HF_USERNAME}/${OUTPUT_DIR}${TO_HF_DATASET_SUFFIX}."
+
+# This will push https://huggingface.co/datasets/${HF_USERNAME}/ultrafeedback-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-pair.
+# And this dataset will be used for training.

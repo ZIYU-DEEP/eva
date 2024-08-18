@@ -1,0 +1,64 @@
+# Model arguments
+model_name_or_path: cat-searcher/gemma-2-9b-it-sppo-iter-3  # TO BE MODIFIED
+torch_dtype: null
+
+# Push to hub arguments
+push_to_hub: true
+hub_private_repo: true
+hub_model_id: cat-searcher/gemma-2-9b-it-sppo-iter-4  # TO BE MODIFIED
+output_dir: checkpoints/gemma-2-9b-it-sppo-iter-4
+
+# Checkpoint setting
+hub_strategy: checkpoint
+resume_from_checkpoint: null  # Let it automatically resume training
+
+# Data training arguments
+# For definitions, see: src/h4/training/config.py
+dataset_mixer:
+  cat-searcher/ultrafeedback-gemma-2-9b-it-split-4-iter-3-pair: 1.0  # TO BE MODIFIED
+
+dataset_splits:
+- train
+- test
+preprocessing_num_workers: 12
+
+# DPOTrainer arguments
+seed: 42
+bf16: true
+optim: rmsprop
+beta: 0.001
+loss_type: sppo  
+learning_rate: 5.0e-7
+lr_scheduler_type: linear
+num_train_epochs: 6
+warmup_ratio: 0.1
+
+# Gradient accumulation settings
+gradient_accumulation_steps: 2
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: False
+
+# Batch size
+per_device_train_batch_size: 4
+per_device_eval_batch_size: 4
+
+# effective_batch_size == batch_size * accumulate_grad_batches * devices
+
+# Length
+max_length: 1024
+max_prompt_length: 512
+
+# Evaluation settings
+do_eval: "no"
+eval_strategy: "no"
+eval_steps: 100
+
+# Save strategy
+save_strategy: "epoch"
+# save_stpes: 0.2  # the ratio of total training steps
+save_total_limit: 20
+
+# Log settings
+log_level: info
+logging_steps: 10
