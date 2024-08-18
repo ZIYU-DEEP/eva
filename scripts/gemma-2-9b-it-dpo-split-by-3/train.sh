@@ -72,7 +72,7 @@ echo "The model will be pushed to $HUB_MODEL_ID."
 export OMP_NUM_THREADS=$(nproc)
 
 # Set the name for the log file
-log_file="iter-${ITER}"
+log_file="${EXP_PREFIX}iter-${ITER}"
 log_file+="_${LEARNING_RATE}"
 log_file+="_${BETA}"
 log_file+="_${OPTIM}"

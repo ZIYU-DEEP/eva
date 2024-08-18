@@ -1,15 +1,17 @@
 #!/bin/bash
-set -e
+
 # set -x  # Print the commands
 
 # Set the environmental variable
 export WANDB_PROJECT="dpo"
+export VLLM_ATTENTION_BACKEND=FLASHINFER
 
 # ------------------------------------------------------------------
 # Below is to be re-written by source iterate.sh in other bash files
-ITER=${ITER:-1}
-SPLIT=${SPLIT:-1}  # Specifically for evol
+ITER=${ITER:-0}
+SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
+SFT_MODEL_PATH=${SFT_MODEL_PATH:-"google/gemma-2-9b-it"}
 LOSS_TYPE=${LOSS_TYPE:-"dpo"}
 PREF=${PREF:-"dpo_score"}
 # ------------------------------------------------------------------
@@ -26,30 +28,23 @@ ACCUMULATE=${ACCUMULATE:-8}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
-# Specifically for evol
-SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_gap'}
-SAMPLE_FRAC=${SAMPLE_FRAC:-0.25}
-
-# For identify the evol 
-EVOL_NO=${EVOL_NO:-1}
-RATIO_BASE=${RATIO_BASE:-0.2}  # Use a relatively low ratio to avoid overfitting
-RATIO_EVOL=${RATIO_EVOL:-0.8}  # Use more new evolved
-# ------------------------------------------------------------------
-
-# ------------------------------------------------------------------
 # The prefix
-PROMPT_SET_NAME_PREFIX=${PROMPT_SET_NAME_PREFIX:-"ultrafeedback-split"}
 EXP_PREFIX=${EXP_PREFIX:-"NSPLIT3-"}
 # ------------------------------------------------------------------
-
 
 
 # ##################################################################
 # 0. PREPARATION
 # ##################################################################
 # ------------------------------------------------------------------
+NEXT_ITER=$((ITER + 1))
+
 # The base model to train
-MODEL_PATH="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"   
+if [ "$ITER" -eq 0 ]; then
+    MODEL_PATH=${SFT_MODEL_PATH}
+else
+    MODEL_PATH="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
+fi
 
 # Set the loss type in trainer
 if [ "$LOSS_TYPE" = 'dpo' ]; then
@@ -58,15 +53,15 @@ else
     LOSS_TYPE_TRAIN=${LOSS_TYPE}
 fi
 
+echo "Loss type for training set to be ${LOSS_TYPE_TRAIN}."
+
 # The preference data from the base model
-DATASET_PREFIX="${HF_USERNAME}/${EXP_PREFIX}ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"
-DATASET_BASE="${DATASET_PREFIX}-pair"
-DATASET_EVOL="${DATASET_PREFIX}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}-pair"
-DATASET="${DATASET_BASE}-evol-${EVOL_NO}-mixed-${RATIO_BASE}-${RATIO_EVOL}-pair"
+# TODO: to update the naming convention with parameters
+DATASET="${HF_USERNAME}/${EXP_PREFIX}ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-pair"
 
 # The directory for the saved model
-SAVE_DIR="checkpoints/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}"
-HUB_MODEL_ID="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}"
+SAVE_DIR="checkpoints/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
+HUB_MODEL_ID="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
 
 echo "The dataset used is $DATASET."
 echo "The model will be pushed to $HUB_MODEL_ID."
@@ -77,7 +72,7 @@ echo "The model will be pushed to $HUB_MODEL_ID."
 export OMP_NUM_THREADS=$(nproc)
 
 # Set the name for the log file
-log_file="${EXP_PREFIX}iter-${ITER}"
+log_file="iter-${ITER}"
 log_file+="_${LEARNING_RATE}"
 log_file+="_${BETA}"
 log_file+="_${OPTIM}"
@@ -102,32 +97,24 @@ python src/update_config.py \
     --config_path "$new_config_file" >"logs/train_$log_file.log"
 # ------------------------------------------------------------------
 
+
 # ##################################################################
 # 1. Training
 # ##################################################################
 # ------------------------------------------------------------------
-# Mix the datasets with generated responses
-python src/snippets/combine_ds.py \
-    --datasets $DATASET_BASE $DATASET_EVOL \
-    --ratios $RATIO_BASE $RATIO_EVOL \
-    --output $DATASET
-
-# ------------------------------------------------------------------
-
-# ------------------------------------------------------------------
 # Run the training
-ACCELERATE_LOG_LEVEL=info accelerate launch \
-    --config_file ./recipes/accelerate_configs/deepspeed_zero3.yaml \
-    --main_process_port 8964 \
-    eva/run_sppo.py "$new_config_file" \
-    --learning_rate=$LEARNING_RATE \
-    --beta=$BETA \
-    --optim="$OPTIM" \
-    --output_dir="$SAVE_DIR" \
-    --loss_type=$LOSS_TYPE_TRAIN \
-    --per_device_train_batch_size=$BATCH_SIZE \
-    --gradient_accumulation_steps=$ACCUMULATE \
-    --model_name_or_path=$MODEL_PATH \
-    --num_train_epochs=$N_EPOCHS
+# ACCELERATE_LOG_LEVEL=info accelerate launch \
+#     --config_file ./recipes/accelerate_configs/deepspeed_zero3.yaml \
+#     --main_process_port 8964 \
+#     eva/run_sppo.py "$new_config_file" \
+#     --learning_rate=$LEARNING_RATE \
+#     --beta=$BETA \
+#     --optim="$OPTIM" \
+#     --output_dir="$SAVE_DIR" \
+#     --loss_type=$LOSS_TYPE_TRAIN \
+#     --per_device_train_batch_size=$BATCH_SIZE \
+#     --gradient_accumulation_steps=$ACCUMULATE \
+#     --model_name_or_path=$MODEL_PATH \
+#     --num_train_epochs=$N_EPOCHS
 # 2>&1 | tee "logs/train_$log_file.log"
 # ------------------------------------------------------------------

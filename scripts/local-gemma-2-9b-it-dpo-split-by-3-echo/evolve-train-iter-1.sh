@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+
 # set -x  # Print the commands
 
 # Set the environmental variable
@@ -77,7 +77,7 @@ echo "The model will be pushed to $HUB_MODEL_ID."
 export OMP_NUM_THREADS=$(nproc)
 
 # Set the name for the log file
-log_file="${EXP_PREFIX}iter-${ITER}"
+log_file="iter-${ITER}"
 log_file+="_${LEARNING_RATE}"
 log_file+="_${BETA}"
 log_file+="_${OPTIM}"
@@ -107,27 +107,27 @@ python src/update_config.py \
 # ##################################################################
 # ------------------------------------------------------------------
 # Mix the datasets with generated responses
-python src/snippets/combine_ds.py \
-    --datasets $DATASET_BASE $DATASET_EVOL \
-    --ratios $RATIO_BASE $RATIO_EVOL \
-    --output $DATASET
+# python src/snippets/combine_ds.py \
+#     --datasets $DATASET_BASE $DATASET_EVOL \
+#     --ratios $RATIO_BASE $RATIO_EVOL \
+#     --output $DATASET
 
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
 # Run the training
-ACCELERATE_LOG_LEVEL=info accelerate launch \
-    --config_file ./recipes/accelerate_configs/deepspeed_zero3.yaml \
-    --main_process_port 8964 \
-    eva/run_sppo.py "$new_config_file" \
-    --learning_rate=$LEARNING_RATE \
-    --beta=$BETA \
-    --optim="$OPTIM" \
-    --output_dir="$SAVE_DIR" \
-    --loss_type=$LOSS_TYPE_TRAIN \
-    --per_device_train_batch_size=$BATCH_SIZE \
-    --gradient_accumulation_steps=$ACCUMULATE \
-    --model_name_or_path=$MODEL_PATH \
-    --num_train_epochs=$N_EPOCHS
+# ACCELERATE_LOG_LEVEL=info accelerate launch \
+#     --config_file ./recipes/accelerate_configs/deepspeed_zero3.yaml \
+#     --main_process_port 8964 \
+#     eva/run_sppo.py "$new_config_file" \
+#     --learning_rate=$LEARNING_RATE \
+#     --beta=$BETA \
+#     --optim="$OPTIM" \
+#     --output_dir="$SAVE_DIR" \
+#     --loss_type=$LOSS_TYPE_TRAIN \
+#     --per_device_train_batch_size=$BATCH_SIZE \
+#     --gradient_accumulation_steps=$ACCUMULATE \
+#     --model_name_or_path=$MODEL_PATH \
+#     --num_train_epochs=$N_EPOCHS
 # 2>&1 | tee "logs/train_$log_file.log"
 # ------------------------------------------------------------------

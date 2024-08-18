@@ -1,10 +1,9 @@
 #!/bin/bash
-set -x
-set -e
+
 
 # Set the environmental variable
 export WANDB_PROJECT="dpo"
-folder_name="gemma-2-9b-it-dpo-split-by-3"
+folder_name="gemma-2-9b-it-dpo-split-by-3-echo"
 EXP_PREFIX="NSPLIT3-"  # added on all the huggingface uploads
 
 # This file should be run under the project directory
