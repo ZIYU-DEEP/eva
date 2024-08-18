@@ -4,9 +4,6 @@ set -e
 set -x  # Print the commands
 
 # Set the environmental variable
-export WANDB_PROJECT="ipo"
-
-# Set the folder name
 folder_name="gemma-2-9b-it-ipo"
 export WANDB_PROJECT="ipo"
 

@@ -75,12 +75,12 @@ _deps = [
     "wandb>=0.16.3",
     "distilabel==1.2.1",
     "pandas==2.2.2",
-    "openai==1.35.14"
-    "sglang==0.2.10"
-    "shortuuid==1.0.13"
-    "httpx==0.25.2"
-    "gradio==3.40.0"
-    "plotly==5.22.0"
+    "openai==1.35.14",
+    "sglang==0.2.10",
+    "shortuuid==1.0.13",
+    "httpx==0.25.2",
+    "gradio==3.40.0",
+    "plotly==5.22.0",
 ]
 
 # this is a lookup table with items like:
