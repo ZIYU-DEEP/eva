@@ -10,19 +10,21 @@ We present a new self-play framework for language model alignment and a new lear
    ```bash
    conda create -n align python=3.10
    conda activate align
+   root="~/github"  # Set your own working directory
    ```
 
 2. **Install PairRM:** (a temporary choice for RM during training)
    ```bash
+   cd ${root}
    git clone https://github.com/yuchenlin/LLM-Blender.git
    cd LLM-Blender
    pip install -e .
-   cd ..
    ```
 
 3. **Download and Install Training Dependencies:**
    ```bash
    # Install general requirements
+   cd ${root}
    git clone https://github.com/ziyu-deep/eva.git
    cd eva
    pip install -e .
@@ -56,6 +58,7 @@ Execute the training scripts based on the base model you choose. Be sure to modi
 
 1. Default training
    ```bash
+   cd ${root}/eva
    bash ./scripts/gemma-9b/iterate.sh
    ```
 
@@ -66,6 +69,7 @@ Execute the training scripts based on the base model you choose. Be sure to modi
    bash ./scripts/gemma-9b/evolve-train-iter-1.sh
    ``` -->
    ```bash
+   cd ${root}/eva
    bash ./scripts/llama-8b/evolve-1.sh
    ```
 <!-- - Generation for Y|X:
@@ -93,19 +97,20 @@ See detailed instructions for different benchmarks in `./benchmark`.
 - MT Bench:
   ```bash
   # Install relevant packages
+  cd ${root}
   git clone https://github.com/lm-sys/FastChat.git
   cd FastChat
   pip install -e ".[model_worker,llm_judge]"
   pip install openai==1.40.3  # Notice we modify the original code
-  cd eva/benchmark/mt_bench
 
   # Run evaluation
+  cd ${root}/eva/benchmark/mt_bench
   bash ./run.sh  # Be sure to modify the models to compare with
   ```
 
 - Arena Hard
    ```bash
-   cd eva/benchmark/arena_hard
+   cd ${root}/eva/benchmark/arena_hard
    bash ./run.sh # Be sure to modify the models to compare with
    ```
 
@@ -113,22 +118,22 @@ See detailed instructions for different benchmarks in `./benchmark`.
    ```bash
    # Install relevant packages
    pip install alpaca-eval==0.6.3
-   cd ./benchmark/alpaca_eval
 
    # Run evaluation
+   cd ${root}/eva/benchmark/alpaca_eval
    bash ./run.sh # Be sure to modify the models to compare with
    ```
 
 - LLM Evaluation Harness
    ```bash
    # Install relevant packages
+   cd ${root}
    git clone https://github.com/EleutherAI/lm-evaluation-harness
    cd lm-evaluation-harness  # tested with the 0.4.3 version
    pip install -e .
-   cd eva/benchmark/lm-evaluation-harness
 
    # Run evaluation
-   # Just an example; be sure to modify relevant placeholders in the script
+   cd ${root}/eva/benchmark/lm-evaluation-harness
    bash run.sh
    ```
 
