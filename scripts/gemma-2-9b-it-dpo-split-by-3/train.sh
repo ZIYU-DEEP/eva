@@ -62,6 +62,9 @@ DATASET="${HF_USERNAME}/${EXP_PREFIX}ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-
 # The directory for the saved model
 SAVE_DIR="checkpoints/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
 HUB_MODEL_ID="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
+
+echo "The dataset used is $DATASET."
+echo "The model will be pushed to $HUB_MODEL_ID."
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------

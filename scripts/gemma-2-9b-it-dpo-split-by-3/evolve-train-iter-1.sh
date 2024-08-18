@@ -67,6 +67,9 @@ DATASET="${DATASET_BASE}-evol-${EVOL_NO}-mixed-${RATIO_BASE}-${RATIO_EVOL}-pair"
 # The directory for the saved model
 SAVE_DIR="checkpoints/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}"
 HUB_MODEL_ID="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}"
+
+echo "The dataset used is $DATASET."
+echo "The model will be pushed to $HUB_MODEL_ID."
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------

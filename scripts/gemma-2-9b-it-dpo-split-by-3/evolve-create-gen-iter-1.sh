@@ -134,6 +134,8 @@ python src/combine_generate.py \
 # 2.1. Push the generated responses in local to huggingface
 DATASET_TO_REWARD="${HF_USERNAME}/${OUTPUT_DIR}-all"
 
+echo "Dataset to reward is: $DATASET_TO_REWARD."
+
 python src/generate_to_hub.py \
         --output_dir $OUTPUT_DIR \
         --dataset_name $PROMPT_SET_NAME \

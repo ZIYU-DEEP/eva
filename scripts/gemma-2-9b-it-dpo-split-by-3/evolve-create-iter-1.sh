@@ -84,6 +84,7 @@ mkdir -p ./logs
 # ##################################################################
 # TODO: REPLACE ALL WITH POINTWISE RM - REMOVE THE PAIRRM PART
 DATASET_TO_REWARD="${HF_USERNAME}/${OUTPUT_DIR}-all"
+echo "Dataset to reward is: $DATASET_TO_REWARD."
 
 python src/reward_hf.py \
     --input_dataset $DATASET_TO_REWARD \
