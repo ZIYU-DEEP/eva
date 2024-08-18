@@ -2,18 +2,22 @@
 # README
 
 ## About
-We present a new self-play framework for language model alignment and a new learning objective derived from the self-play framework to align large language models more efficiently and effectively.
+We present a new asymmetric self-play framework for self-improving language model alignment.
 
 
 ## Environment Setup
-1. **Create a Virtual Environment:**
+1. **Setup:**
    ```bash
+   # Set the conda environment
    conda create -n align python=3.10
    conda activate align
+
+   # Set your own working directory
    root="~/github"  # Set your own working directory
+   mkdir -p ${root}
    ```
 
-2. **Install PairRM:** (a temporary choice for RM during training)
+2. **Install PairRM:** (among other choices for RM during training)
    ```bash
    cd ${root}
    git clone https://github.com/yuchenlin/LLM-Blender.git
@@ -137,7 +141,7 @@ See detailed instructions for different benchmarks in `./benchmark`.
    bash run.sh
    ```
 
-## TODO
+<!-- ## TODO
 - [ ] Fix the naming issue (more like a tree adding suffix)
 - [x] Make a spreadsheet
 - [ ] Create our own evaluation datasets
@@ -145,7 +149,7 @@ See detailed instructions for different benchmarks in `./benchmark`.
 - [ ] Increasing number of generations (check the log linear relationship)
 - [ ] Adding hints/critique to generate better responses to contrast
 - [x] Fix the Arena-Hard Evaluation
-- [x] Using absolute reward model for dpo
+- [x] Using absolute reward model for dpo -->
 
 <!-- - Alpaca Eval
    ```bash
