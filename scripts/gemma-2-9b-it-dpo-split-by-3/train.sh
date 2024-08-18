@@ -27,6 +27,11 @@ BATCH_SIZE=${BATCH_SIZE:-1}
 ACCUMULATE=${ACCUMULATE:-8}
 # ------------------------------------------------------------------
 
+# ------------------------------------------------------------------
+# The prefix
+EXP_PREFIX=${EXP_PREFIX:-"NSPLIT3-"}
+# ------------------------------------------------------------------
+
 
 # ##################################################################
 # 0. PREPARATION
@@ -38,7 +43,7 @@ NEXT_ITER=$((ITER + 1))
 if [ "$ITER" -eq 0 ]; then
     MODEL_PATH=${SFT_MODEL_PATH}
 else
-    MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
+    MODEL_PATH="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
 fi
 
 # Set the loss type in trainer
@@ -51,11 +56,12 @@ fi
 echo "Loss type for training set to be ${LOSS_TYPE_TRAIN}."
 
 # The preference data from the base model
-DATASET="${HF_USERNAME}/ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-pair"
+# TODO: to update the naming convention with parameters
+DATASET="${HF_USERNAME}/${EXP_PREFIX}ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-pair"
 
 # The directory for the saved model
-SAVE_DIR="checkpoints/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
-HUB_MODEL_ID="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
+SAVE_DIR="checkpoints/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
+HUB_MODEL_ID="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${NEXT_ITER}"
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------

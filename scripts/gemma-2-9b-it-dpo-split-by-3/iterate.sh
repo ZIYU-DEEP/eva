@@ -5,7 +5,7 @@ set -e
 # Set the environmental variable
 export WANDB_PROJECT="dpo"
 folder_name="gemma-2-9b-it-dpo"
-EXP_SUFFIX="-NSPLIT3"  # added on all the huggingface uploads
+EXP_PREFIX="NSPLIT3-"  # added on all the huggingface uploads
 
 # This file should be run under the project directory
 # Number of iterations
@@ -17,7 +17,7 @@ SFT_MODEL_PATH="google/gemma-2-9b-it"
 LOSS_TYPE="dpo"
 PREF="dpo_score"
 HF_USERNAME='cat-searcher'
-PROMPT_SET_NAME_PREFIX='ultrafeedback-gemma-split'
+PROMPT_SET_NAME_PREFIX='ultrafeedback-split'
 N_PAIRS=6
 DATA_ROOT="./data"
 MAX_TOKENS=2048
@@ -42,7 +42,7 @@ do
          MODEL_FAMILY SFT_MODEL_PATH LOSS_TYPE PREF HF_USERNAME \
          N_PAIRS DATA_ROOT MAX_TOKENS DTYPE TEMPERATURE TOP_P \
          LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE \
-         PROMPT_SET_NAME_PREFIX
+         PROMPT_SET_NAME_PREFIX EXP_PREFIX
 
   # # # Source the gen.sh script
   source ./scripts/${folder_name}/gen.sh

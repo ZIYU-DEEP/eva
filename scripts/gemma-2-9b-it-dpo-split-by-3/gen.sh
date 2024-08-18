@@ -23,7 +23,12 @@ DTYPE=${DTYPE:-"bfloat16"}
 TEMPERATURE=${TEMPERATURE:-0.7}
 TOP_P=${TOP_P:-0.9}
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
-PROMPT_SET_NAME_PREFIX=${PROMPT_SET_NAME_PREFIX:-"ultrafeedback-gemma-split"}
+# ------------------------------------------------------------------
+
+# ------------------------------------------------------------------
+# The prefix
+PROMPT_SET_NAME_PREFIX=${PROMPT_SET_NAME_PREFIX:-"ultrafeedback-split"}
+EXP_PREFIX=${EXP_PREFIX:-"NSPLIT3-"}
 # ------------------------------------------------------------------
 
 
@@ -45,13 +50,14 @@ VLLM_WORLD_SIZE=1
 if [ "$ITER" -eq 0 ]; then
     MODEL_PATH=${SFT_MODEL_PATH}
 else
-    MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
+    MODEL_PATH="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
 fi
 
+# The original prompt set
 PROMPT_SET_NAME="${HF_USERNAME}/${PROMPT_SET_NAME_PREFIX}-${SPLIT}"
 
 # The below will be used for local folder, and HF upload
-OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  
+OUTPUT_DIR="${EXP_PREFIX}ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  
 
 echo "The prompt set being used to generate responses is $PROMPT_SET_NAME."
 echo "The base model used to generate responses is set to $MODEL_PATH."

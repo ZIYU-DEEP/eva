@@ -36,13 +36,20 @@ RATIO_BASE=${RATIO_BASE:-0.2}  # Use a relatively low ratio to avoid overfitting
 RATIO_EVOL=${RATIO_EVOL:-0.8}  # Use more new evolved
 # ------------------------------------------------------------------
 
+# ------------------------------------------------------------------
+# The prefix
+PROMPT_SET_NAME_PREFIX=${PROMPT_SET_NAME_PREFIX:-"ultrafeedback-split"}
+EXP_PREFIX=${EXP_PREFIX:-"NSPLIT3-"}
+# ------------------------------------------------------------------
+
+
 
 # ##################################################################
 # 0. PREPARATION
 # ##################################################################
 # ------------------------------------------------------------------
 # The base model to train
-MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"   
+MODEL_PATH="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"   
 
 # Set the loss type in trainer
 if [ "$LOSS_TYPE" = 'dpo' ]; then
@@ -52,14 +59,14 @@ else
 fi
 
 # The preference data from the base model
-DATASET_PREFIX="${HF_USERNAME}/ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"
+DATASET_PREFIX="${HF_USERNAME}/${EXP_PREFIX}ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"
 DATASET_BASE="${DATASET_PREFIX}-pair"
 DATASET_EVOL="${DATASET_PREFIX}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}-pair"
 DATASET="${DATASET_BASE}-evol-${EVOL_NO}-mixed-${RATIO_BASE}-${RATIO_EVOL}-pair"
 
 # The directory for the saved model
-SAVE_DIR="checkpoints/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}"
-HUB_MODEL_ID="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}"
+SAVE_DIR="checkpoints/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}"
+HUB_MODEL_ID="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}"
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------

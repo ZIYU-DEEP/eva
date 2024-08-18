@@ -31,6 +31,13 @@ SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_gap'}
 SAMPLE_FRAC=${SAMPLE_FRAC:-0.25}
 # ------------------------------------------------------------------
 
+# ------------------------------------------------------------------
+# The prefix
+PROMPT_SET_NAME_PREFIX=${PROMPT_SET_NAME_PREFIX:-"ultrafeedback-split"}
+EXP_PREFIX=${EXP_PREFIX:-"NSPLIT3-"}
+# ------------------------------------------------------------------
+
+
 
 # ##################################################################
 # 0. PREPARATION
@@ -47,13 +54,13 @@ VLLM_WORLD_SIZE=1
 # X_1 & Y_1 --> theta_1
 # NEXT_ITER=$((ITER + 1))
 
-MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
+MODEL_PATH="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
 
 # ------------------------------------------------------------------
 # Specifically for evol
 
 # The below will be used for local folder, and HF upload
-OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}" 
+OUTPUT_DIR="${EXP_PREFIX}ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}" 
 PROMPT_SET_NAME="${HF_USERNAME}/${OUTPUT_DIR}"
 
 # PROMPT_SET_NAME="cat-searcher/ultrafeedback-gemma-2-9b-it-split-1-iter-1-evol-reward_gap-0.25"

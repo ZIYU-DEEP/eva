@@ -43,6 +43,14 @@ SAMPLE_METHOD=${SAMPLE_METHOD:-'importance_weighted'}
 GEN_MODEL_NAME=${GEN_MODEL_NAME:-'gpt-4-0125-preview'}
 # ------------------------------------------------------------------
 
+# ------------------------------------------------------------------
+# The prefix
+PROMPT_SET_NAME_PREFIX=${PROMPT_SET_NAME_PREFIX:-"ultrafeedback-split"}
+EXP_PREFIX=${EXP_PREFIX:-"NSPLIT3-"}
+# ------------------------------------------------------------------
+
+
+
 # NOTICE THERE SHOULD BE DEDUPLICATION BUT WE TEMPORARIALLY IGNORED!
 
 # ##################################################################
@@ -53,9 +61,9 @@ N_GPUS=8
 VLLM_WORLD_SIZE=1
 
 # ------------------------------------------------------------------
-MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  # TODO: this naming fashion only works at iter-1
+MODEL_PATH="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  # TODO: this naming fashion only works at iter-1
 # DATASET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${ITER}"  # INPUT - Only to get prompts from X_t
-OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
+OUTPUT_DIR="${EXP_PREFIX}ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
 # Notice this is different from default training, where the split is plus one of iter.
 
 echo "The base model used to generate responses is set to $MODEL_PATH."

@@ -6,6 +6,7 @@ set -x  # Print the commands
 # Set the environmental variable
 folder_name="gemma-2-9b-it-dpo"
 export WANDB_PROJECT="dpo"
+EXP_PREFIX="NSPLIT3-"  # added on all the huggingface uploads
 
 # Number of iterations
 n_splits=${1:-1}
@@ -21,7 +22,7 @@ MAX_TOKENS=2048
 TEMPERATURE=0.7  # To Test
 TOP_P=0.9
 HF_USERNAME='cat-searcher'
-PROMPT_SET_NAME_PREFIX='ultrafeedback-gemma-split'
+PROMPT_SET_NAME_PREFIX='ultrafeedback-split'
 
 DTYPE="bfloat16"
 
@@ -53,9 +54,10 @@ do
          MODEL_FAMILY SFT_MODEL_PATH LOSS_TYPE PREF HF_USERNAME \
          N_PAIRS DATA_ROOT MAX_TOKENS DTYPE TEMPERATURE TOP_P \
          LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE \
-         PROMPT_SET_NAME_PREFIX SAMPLE_METRIC SAMPLE_FRAC NUM_EVOLUTIONS \
+         SAMPLE_METRIC SAMPLE_FRAC NUM_EVOLUTIONS \
          MAX_PROMPT_LENGTH EVOLVE_TEMPERATURE SAMPLE_METHOD GEN_MODEL_NAME \
-         EVOL_NO RATIO_BASE RATIO_EVOL 
+         EVOL_NO RATIO_BASE RATIO_EVOL \
+         EXP_PREFIX PROMPT_SET_NAME_PREFIX
 
   source ./scripts/${folder_name}/evolve-create-gen-iter-1.sh
   source ./scripts/${folder_name}/evolve-create-iter-1.sh
