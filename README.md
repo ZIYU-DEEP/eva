@@ -92,14 +92,44 @@ See detailed instructions for different benchmarks in `./benchmark`.
 
 - MT Bench:
   ```bash
-  cd ./benchmark/mt_bench
+  # Install relevant packages
+  git clone https://github.com/lm-sys/FastChat.git
+  cd FastChat
+  pip install -e ".[model_worker,llm_judge]"
+  pip install openai==1.40.3  # Notice we modify the original code
+  cd eva/benchmark/mt_bench
+
+  # Run evaluation
   bash ./run.sh  # Be sure to modify the models to compare with
   ```
 
 - Arena Hard
    ```bash
-   cd ./benchmark/arena_hard
+   cd eva/benchmark/arena_hard
    bash ./run.sh # Be sure to modify the models to compare with
+   ```
+
+- Alpaca Eval 2.0
+   ```bash
+   # Install relevant packages
+   pip install alpaca-eval==0.6.3
+   cd ./benchmark/alpaca_eval
+
+   # Run evaluation
+   bash ./run.sh # Be sure to modify the models to compare with
+   ```
+
+- LLM Evaluation Harness
+   ```bash
+   # Install relevant packages
+   git clone https://github.com/EleutherAI/lm-evaluation-harness
+   cd lm-evaluation-harness  # tested with the 0.4.3 version
+   pip install -e .
+   cd eva/benchmark/lm-evaluation-harness
+
+   # Run evaluation
+   # Just an example; be sure to modify relevant placeholders in the script
+   bash run.sh
    ```
 
 ## TODO
