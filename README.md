@@ -22,9 +22,14 @@ We present a new self-play framework for language model alignment and a new lear
 
 3. **Download and Install Training Dependencies:**
    ```bash
+   # Install general requirements
    git clone https://github.com/ziyu-deep/eva.git
    cd eva
    pip install -e .
+
+   # Install flashinfer 
+   # Check https://docs.flashinfer.ai/installation.html for your version
+   pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/
    ```
 
 4. **Misc:**
@@ -34,15 +39,16 @@ We present a new self-play framework for language model alignment and a new lear
    export OPENAI_API_KEY="..."  # get a key at platform.openai.com/api-keys
    export WANDB_PROJECT=EVA
 
-   # To run VLLM with Gemma-2 models, we currently use the following setup:
-   cd ..
-
+   # To run VLLM with Gemma-2 models, we have tested with the following setup:
+   # Version 1
    pip install vllm==0.5.3
    wget https://github.com/flashinfer-ai/flashinfer/releases/download/v0.1.1/flashinfer-0.1.1+cu121torch2.3-cp310-cp310-linux_x86_64.whl
    pip install flashinfer-0.1.1+cu121torch2.3-cp310-cp310-linux_x86_64.whl
    export VLLM_ATTENTION_BACKEND=FLASHINFER
 
-   cd eva
+   # Version 2
+   pip install vllm==0.5.4
+   pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/
    ```
 
 ## Training Scripts (TEMP)
