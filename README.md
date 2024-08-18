@@ -17,28 +17,26 @@ We present a new asymmetric self-play framework for self-improving language mode
    mkdir -p ${root}
    ```
 
-2. **Install PairRM:** (among other choices for RM during training)
+2. **Download and Install Training Dependencies:**
    ```bash
+   # Install general requirements
+   cd ${root}
+   git clone https://github.com/ziyu-deep/eva.git
+   cd eva
+   pip install -e ".[all]"
+
+   # Install flashinfer 
+   # Check https://docs.flashinfer.ai/installation.html for your version
+   pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/
+
+   # Install PairRM (one option among other RM choices)
    cd ${root}
    git clone https://github.com/yuchenlin/LLM-Blender.git
    cd LLM-Blender
    pip install -e .
    ```
 
-3. **Download and Install Training Dependencies:**
-   ```bash
-   # Install general requirements
-   cd ${root}
-   git clone https://github.com/ziyu-deep/eva.git
-   cd eva
-   pip install -e .
-
-   # Install flashinfer 
-   # Check https://docs.flashinfer.ai/installation.html for your version
-   pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/
-   ```
-
-4. **Misc:**
+3. **Misc:**
    ```bash
    huggingface-cli login       
    wandb login                 

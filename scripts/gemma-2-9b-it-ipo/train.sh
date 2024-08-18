@@ -42,12 +42,13 @@ else
 fi
 
 # Set the loss type in trainer
-if [ "$LOSS_TYPE" = 'ipo' ]; then
+if [ "$LOSS_TYPE" = 'dpo' ]; then
     LOSS_TYPE_TRAIN="sigmoid"
 else
     LOSS_TYPE_TRAIN=${LOSS_TYPE}
 fi
 
+echo "Loss type for training set to be ${LOSS_TYPE_TRAIN}."
 
 # The preference data from the base model
 DATASET="${HF_USERNAME}/ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-pair"
