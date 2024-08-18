@@ -151,3 +151,11 @@ gemma-2-9b-it-ipo-iter-1:
           api_key: eva
     api_type: openai
     parallel: 1
+
+gemma-2-9b-it-ipo-iter-1-evol-1:
+    model_name: cat-searcher/gemma-2-9b-it-ipo-iter-1-evol-1
+    endpoints: 
+        - api_base: http://localhost:8964/v1
+          api_key: eva
+    api_type: openai
+    parallel: 1

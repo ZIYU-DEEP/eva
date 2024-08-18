@@ -3,15 +3,15 @@ set -e  # Exit if failing
 # set -x  # Print the commands
 
 # Set the environmental variable
-export WANDB_PROJECT="dpo"
+export WANDB_PROJECT="ipo"
 
 # ------------------------------------------------------------------
 # Below is to be re-written by source generate.sh in other bash files
 ITER=${ITER:-0}
 SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
-SFT_MODEL_PATH=${SFT_MODEL_PATH:-"cat-searcher/gemma-2-9b-it-dpo-iter-0"}
-LOSS_TYPE=${LOSS_TYPE:-"dpo"}
+SFT_MODEL_PATH=${SFT_MODEL_PATH:-"cat-searcher/gemma-2-9b-it-ipo-iter-0"}
+LOSS_TYPE=${LOSS_TYPE:-"ipo"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
