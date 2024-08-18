@@ -3,15 +3,15 @@ set -e  # Exit if failing
 # set -x  # Print the commands
 
 # Set the environmental variable
-export WANDB_PROJECT="ipo"
+export WANDB_PROJECT="dpo"
 
 # ------------------------------------------------------------------
 # Below is to be re-written by source generate.sh in other bash files
 ITER=${ITER:-0}
 SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
-SFT_MODEL_PATH=${SFT_MODEL_PATH:-"cat-searcher/gemma-2-9b-it-ipo-iter-0"}
-LOSS_TYPE=${LOSS_TYPE:-"ipo"}
+SFT_MODEL_PATH=${SFT_MODEL_PATH:-"google/gemma-2-9b-it"}
+LOSS_TYPE=${LOSS_TYPE:-"dpo"}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
@@ -23,6 +23,7 @@ DTYPE=${DTYPE:-"bfloat16"}
 TEMPERATURE=${TEMPERATURE:-0.7}
 TOP_P=${TOP_P:-0.9}
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
+PROMPT_SET_NAME_PREFIX=${PROMPT_SET_NAME_PREFIX:-"ultrafeedback-gemma-split"}
 # ------------------------------------------------------------------
 
 
@@ -47,7 +48,7 @@ else
     MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
 fi
 
-PROMPT_SET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${SPLIT}"
+PROMPT_SET_NAME="${HF_USERNAME}/${PROMPT_SET_NAME_PREFIX}-${SPLIT}"
 
 # The below will be used for local folder, and HF upload
 OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  
