@@ -1,22 +1,8 @@
 #!/bin/bash
 
-MODEL_PATHS=(
-    # "cat-searcher/gemma-2-9b-it-sppo-iter-0"
-    # "cat-searcher/gemma-2-9b-it-dpo-iter-1"
-    # "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1"
-    # "cat-searcher/gemma-2-9b-it-ipo-iter-1"
-    # "cat-searcher/gemma-2-9b-it-ipo-iter-1-evol-1"
-    "cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-1"
-)
+MODEL_PATHS=("cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-1")
 
-MODEL_IDS=(
-    # "gemma-2-9b-it-sppo-iter-0"
-    # "gemma-2-9b-it-dpo-iter-1"
-    # "gemma-2-9b-it-dpo-iter-1-evol-1"
-    # "gemma-2-9b-it-ipo-iter-1"
-    # "gemma-2-9b-it-ipo-iter-1-evol-1"
-    "NSPLIT3-gemma-2-9b-it-dpo-iter-1"
-)
+MODEL_IDS=("NSPLIT3-gemma-2-9b-it-dpo-iter-1")
 
 _MODEL=cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-1
 _MODEL_ID=NSPLIT3-gemma-2-9b-it-dpo-iter-1
