@@ -30,7 +30,7 @@ N_EPOCHS=2
 BATCH_SIZE=1
 ACCUMULATE=8
 
-for ((i=2; i<=n_splits; i++))
+for ((i=3; i<=n_splits; i++))
 do
   echo "Split $i"
 
