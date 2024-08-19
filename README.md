@@ -113,7 +113,8 @@ See detailed instructions for different benchmarks in `./benchmark`.
 - Arena Hard
    ```bash
    cd ${root}/eva/benchmark/arena_hard
-   bash ./run.sh # Be sure to modify the models to compare with
+   bash ./scripts/serve.sh # Better run in separate screens
+   bash ./scripts/run.sh  
    ```
 
 - Alpaca Eval 2.0
