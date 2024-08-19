@@ -210,7 +210,7 @@ def main():
         print(f"Dataset columns: {dataset.column_names}")
         print(f"First few entries: {dataset[:1]}")
     
-    # dataset = dataset.select(range(0, 10))  # DEBUG: this line is for debug
+    dataset = dataset.select(range(0, 100))  # DEBUG: this line is for debug
     instruction_list = [{'instruction': prompt} for prompt in dataset['prompt']]
     # --------------------------------------------------------
 
