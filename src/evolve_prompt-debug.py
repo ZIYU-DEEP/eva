@@ -78,7 +78,8 @@ def evolve_chunk(instructions,
     
     # Extract evolved instructions
     evolved_prompts = []
-    for result in result_list:
+    # for result in result_list:
+    for result in tqdm(result_list, desc="Processing Instructions"):
         for result_i in result['evolved_instructions']:
             evolved_prompts.append(result_i)
     
