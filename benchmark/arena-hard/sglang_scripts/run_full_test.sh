@@ -8,29 +8,29 @@ port=8964
 dtype="bfloat16"
 tensor_parallel_size=8
 
-# Start the serve command in the background
-CUDA_VISIBLE_DEVICES=$cuda_visible_devices \
-    python -m sglang.launch_server --model-path $MODEL_PATH \
-    --dtype $dtype \
-    --host localhost  \
-    --port $port \
-    --tp $tensor_parallel_size \
-    --api-key eva > local_sglang_serve_1.log 2>&1 &
+# # Start the serve command in the background
+# CUDA_VISIBLE_DEVICES=$cuda_visible_devices \
+#     python -m sglang.launch_server --model-path $MODEL_PATH \
+#     --dtype $dtype \
+#     --host localhost  \
+#     --port $port \
+#     --tp $tensor_parallel_size \
+#     --api-key eva > local_sglang_serve_1.log 2>&1 &
 
-# Capture the PID of the  serve process
-SERVE_PID=$!
-sleep 30
+# # Capture the PID of the  serve process
+# SERVE_PID=$!
+# sleep 30
 
-# Function to check if the server is running
-check_server() {
-  nc -z localhost $port
-}
+# # Function to check if the server is running
+# check_server() {
+#   nc -z localhost $port
+# }
 
-# Wait until the server is ready
-echo "Waiting for the server to start..."
-until check_server; do
-  sleep 5
-done
+# # Wait until the server is ready
+# echo "Waiting for the server to start..."
+# until check_server; do
+#   sleep 5
+# done
 
 echo "Server is up and running."
 
