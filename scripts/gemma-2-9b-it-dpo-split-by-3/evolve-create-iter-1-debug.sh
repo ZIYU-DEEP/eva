@@ -109,6 +109,9 @@ echo $DATASET_EVOLVED
 
 # WARNING
 # Depending on the max tokens and the method of generation, the num_workers should be adjusted, otherwise it will lead to API rate issue and will hang.
+# gpt-4o-mini: queue_size 1000, num_workers 10
+# gpt-4-0125-preview: to test
+
 python src/evolve_prompt-debug.py \
     --hf_username  $HF_USERNAME \
     --input_dataset $DATASET_WITH_REWARDS \
@@ -118,6 +121,7 @@ python src/evolve_prompt-debug.py \
     --gen_model_name $GEN_MODEL_NAME \
     --num_evolutions $NUM_EVOLUTIONS \
     --num_workers 10 \
+    --queue_size 1000 \
     --do_adaptive_sample 1 \
     --sample_metric $SAMPLE_METRIC \
     --sample_frac $SAMPLE_FRAC \
