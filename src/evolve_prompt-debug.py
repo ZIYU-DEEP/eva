@@ -199,9 +199,9 @@ def main():
         dataset = load_dataset(input_dataset, split='train')
     
     all_evolved_prompts = []
-    batch_size = 100
+    batch_size = 1000
     num_batches = len(dataset) // batch_size + (len(dataset) % batch_size > 0)
-    num_batches = 1
+    # num_batches = 1
 
     for batch_num in tqdm(range(num_batches), desc="Processing Batches"):
         # Select a subset (batch) of the dataset
@@ -236,6 +236,9 @@ def main():
         # Flatten the list of results
         evolved_prompts = [prompt for sublist in result_chunks for prompt in sublist]
         all_evolved_prompts.extend(evolved_prompts)
+        
+        print("Waiting for 10 seconds to avoid hitting API limits...")
+        time.sleep(10)
         # --------------------------------------------------------
 
     # --------------------------------------------------------
