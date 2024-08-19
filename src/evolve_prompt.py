@@ -186,10 +186,10 @@ def main():
     dataset = load_dataset(input_dataset, split='train')
     
     # DEBUG
-    print('The original dataset.')
-    print(f"Dataset size: {len(dataset)}")
-    print(f"Dataset columns: {dataset.column_names}")
-    print(f"First few entries: {dataset[:1]}")
+    # print('The original dataset.')
+    # print(f"Dataset size: {len(dataset)}")
+    # print(f"Dataset columns: {dataset.column_names}")
+    # print(f"First few entries: {dataset[:1]}")
     # dataset = dataset.select(range(0, 50))  # DEBUG: this line is for debug
     
     # Create an informative subset
