@@ -109,7 +109,7 @@ echo $DATASET_EVOLVED
 
 # WARNING
 # Depending on the max tokens and the method of generation, the num_workers should be adjusted, otherwise it will lead to API rate issue and will hang.
-python src/evolve_prompt.py \
+python src/evolve_prompt-debug.py \
     --hf_username  $HF_USERNAME \
     --input_dataset $DATASET_WITH_REWARDS \
     --subset_dataset $DATASET_SUBSET \
