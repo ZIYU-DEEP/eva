@@ -40,7 +40,7 @@ NUM_EVOLUTIONS=${NUM_EVOLUTIONS:-4}
 MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-666}  # Test longer length
 EVOLVE_TEMPERATURE=${EVOLVE_TEMPERATURE:-0.88}  # Test lower temperature
 SAMPLE_METHOD=${SAMPLE_METHOD:-'importance_weighted'}
-GEN_MODEL_NAME=${GEN_MODEL_NAME:-'gpt-4-0125-preview'}
+GEN_MODEL_NAME=${GEN_MODEL_NAME:-'gpt-4o-mini'}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
@@ -117,7 +117,7 @@ python src/evolve_prompt.py \
     --data_root $DATA_ROOT \
     --gen_model_name $GEN_MODEL_NAME \
     --num_evolutions $NUM_EVOLUTIONS \
-    --num_workers 1 \
+    --num_workers 10 \
     --do_adaptive_sample 1 \
     --sample_metric $SAMPLE_METRIC \
     --sample_frac $SAMPLE_FRAC \
