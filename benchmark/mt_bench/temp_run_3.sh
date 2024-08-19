@@ -1,11 +1,15 @@
 #!/bin/bash
 
-MODEL_PATHS=("cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-2")
+MODEL_PATHS=(
+    "cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-3"
+)
 
-MODEL_IDS=("NSPLIT3-gemma-2-9b-it-dpo-iter-2")
+MODEL_IDS=(
+    "NSPLIT3-gemma-2-9b-it-dpo-iter-3"
+)
 
-_MODEL=cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-2
-_MODEL_ID=NSPLIT3-gemma-2-9b-it-dpo-iter-2
+_MODEL=cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-3
+_MODEL_ID=NSPLIT3-gemma-2-9b-it-dpo-iter-3
 
 
 # MODEL_PATHS+=($_MODEL)

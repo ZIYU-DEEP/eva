@@ -139,6 +139,9 @@ See detailed instructions for different benchmarks in `./benchmark`.
    bash run.sh
    ```
 
+## TODO
+The generate part is quite slow. Consider rewriting it.
+
 <!-- ## TODO
 - [ ] Fix the naming issue (more like a tree adding suffix)
 - [x] Make a spreadsheet
