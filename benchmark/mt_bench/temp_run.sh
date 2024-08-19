@@ -1,3 +1,5 @@
+#!/bin/bash
+
 MODEL_PATHS=(
     # "cat-searcher/gemma-2-9b-it-sppo-iter-0"
     # "cat-searcher/gemma-2-9b-it-dpo-iter-1"
