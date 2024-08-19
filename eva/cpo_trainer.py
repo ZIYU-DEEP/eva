@@ -29,14 +29,22 @@ import torch.nn.functional as F
 from accelerate import PartialState
 from datasets import Dataset
 from torch.utils.data import DataLoader
-from transformers import AutoModelForCausalLM, DataCollator, PreTrainedModel, PreTrainedTokenizerBase, Trainer
+from transformers import (
+    AutoModelForCausalLM,
+    DataCollator,
+    PreTrainedModel,
+    PreTrainedTokenizerBase,
+    Trainer,
+    TrainingArguments,
+)
+
 from transformers.trainer_callback import TrainerCallback
 from transformers.trainer_utils import EvalLoopOutput
 from transformers.utils import is_torch_fx_proxy
 
-from ..import_utils import is_peft_available, is_wandb_available
-from .cpo_config import CPOConfig
-from .utils import (
+from trl.import_utils import is_peft_available, is_wandb_available
+from trl.trainer.cpo_config import CPOConfig
+from trl.trainer.utils import (
     DPODataCollatorWithPadding,
     add_bos_token_if_needed,
     add_eos_token_if_needed,
@@ -45,7 +53,6 @@ from .utils import (
     peft_module_casting_to_bf16,
     trl_sanitze_kwargs_for_tagging,
 )
-
 
 if is_peft_available():
     from peft import PeftModel, get_peft_model, prepare_model_for_kbit_training
@@ -93,7 +100,7 @@ class CPOTrainer(Trainer):
     def __init__(
         self,
         model: Optional[Union[PreTrainedModel, nn.Module, str]] = None,
-        args: Optional[CPOConfig] = None,
+        args: TrainingArguments = None,
         data_collator: Optional[DataCollator] = None,
         train_dataset: Optional[Dataset] = None,
         eval_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,

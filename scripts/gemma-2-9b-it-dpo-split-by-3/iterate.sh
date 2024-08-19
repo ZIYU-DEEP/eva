@@ -8,8 +8,7 @@ folder_name="gemma-2-9b-it-dpo-split-by-3"
 EXP_PREFIX="NSPLIT3-"  # added on all the huggingface uploads
 
 # This file should be run under the project directory
-# Number of iterations
-n_splits=${1:-1}
+n_splits=${1:-3}
 
 # General parameters
 MODEL_FAMILY="gemma-2-9b-it"
@@ -31,7 +30,7 @@ N_EPOCHS=2
 BATCH_SIZE=1
 ACCUMULATE=8
 
-for ((i=1; i<=n_splits; i++))
+for ((i=2; i<=n_splits; i++))
 do
   echo "Split $i"
 
