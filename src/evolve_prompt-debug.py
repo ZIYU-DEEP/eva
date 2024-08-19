@@ -164,10 +164,9 @@ def main():
     data_root = args.data_root
     input_dataset = args.input_dataset
     output_dataset = args.output_dataset
+    num_workers = args.num_workers
     gen_model_name = args.gen_model_name 
     num_evolutions = args.num_evolutions
-    max_prompt_length = args.max_prompt_length
-    evolve_temperature = args.evolve_temperature
     
     do_adaptive_sample = args.do_adaptive_sample
     hf_username = args.hf_username
@@ -175,6 +174,8 @@ def main():
     sample_frac = args.sample_frac
     sample_method = args.sample_method
     subset_dataset = args.subset_dataset
+    max_prompt_length = args.max_prompt_length
+    evolve_temperature = args.evolve_temperature
     
     evolve_dir = Path(data_root) / 'evolved'
     evolve_dir.mkdir(parents=True, exist_ok=True)
@@ -197,31 +198,43 @@ def main():
         )
         dataset = load_dataset(input_dataset, split='train')
     
-    # Process the dataset in batches of 100
-    batch_size = 1000
+    all_evolved_prompts = []
+    batch_size = 100
     num_batches = len(dataset) // batch_size + (len(dataset) % batch_size > 0)
     num_batches = 1
-    
-    # Initialize list to store all evolved prompts
-    all_evolved_prompts = []
 
-    for i in tqdm(range(num_batches), desc="Processing Batches"):
-
-        # --------------------------------------------------------
-        # Select a subset of the dataset for this batch
-        batch_dataset = dataset.select(range(i * batch_size, min((i + 1) * batch_size, len(dataset))))
+    for batch_num in tqdm(range(num_batches), desc="Processing Batches"):
+        # Select a subset (batch) of the dataset
+        batch_dataset = dataset.select(range(batch_num * batch_size, min((batch_num + 1) * batch_size, len(dataset))))
         instruction_list = [{'instruction': prompt} for prompt in batch_dataset['prompt']]
+
+        # --------------------------------------------------------
+        # Split instruction list into chunks
+        chunk_size = len(instruction_list) // num_workers
+        instruction_chunks = [instruction_list[i:i + chunk_size] 
+                              for i in range(0, len(instruction_list), chunk_size)]
+
+        if len(instruction_chunks[-1]) < chunk_size:  # Ensure the last chunk is not empty
+            instruction_chunks[-2].extend(instruction_chunks[-1])
+            instruction_chunks.pop()
         # --------------------------------------------------------
 
         # --------------------------------------------------------
-        # Evolve the prompts for this batch
-        evolved_prompts = evolve_chunk(
-            instructions=instruction_list,
-            gen_model_name=gen_model_name,
-            num_evolutions=num_evolutions,
-            max_prompt_length=max_prompt_length,
-            evolve_temperature=evolve_temperature
-        )
+        # Wrap evolve_chunk to handle multiple arguments
+        evolve_chunk_wrapper = partial(evolve_chunk, 
+                                       gen_model_name=gen_model_name, 
+                                       num_evolutions=num_evolutions,
+                                       max_prompt_length=max_prompt_length,
+                                       evolve_temperature=evolve_temperature)
+        
+        # Process the chunks in parallel with progress bar
+        with Pool(num_workers) as pool:
+            result_chunks = []
+            for result in pool.imap_unordered(evolve_chunk_wrapper, instruction_chunks):
+                result_chunks.append(result)
+                
+        # Flatten the list of results
+        evolved_prompts = [prompt for sublist in result_chunks for prompt in sublist]
         all_evolved_prompts.extend(evolved_prompts)
         # --------------------------------------------------------
 
