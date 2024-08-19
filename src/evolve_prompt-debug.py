@@ -37,7 +37,9 @@ def parse_arguments():
     parser.add_argument("--data_root", type=str, default="./data")
     parser.add_argument("--gen_model_name", type=str, default="gpt-4-0125-preview")
     parser.add_argument("--num_evolutions", type=int, default=4)
-    parser.add_argument("--num_workers", type=int, default=20)
+    parser.add_argument("--num_workers", type=int, default=10)
+    parser.add_argument("--queue_size", type=int, default=1000,
+                        help="Use a smaller number to avoid hitting the API limit.")
     parser.add_argument("--max_prompt_length", type=int, default=512)
     parser.add_argument("--evolve_temperature", type=float, default=1.0)
     
@@ -165,6 +167,7 @@ def main():
     input_dataset = args.input_dataset
     output_dataset = args.output_dataset
     num_workers = args.num_workers
+    queue_size = args.queue_size
     gen_model_name = args.gen_model_name 
     num_evolutions = args.num_evolutions
     
@@ -199,13 +202,13 @@ def main():
         dataset = load_dataset(input_dataset, split='train')
     
     all_evolved_prompts = []
-    batch_size = 1000
-    num_batches = len(dataset) // batch_size + (len(dataset) % batch_size > 0)
-    # num_batches = 1
+    # queue_size = 1000  # DEBUG
+    num_batches = len(dataset) // queue_size + (len(dataset) % queue_size > 0)
+    # num_batches = 1    # DEBUG
 
     for batch_num in tqdm(range(num_batches), desc="Processing Batches"):
         # Select a subset (batch) of the dataset
-        batch_dataset = dataset.select(range(batch_num * batch_size, min((batch_num + 1) * batch_size, len(dataset))))
+        batch_dataset = dataset.select(range(batch_num * queue_size, min((batch_num + 1) * queue_size, len(dataset))))
         instruction_list = [{'instruction': prompt} for prompt in batch_dataset['prompt']]
 
         # --------------------------------------------------------
