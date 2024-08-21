@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-model_name=${1:-"google/gemma-2-9b-it"}
+model_name=${1:-"cat-searcher/gemma-2-9b-it-dpo-iter-2"}
 dtype=${2:-"bfloat16"}
 host=${3:-"localhost"}
 port=${4:-8964}
