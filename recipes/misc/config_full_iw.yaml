@@ -1,0 +1,66 @@
+# Model arguments
+model_name_or_path: cat-searcher/gemma-2-9b-it-dpo-iter-1  # TO BE MODIFIED
+torch_dtype: null
+
+# Push to hub arguments
+push_to_hub: true
+hub_private_repo: true
+hub_model_id: cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-subset-iw  # TO BE MODIFIED
+output_dir: checkpoints/gemma-2-9b-it-dpo-iter-1-evol-1-subset-iw
+
+# Checkpoint setting
+hub_strategy: all_checkpoints
+resume_from_checkpoint: null  # Let it automatically resume training
+
+# Data training arguments
+# For definitions, see: src/h4/training/config.py
+dataset_mixer:
+  cat-searcher/ultrafeedback-dpo-gemma-2-9b-it-split-1-iter-1-subset-reward_gap-0.25-greedy: 1.0  # TO BE MODIFIED
+
+dataset_splits:
+- train
+- test
+preprocessing_num_workers: 12
+
+# DPOTrainer arguments
+seed: 42
+bf16: true
+optim: adamw_torch
+beta: 0.05
+loss_type: sigmoid 
+learning_rate: 5.0e-7
+lr_scheduler_type: cosine
+num_train_epochs: 2
+warmup_ratio: 0.1
+
+# Gradient accumulation settings
+gradient_accumulation_steps: 8
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: False
+
+# Batch size
+per_device_train_batch_size: 1
+per_device_eval_batch_size: 1
+
+# effective_batch_size == batch_size * accumulate_grad_batches * devices
+
+# Length
+max_length: 2048          # Test the longer context
+max_prompt_length: 1024   # Test the longer context
+
+# Evaluation settings
+do_eval: "no"
+eval_strategy: "no"
+eval_steps: 100
+
+# Save strategy
+save_strategy: "epoch"
+# save_stpes: 0.2  # the ratio of total training steps
+save_total_limit: 20
+
+# Log settings
+log_level: info
+logging_steps: 10
+
+# Everything roughly follows from https://github.com/huggingface/alignment-handbook/blob/01f29c13253ee9b699daf37332e8ccdd016e6890/recipes/zephyr-7b-gemma/dpo/config_full.yaml#L2

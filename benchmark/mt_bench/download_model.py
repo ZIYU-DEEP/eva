@@ -1,3 +1,7 @@
+"""
+Just a faster way to have the model in cache.
+"""
+
 import argparse
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
