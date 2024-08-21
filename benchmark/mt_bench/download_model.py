@@ -1,22 +1,26 @@
 import argparse
 from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
+from vllm import LLM, SamplingParams
 
-def load_model(model_path):
-    tokenizer = AutoTokenizer.from_pretrained(model_path)
-    model = AutoModelForCausalLM.from_pretrained(
-        model_path,
-        device_map="auto",
-        torch_dtype=torch.bfloat16
+def load_model(model_path, num_gpus_total=8, dtype="bfloat16"):
+
+    llm = LLM(
+        model=model_path,
+        tensor_parallel_size=num_gpus_total,
+        dtype=dtype,
     )
-    return tokenizer, model
+    
+    return llm
 
 def main():
     parser = argparse.ArgumentParser(description='Load a transformer model.')
     parser.add_argument('--model-path', type=str, help='The name of the model to load')
+    parser.add_argument('--num-gpus-total', type=int, default=8, help='The name of the model to load.')
+    parser.add_argument('--dtype', type=str, default="bfloat16", help='The type of dtype.')
     args = parser.parse_args()
 
-    tokenizer, model = load_model(args.model_path)
+    load_model(args.model_path)
     print(f"Model {args.model_path} loaded successfully.")
 
 if __name__ == "__main__":
