@@ -20,7 +20,9 @@ _MODEL_ID="gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
 # MODEL_IDS+=($_MODEL_ID)
 
 python download_model.py \
-    --model-path $_MODEL
+    --model-path $_MODEL \
+    --num-gpus-total 8 \
+    --dtype bfloat16
 
 python gen_model_answer.py \
     --model-path $_MODEL \
