@@ -6,7 +6,7 @@ set -x  # Print the commands
 export WANDB_PROJECT="dpo"
 
 # Set the folder name
-folder_name="gemma-2-9b-it-dpo"
+folder_name="gemma-2-9b-it-dpo-greedy"
 
 bash ./scripts/${folder_name}/evolve-create-gen-iter-1.sh
 bash ./scripts/${folder_name}/evolve-create-iter-1.sh
