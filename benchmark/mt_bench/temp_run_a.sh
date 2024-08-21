@@ -19,7 +19,7 @@ _MODEL_ID="gemma-2-9b-it-dpo-iter-1-evol-1-subset-greedy"
 
 python download_model.py \
     --model-path $_MODEL \
-    --num-gpus-total 8 \
+    --num-gpus-total 4 \
     --dtype bfloat16
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 python gen_model_answer.py \
