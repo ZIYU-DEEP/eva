@@ -10,7 +10,7 @@ export WANDB_PROJECT="dpo"
 ITER=${ITER:-0}
 SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
-SFT_MODEL_PATH=${SFT_MODEL_PATH:-"cat-searcher/gemma-2-9b-it-dpo-iter-0"}
+SFT_MODEL_PATH=${SFT_MODEL_PATH:-"google/gemma-2-9b-it"}
 LOSS_TYPE=${LOSS_TYPE:-"dpo"}
 # ------------------------------------------------------------------
 
