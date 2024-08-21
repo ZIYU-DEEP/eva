@@ -19,13 +19,14 @@ _MODEL_ID="gemma-2-9b-it-dpo-iter-2"
 
 python download_model.py \
     --model-path $_MODEL \
-    ----num-gpus-total 8 \
+    --num-gpus-total 8 \
     --dtype bfloat16
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 python gen_model_answer.py \
     --model-path $_MODEL \
     --model-id $_MODEL_ID \
-    --num-gpus-total 4
+    --num-gpus-total 4 \
+    --dtype bfloat16
 
 # # 3. Generate judgement
 # python gen_judgment_single.py \
