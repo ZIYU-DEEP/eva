@@ -1,15 +1,15 @@
 #!/bin/bash
 
 MODEL_PATHS=(
-    "cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-3"
+    "princeton-nlp/gemma-2-9b-it-DPO"
 )
 
 MODEL_IDS=(
-    "NSPLIT3-gemma-2-9b-it-dpo-iter-3"
+    "princeton-nlp-gemma-2-9b-it-DPO"
 )
 
-_MODEL=cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-3
-_MODEL_ID=NSPLIT3-gemma-2-9b-it-dpo-iter-3
+_MODEL="princeton-nlp/gemma-2-9b-it-DPO"
+_MODEL_ID="princeton-nlp-gemma-2-9b-it-DPO"
 
 
 # MODEL_PATHS+=($_MODEL)
