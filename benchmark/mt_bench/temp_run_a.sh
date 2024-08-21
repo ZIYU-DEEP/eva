@@ -17,10 +17,10 @@ _MODEL_ID="princeton-nlp-gemma-2-9b-it-DPO"
 # MODEL_PATHS+=($_MODEL)
 # MODEL_IDS+=($_MODEL_ID)
 
-python download_model.py \
-    --model-path $_MODEL \
-    --num-gpus-total 8 \
-    --dtype bfloat16
+# python download_model.py \
+#     --model-path $_MODEL \
+#     --num-gpus-total 8 \
+#     --dtype bfloat16
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 python gen_model_answer.py \
     --model-path $_MODEL \
