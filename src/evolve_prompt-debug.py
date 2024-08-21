@@ -129,6 +129,7 @@ def adaptive_sample(
     # Perform sampling based on the specified method
     if sample_method == 'importance_weighted':
         # Simple importance weighted sampling
+        df['weights'] = weights
         sampled_df = df.sample(n=int(len(df) * sample_frac), 
                                weights=weights, 
                                replace=False)
@@ -145,6 +146,7 @@ def adaptive_sample(
 
     elif sample_method == 'greedy':
         # Sort the data based on the weights in descending order (highest weight first)
+        df['weights'] = weights
         sorted_df = df.sort_values(by='weights', ascending=False)
         
         # Select the top portion of the data based on the specified fraction
