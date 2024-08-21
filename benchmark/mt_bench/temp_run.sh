@@ -1,14 +1,14 @@
 #!/bin/bash
 
 MODEL_PATHS=(
-    "cat-searcher/gemma-2-9b-it-dpo-iter-2"
-    "princeton-nlp/gemma-2-9b-it-DPO"
+    # "cat-searcher/gemma-2-9b-it-dpo-iter-2"
+    # "princeton-nlp/gemma-2-9b-it-DPO"
     "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
 )
 
 MODEL_IDS=(
-    "gemma-2-9b-it-dpo-iter-2"
-    "princeton-nlp-gemma-2-9b-it-DPO"
+    # "gemma-2-9b-it-dpo-iter-2"
+    # "princeton-nlp-gemma-2-9b-it-DPO"
     "gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
 )
 
