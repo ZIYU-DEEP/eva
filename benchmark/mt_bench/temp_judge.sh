@@ -1,10 +1,12 @@
 #!/bin/bash
 
 MODEL_PATHS=(
+    "cat-searcher/gemma-2-9b-it-dpo-iter-2"
     "princeton-nlp/gemma-2-9b-it-DPO"
 )
 
 MODEL_IDS=(
+    "gemma-2-9b-it-dpo-iter-2"
     "princeton-nlp-gemma-2-9b-it-DPO"
 )
 
@@ -15,13 +17,13 @@ _MODEL_ID="princeton-nlp-gemma-2-9b-it-DPO"
 # MODEL_PATHS+=($_MODEL)
 # MODEL_IDS+=($_MODEL_ID)
 
-python download_model.py \
-    --model-path $_MODEL
+# python download_model.py \
+#     --model-path $_MODEL
 
-python gen_model_answer.py \
-    --model-path $_MODEL \
-    --model-id $_MODEL_ID \
-    --num-gpus-total 8
+# CUDA_VISIBLE_DEVICES=4,5,6,7 python gen_model_answer.py \
+#     --model-path $_MODEL \
+#     --model-id $_MODEL_ID \
+#     --num-gpus-total 4
 
 # 3. Generate judgement
 python gen_judgment_single.py \
