@@ -10,7 +10,7 @@ export WANDB_PROJECT="dpo"
 ITER=${ITER:-1}
 SPLIT=${SPLIT:-1}
 MODEL_FAMILY=${MODEL_FAMILY:-"gemma-2-9b-it"}
-SFT_MODEL_PATH=${SFT_MODEL_PATH:-"cat-searcher/gemma-2-9b-it-dpo-iter-0"}
+SFT_MODEL_PATH=${SFT_MODEL_PATH:-"google/gemma-2-9b-it"}
 LOSS_TYPE=${LOSS_TYPE:-"dpo"}
 # ------------------------------------------------------------------
 
@@ -24,6 +24,13 @@ TEMPERATURE=${TEMPERATURE:-0.7}
 TOP_P=${TOP_P:-0.9}
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 # ------------------------------------------------------------------
+
+# ------------------------------------------------------------------
+# The prefix
+PROMPT_SET_NAME_PREFIX=${PROMPT_SET_NAME_PREFIX:-"ultrafeedback-split"}
+EXP_PREFIX=${EXP_PREFIX:-"NSPLIT3-"}
+# ------------------------------------------------------------------
+
 
 
 # ##################################################################
@@ -44,13 +51,14 @@ VLLM_WORLD_SIZE=1
 if [ "$ITER" -eq 0 ]; then
     MODEL_PATH=${SFT_MODEL_PATH}
 else
-    MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
+    MODEL_PATH="${HF_USERNAME}/${EXP_PREFIX}${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
 fi
 
-PROMPT_SET_NAME="${HF_USERNAME}/ultrafeedback-gemma-split-${SPLIT}"
+# The original prompt set
+PROMPT_SET_NAME="${HF_USERNAME}/${PROMPT_SET_NAME_PREFIX}-${SPLIT}"
 
 # The below will be used for local folder, and HF upload
-OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  
+OUTPUT_DIR="${EXP_PREFIX}ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  
 
 echo "The prompt set being used to generate responses is $PROMPT_SET_NAME."
 echo "The base model used to generate responses is set to $MODEL_PATH."
@@ -125,6 +133,8 @@ python src/combine_generate.py \
 # ------------------------------------------------------------------
 # 2.1. Push the generated responses in local to huggingface
 DATASET_TO_REWARD="${HF_USERNAME}/${OUTPUT_DIR}-all"
+
+echo "Dataset to reward is: $DATASET_TO_REWARD."
 
 python src/generate_to_hub.py \
         --output_dir $OUTPUT_DIR \

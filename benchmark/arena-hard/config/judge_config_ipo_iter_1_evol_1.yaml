@@ -23,4 +23,4 @@ prompt_template: ["<|User Prompt|>\n{question_1}\n\n<|The Start of Assistant A's
 
 # Add your model below for evaluation
 model_list:  # Use model id in config, not the model path
-  - gemma-2-9b-it-sppo-iter-1-evol-1
+  - gemma-2-9b-it-ipo-iter-1-evol-1

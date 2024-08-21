@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-model_name=${1:-"cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-1-evol-1"}
-dtype=${2:-"bfloat16"}
+model_name=${1:-"cat-searcher/gemma-2-9b-it-ipo-iter-1-evol-1"}
+dtype=${2:-"float16"}
 host=${3:-"localhost"}
 port=${4:-8964}
 tensor_parallel_size=${5:-8}

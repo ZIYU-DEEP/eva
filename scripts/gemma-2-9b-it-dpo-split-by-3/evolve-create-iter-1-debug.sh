@@ -40,7 +40,7 @@ NUM_EVOLUTIONS=${NUM_EVOLUTIONS:-4}
 MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-666}  # Test longer length
 EVOLVE_TEMPERATURE=${EVOLVE_TEMPERATURE:-0.88}  # Test lower temperature
 SAMPLE_METHOD=${SAMPLE_METHOD:-'importance_weighted'}
-GEN_MODEL_NAME=${GEN_MODEL_NAME:-'gpt-4-0125-preview'}
+GEN_MODEL_NAME=${GEN_MODEL_NAME:-'gpt-4o-mini'}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
@@ -86,14 +86,14 @@ mkdir -p ./logs
 DATASET_TO_REWARD="${HF_USERNAME}/${OUTPUT_DIR}-all"
 echo "Dataset to reward is: $DATASET_TO_REWARD."
 
-python src/reward_hf.py \
-    --input_dataset $DATASET_TO_REWARD \
-    --output_dir $OUTPUT_DIR \
-    --n_generations $N_PAIRS \
-    --data_root $DATA_ROOT \
-    --hf_username  $HF_USERNAME\
-    --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
-    --torch_dtype $DTYPE
+# python src/reward_hf.py \
+#     --input_dataset $DATASET_TO_REWARD \
+#     --output_dir $OUTPUT_DIR \
+#     --n_generations $N_PAIRS \
+#     --data_root $DATA_ROOT \
+#     --hf_username  $HF_USERNAME\
+#     --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
+#     --torch_dtype $DTYPE
 
 echo "Pushed the annotated data to ${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards."
 
@@ -109,7 +109,10 @@ echo $DATASET_EVOLVED
 
 # WARNING
 # Depending on the max tokens and the method of generation, the num_workers should be adjusted, otherwise it will lead to API rate issue and will hang.
-python src/evolve_prompt.py \
+# gpt-4o-mini: queue_size 1000, num_workers 10
+# gpt-4-0125-preview: to test
+
+python src/evolve_prompt-debug.py \
     --hf_username  $HF_USERNAME \
     --input_dataset $DATASET_WITH_REWARDS \
     --subset_dataset $DATASET_SUBSET \
@@ -117,7 +120,8 @@ python src/evolve_prompt.py \
     --data_root $DATA_ROOT \
     --gen_model_name $GEN_MODEL_NAME \
     --num_evolutions $NUM_EVOLUTIONS \
-    --num_workers 1 \
+    --num_workers 10 \
+    --queue_size 1000 \
     --do_adaptive_sample 1 \
     --sample_metric $SAMPLE_METRIC \
     --sample_frac $SAMPLE_FRAC \

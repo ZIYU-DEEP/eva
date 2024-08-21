@@ -39,7 +39,7 @@ NUM_EVOLUTIONS=4
 MAX_PROMPT_LENGTH=666
 EVOLVE_TEMPERATURE=0.88
 SAMPLE_METHOD=importance_weighted
-GEN_MODEL_NAME=gpt-4-0125-preview
+GEN_MODEL_NAME=gpt-4o-mini
 
 EVOL_NO=1
 RATIO_BASE=0.2
@@ -59,8 +59,8 @@ do
          EVOL_NO RATIO_BASE RATIO_EVOL \
          EXP_PREFIX PROMPT_SET_NAME_PREFIX
 
-  source ./scripts/${folder_name}/evolve-create-gen-iter-1.sh
-  source ./scripts/${folder_name}/evolve-create-iter-1.sh
+  # source ./scripts/${folder_name}/evolve-create-gen-iter-1.sh
+  # source ./scripts/${folder_name}/evolve-create-iter-1-debug.sh
   source ./scripts/${folder_name}/evolve-gen-iter-1.sh
   source ./scripts/${folder_name}/evolve-train-iter-1.sh
 

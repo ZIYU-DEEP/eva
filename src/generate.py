@@ -80,7 +80,7 @@ def apply_template(text, tokenizer):
     Apply chat template to the tokenizer.
     """
     # Define a unique delimiter that is unlikely to appear in user input
-    delimiter = "<|flowmytearsthepolicemansaidonmars|>"
+    delimiter = "<|flowmytears42|>"
     
     return tokenizer.apply_chat_template(
         [{"role": "user", "content": text}, 

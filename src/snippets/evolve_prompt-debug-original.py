@@ -78,7 +78,8 @@ def evolve_chunk(instructions,
     
     # Extract evolved instructions
     evolved_prompts = []
-    for result in result_list:
+    # for result in result_list:
+    for result in tqdm(result_list, desc="Processing Instructions"):
         for result_i in result['evolved_instructions']:
             evolved_prompts.append(result_i)
     
@@ -139,15 +140,6 @@ def adaptive_sample(
             lambda x: x.sample(frac=sample_frac, 
                                weights=x['weights'], 
                                replace=False)).reset_index(drop=True)
-                                        
-    elif sample_method == 'greedy':
-        # Sort the data based on the weights in descending order (highest weight first)
-        sorted_df = df.sort_values(by='weights', ascending=False)
-        
-        # Select the top portion of the data based on the specified fraction
-        num_samples = int(len(df) * sample_frac)
-        sampled_df = sorted_df.head(num_samples).reset_index(drop=True)
-
     else:
         raise ValueError(f"Sampling method {sample_method} not recognized.")
     # ----------------------------------------------------------------------------------
@@ -212,12 +204,8 @@ def main():
             subset_dataset=subset_dataset,
         )
         dataset = load_dataset(input_dataset, split='train')
-        
-        print('The subsampling dataset.')
-        print(f"Dataset size: {len(dataset)}")
-        print(f"Dataset columns: {dataset.column_names}")
-        print(f"First few entries: {dataset[:1]}")
-        
+    
+    dataset = dataset.select(range(0, 100))  # DEBUG: this line is for debug
     instruction_list = [{'instruction': prompt} for prompt in dataset['prompt']]
     # --------------------------------------------------------
 

@@ -37,7 +37,9 @@ def parse_arguments():
     parser.add_argument("--data_root", type=str, default="./data")
     parser.add_argument("--gen_model_name", type=str, default="gpt-4-0125-preview")
     parser.add_argument("--num_evolutions", type=int, default=4)
-    parser.add_argument("--num_workers", type=int, default=20)
+    parser.add_argument("--num_workers", type=int, default=10)
+    parser.add_argument("--queue_size", type=int, default=1000,
+                        help="Use a smaller number to avoid hitting the API limit.")
     parser.add_argument("--max_prompt_length", type=int, default=512)
     parser.add_argument("--evolve_temperature", type=float, default=1.0)
     
@@ -78,7 +80,8 @@ def evolve_chunk(instructions,
     
     # Extract evolved instructions
     evolved_prompts = []
-    for result in result_list:
+    # for result in result_list:
+    for result in tqdm(result_list, desc="Processing Instructions"):
         for result_i in result['evolved_instructions']:
             evolved_prompts.append(result_i)
     
@@ -139,15 +142,6 @@ def adaptive_sample(
             lambda x: x.sample(frac=sample_frac, 
                                weights=x['weights'], 
                                replace=False)).reset_index(drop=True)
-                                        
-    elif sample_method == 'greedy':
-        # Sort the data based on the weights in descending order (highest weight first)
-        sorted_df = df.sort_values(by='weights', ascending=False)
-        
-        # Select the top portion of the data based on the specified fraction
-        num_samples = int(len(df) * sample_frac)
-        sampled_df = sorted_df.head(num_samples).reset_index(drop=True)
-
     else:
         raise ValueError(f"Sampling method {sample_method} not recognized.")
     # ----------------------------------------------------------------------------------
@@ -173,6 +167,7 @@ def main():
     input_dataset = args.input_dataset
     output_dataset = args.output_dataset
     num_workers = args.num_workers
+    queue_size = args.queue_size
     gen_model_name = args.gen_model_name 
     num_evolutions = args.num_evolutions
     
@@ -194,13 +189,6 @@ def main():
     # Get the dataset
     dataset = load_dataset(input_dataset, split='train')
     
-    # DEBUG
-    # print('The original dataset.')
-    # print(f"Dataset size: {len(dataset)}")
-    # print(f"Dataset columns: {dataset.column_names}")
-    # print(f"First few entries: {dataset[:1]}")
-    # dataset = dataset.select(range(0, 50))  # DEBUG: this line is for debug
-    
     # Create an informative subset
     if do_adaptive_sample:
         input_dataset = adaptive_sample(
@@ -212,50 +200,54 @@ def main():
             subset_dataset=subset_dataset,
         )
         dataset = load_dataset(input_dataset, split='train')
-        
-        print('The subsampling dataset.')
-        print(f"Dataset size: {len(dataset)}")
-        print(f"Dataset columns: {dataset.column_names}")
-        print(f"First few entries: {dataset[:1]}")
-        
-    instruction_list = [{'instruction': prompt} for prompt in dataset['prompt']]
-    # --------------------------------------------------------
-
-    # --------------------------------------------------------
-    # Split instruction list into chunks
-    chunk_size = len(instruction_list) // num_workers
-    instruction_chunks = [instruction_list[i:i + chunk_size] 
-                          for i in range(0, len(instruction_list), chunk_size)]
-
-    if len(instruction_chunks[-1]) < chunk_size:  # Ensure the last chunk is not empty
-        instruction_chunks[-2].extend(instruction_chunks[-1])
-        instruction_chunks.pop()
-    # --------------------------------------------------------
-
-    # --------------------------------------------------------
-    # Wrap evolve_chunk to handle multiple arguments
-    evolve_chunk_wrapper = partial(evolve_chunk, 
-                                   gen_model_name=gen_model_name, 
-                                   num_evolutions=num_evolutions,
-                                   max_prompt_length=max_prompt_length,
-                                   evolve_temperature=evolve_temperature)
     
-    # Process the chunks in parallel with progress bar
-    with Pool(num_workers) as pool:
-        result_chunks = []
-        for result in tqdm(pool.imap_unordered(
-                evolve_chunk_wrapper, 
-                instruction_chunks), total=len(instruction_chunks)):
-            result_chunks.append(result)
-            
-    # Flatten the list of results
-    prompt_list = [prompt for sublist in result_chunks for prompt in sublist] 
-    # --------------------------------------------------------
+    all_evolved_prompts = []
+    # queue_size = 1000  # DEBUG
+    num_batches = len(dataset) // queue_size + (len(dataset) % queue_size > 0)
+    # num_batches = 1    # DEBUG
+
+    for batch_num in tqdm(range(num_batches), desc="Processing Batches"):
+        # Select a subset (batch) of the dataset
+        batch_dataset = dataset.select(range(batch_num * queue_size, min((batch_num + 1) * queue_size, len(dataset))))
+        instruction_list = [{'instruction': prompt} for prompt in batch_dataset['prompt']]
+
+        # --------------------------------------------------------
+        # Split instruction list into chunks
+        chunk_size = len(instruction_list) // num_workers
+        instruction_chunks = [instruction_list[i:i + chunk_size] 
+                              for i in range(0, len(instruction_list), chunk_size)]
+
+        if len(instruction_chunks[-1]) < chunk_size:  # Ensure the last chunk is not empty
+            instruction_chunks[-2].extend(instruction_chunks[-1])
+            instruction_chunks.pop()
+        # --------------------------------------------------------
+
+        # --------------------------------------------------------
+        # Wrap evolve_chunk to handle multiple arguments
+        evolve_chunk_wrapper = partial(evolve_chunk, 
+                                       gen_model_name=gen_model_name, 
+                                       num_evolutions=num_evolutions,
+                                       max_prompt_length=max_prompt_length,
+                                       evolve_temperature=evolve_temperature)
+        
+        # Process the chunks in parallel with progress bar
+        with Pool(num_workers) as pool:
+            result_chunks = []
+            for result in pool.imap_unordered(evolve_chunk_wrapper, instruction_chunks):
+                result_chunks.append(result)
+                
+        # Flatten the list of results
+        evolved_prompts = [prompt for sublist in result_chunks for prompt in sublist]
+        all_evolved_prompts.extend(evolved_prompts)
+        
+        print("Waiting for 10 seconds to avoid hitting API limits...")
+        time.sleep(10)
+        # --------------------------------------------------------
 
     # --------------------------------------------------------
     # Make it a dataframe
     df_chunk = pd.DataFrame()
-    df_chunk['prompt'] = prompt_list
+    df_chunk['prompt'] = all_evolved_prompts
 
     # Save and push it
     df_chunk.to_csv(csv_path, index=False)

@@ -210,3 +210,4 @@ push_model_to_hub.py
 **/dataset_with_topics/
 **/local_*
 
+scripts/gemma-2-9b-it-dpo-split-by-3-echo

@@ -9,12 +9,11 @@
 # truthfulqa
 # toxigen
 
-
 task=${1:-gsm_plus_mini}
 hf_username=${2:-cat-searcher}
 
 MODEL_PATHS=(
-    "google/gemma-2-9b-it"
+    # "google/gemma-2-9b-it"
     "cat-searcher/gemma-2-9b-it-dpo-iter-1"
     "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1"
 )
