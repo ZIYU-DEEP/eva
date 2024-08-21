@@ -1,26 +1,26 @@
 #!/bin/bash
 
 MODEL_PATHS=(
-    "cat-searcher/gemma-2-9b-it-dpo-iter-2"
-    "princeton-nlp/gemma-2-9b-it-DPO"
+    "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-subset-greedy"
+    "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-subset-iw"
 )
 
 MODEL_IDS=(
-    "gemma-2-9b-it-dpo-iter-2"
-    "princeton-nlp-gemma-2-9b-it-DPO"
+    "gemma-2-9b-it-dpo-iter-1-evol-1-subset-greedy"
+    "gemma-2-9b-it-dpo-iter-1-evol-1-subset-iw"
 )
 
-_MODEL="princeton-nlp/gemma-2-9b-it-DPO"
-_MODEL_ID="princeton-nlp-gemma-2-9b-it-DPO"
+_MODEL="cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-subset-greedy"
+_MODEL_ID="gemma-2-9b-it-dpo-iter-1-evol-1-subset-greedy"
 
 
 # MODEL_PATHS+=($_MODEL)
 # MODEL_IDS+=($_MODEL_ID)
 
-# python download_model.py \
-#     --model-path $_MODEL \
-#     --num-gpus-total 8 \
-#     --dtype bfloat16
+python download_model.py \
+    --model-path $_MODEL \
+    --num-gpus-total 8 \
+    --dtype bfloat16
 
 CUDA_VISIBLE_DEVICES=0,1,2,3 python gen_model_answer.py \
     --model-path $_MODEL \
