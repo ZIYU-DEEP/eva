@@ -25,7 +25,7 @@ TOP_P=0.9
 LEARNING_RATE="5.0e-7"
 BETA="0.05"
 OPTIM="adamw_torch"
-N_EPOCHS=2
+N_EPOCHS=2  # Ablation to decrease
 BATCH_SIZE=1
 ACCUMULATE=8
 
