@@ -3,7 +3,7 @@
 # e.g., YOUR_ROOT/benchmark/alpaca_eval
 
 # Define CONFIG_PATH to point to your configuration directory
-CONFIG_PATH=$(pwd)/models_configs/gemma-2-9b-it-dpo-iter-1-greedy
+CONFIG_PATH=$(pwd)/models_configs/gemma-2-9b-it-dpo-iter-1-evol-1-greedy
 echo ${CONFIG_PATH}
 
 # Substitute the environment variables in configs.yaml and save to local_configs.yaml
