@@ -1,8 +1,8 @@
 #!/bin/bash
 set -e
 
-MODEL_PATH=${1:-"cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-1"}
-MODEL_NAME=${2:-"NSPLIT3-gemma-2-9b-it-dpo-iter-1"}
+MODEL_PATH=${1:-"cat-searcher/gemma-2-9b-it-dpo-iter-2"}
+MODEL_NAME=${2:-"gemma-2-9b-it-dpo-iter-2"}
 cuda_visible_devices=${3:-"0,1,2,3,4,5,6,7"}
 port=${4:-8964}
 dtype=${5:-"bfloat16"}
@@ -53,7 +53,7 @@ python gen_judgment.py \
 # -----------------------------------------------------------------------
 
 # Show the results
-python show_result.py
+python show_result.py --judge-name gpt-4-1106-preview
 
 # Stop the vllm server
 echo "Stopping the server..."

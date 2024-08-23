@@ -1,22 +1,28 @@
 #!/bin/bash
 
 MODEL_PATHS=(
-    "cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-3"
+    # "cat-searcher/gemma-2-9b-it-dpo-iter-2"
+    # "princeton-nlp/gemma-2-9b-it-DPO"
+    "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
 )
 
 MODEL_IDS=(
-    "NSPLIT3-gemma-2-9b-it-dpo-iter-3"
+    # "gemma-2-9b-it-dpo-iter-2"
+    # "princeton-nlp-gemma-2-9b-it-DPO"
+    "gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
 )
 
-_MODEL=cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-3
-_MODEL_ID=NSPLIT3-gemma-2-9b-it-dpo-iter-3
+_MODEL="cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
+_MODEL_ID="gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
 
 
 # MODEL_PATHS+=($_MODEL)
 # MODEL_IDS+=($_MODEL_ID)
 
 python download_model.py \
-    --model-path $_MODEL
+    --model-path $_MODEL \
+    --num-gpus-total 8 \
+    --dtype bfloat16
 
 python gen_model_answer.py \
     --model-path $_MODEL \
