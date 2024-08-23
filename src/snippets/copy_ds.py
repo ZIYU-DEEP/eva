@@ -16,14 +16,14 @@ def parse_arguments():
         "--source_dataset", 
         type=str, 
         help="The name of the source dataset to copy",
-        default="cat-searcher/ultrafeedback-dpo-gemma-2-9b-it-split-1-iter-0-pair",
+        default="cat-searcher/NSPLIT3-ultrafeedback-dpo-gemma-2-9b-it-split-1-iter-0-pair",
     )
     
     parser.add_argument(
         "--target_dataset", 
         type=str, 
         help="The name for the new copied dataset",
-        default="cat-searcher/ultrafeedback-rpo-gemma-2-9b-it-split-1-iter-0-pair",
+        default="cat-searcher/NSPLIT3-ultrafeedback-rpo-gemma-2-9b-it-split-1-iter-0-pair",
     )
     
     return parser.parse_args()
