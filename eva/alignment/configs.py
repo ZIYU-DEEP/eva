@@ -270,3 +270,9 @@ class SPPOConfig(transformers.TrainingArguments):
         default=None,
         metadata={"help": ("The weight for the RPO loss term. Set to None to disable RPO.")},
     )
+
+    # Adding lengths penalty for nll loss
+    penalize_length_nll: bool = field(
+        default=False,
+        metadata={"help": "Whether to apply length regularization in the NLL loss."},
+    )

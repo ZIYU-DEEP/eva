@@ -1001,12 +1001,16 @@ class SPPOTrainer(Trainer):
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
                 labels = labels[..., 1:].contiguous()
+                
             # Flatten the tokens
             loss_fct = nn.CrossEntropyLoss()
             logits = logits.view(-1, logits.shape[-1])
             labels = labels.view(-1)
+            
             # Enable model parallelism
             labels = labels.to(logits.device)
+            
+            # Get the loss
             loss = loss_fct(logits, labels)
             return loss
         
