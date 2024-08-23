@@ -59,8 +59,8 @@ do
          EVOL_NO RATIO_BASE RATIO_EVOL \
          EXP_PREFIX PROMPT_SET_NAME_PREFIX
 
-  source ./scripts/${folder_name}/evolve-create-gen-iter-1.sh
-  source ./scripts/${folder_name}/evolve-create-iter-1.sh  # use the debug
+  # source ./scripts/${folder_name}/evolve-create-gen-iter-1.sh
+  # source ./scripts/${folder_name}/evolve-create-iter-1.sh  # use the debug
   source ./scripts/${folder_name}/evolve-gen-iter-1.sh
   source ./scripts/${folder_name}/evolve-train-iter-1.sh
 
