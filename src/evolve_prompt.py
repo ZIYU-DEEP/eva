@@ -35,7 +35,7 @@ def parse_arguments():
                         help='The evolved dataset.')
     
     parser.add_argument("--data_root", type=str, default="./data")
-    parser.add_argument("--gen_model_name", type=str, default="gpt-4o-mini")
+    parser.add_argument("--gen_model_name", type=str, default="gpt-4-0125-preview")
     parser.add_argument("--num_evolutions", type=int, default=4)
     parser.add_argument("--num_workers", type=int, default=20)
     parser.add_argument("--max_prompt_length", type=int, default=512)
@@ -52,7 +52,7 @@ def parse_arguments():
 
 
 def evolve_chunk(instructions,
-                 gen_model_name: str='gpt-4o-mini', 
+                 gen_model_name: str='gpt-4-0125-preview', 
                  num_evolutions: int=4, 
                  max_prompt_length: int=512,
                  evolve_temperature: float=1.0):
@@ -126,6 +126,7 @@ def adaptive_sample(
     # Perform sampling based on the specified method
     if sample_method == 'importance_weighted':
         # Simple importance weighted sampling
+        df['weights'] = weights
         sampled_df = df.sample(n=int(len(df) * sample_frac), 
                                weights=weights, 
                                replace=False)
@@ -139,6 +140,16 @@ def adaptive_sample(
             lambda x: x.sample(frac=sample_frac, 
                                weights=x['weights'], 
                                replace=False)).reset_index(drop=True)
+                                        
+    elif sample_method == 'greedy':
+        # Sort the data based on the weights in descending order (highest weight first)
+        df['weights'] = weights
+        sorted_df = df.sort_values(by='weights', ascending=False)
+        
+        # Select the top portion of the data based on the specified fraction
+        num_samples = int(len(df) * sample_frac)
+        sampled_df = sorted_df.head(num_samples).reset_index(drop=True)
+
     else:
         raise ValueError(f"Sampling method {sample_method} not recognized.")
     # ----------------------------------------------------------------------------------
@@ -184,6 +195,12 @@ def main():
     # --------------------------------------------------------
     # Get the dataset
     dataset = load_dataset(input_dataset, split='train')
+    
+    # DEBUG
+    # print('The original dataset.')
+    # print(f"Dataset size: {len(dataset)}")
+    # print(f"Dataset columns: {dataset.column_names}")
+    # print(f"First few entries: {dataset[:1]}")
     # dataset = dataset.select(range(0, 50))  # DEBUG: this line is for debug
     
     # Create an informative subset
@@ -197,6 +214,11 @@ def main():
             subset_dataset=subset_dataset,
         )
         dataset = load_dataset(input_dataset, split='train')
+        
+        print('The subsampling dataset.')
+        print(f"Dataset size: {len(dataset)}")
+        print(f"Dataset columns: {dataset.column_names}")
+        print(f"First few entries: {dataset[:1]}")
         
     instruction_list = [{'instruction': prompt} for prompt in dataset['prompt']]
     # --------------------------------------------------------

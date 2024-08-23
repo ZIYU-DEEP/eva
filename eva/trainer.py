@@ -132,7 +132,7 @@ class SPPOTrainer(Trainer):
         ref_model: Optional[Union[PreTrainedModel, nn.Module, str]] = None,
         beta: float = 0.1,
         label_smoothing: float = 0,
-        loss_type: Literal["sigmoid", "hinge", "ipo", "kto_pair"] = "sigmoid",
+        loss_type: Literal["sigmoid", "hinge", "ipo", "kto_pair", "rpo"] = "sigmoid",
         args: TrainingArguments = None,
         data_collator: Optional[DataCollator] = None,
         label_pad_token_id: int = -100,
@@ -868,6 +868,13 @@ class SPPOTrainer(Trainer):
                 -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
                 - F.logsigmoid(-self.beta * logits) * self.label_smoothing
             )
+
+        elif self.loss_type == "rpo":
+            assert self.args.rpo_alpha is not None, "set rpo_alpha in the config!"
+            losses = (
+                -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
+                - F.logsigmoid(-self.beta * logits) * self.label_smoothing
+            )
             
         elif self.loss_type == "hinge":
             losses = torch.relu(1 - self.beta * logits)
@@ -926,7 +933,6 @@ class SPPOTrainer(Trainer):
     def get_batch_logps(
         logits: torch.FloatTensor,
         labels: torch.LongTensor,
-        average_log_prob: bool = False,
         label_pad_token_id: int = -100,
         is_encoder_decoder: bool = False,
     ) -> torch.FloatTensor:
@@ -935,12 +941,11 @@ class SPPOTrainer(Trainer):
         Args:
             logits: Logits of the model (unnormalized). Shape: (batch_size, sequence_length, vocab_size)
             labels: Labels for which to compute the log probabilities. Label tokens with a value of label_pad_token_id are ignored. Shape: (batch_size, sequence_length)
-            average_log_prob: If True, return the average log probability per (non-masked) token. Otherwise, return the sum of the log probabilities of the (non-masked) tokens.
             label_pad_token_id: The label pad token id.
             is_encoder_decoder: Whether the model is an encoder-decoder model.
 
         Returns:
-            A tensor of shape (batch_size,) containing the average/sum log probabilities of the given labels under the given logits.
+            A Tuple of two tensor of shape ((batch_size,), (batch_size,)) containing the sum of log probabilities of the given labels under the given logits in the first tensor and the number of non-masked tokens in the second tensor.
         """
         if logits.shape[:-1] != labels.shape:
             raise ValueError("Logits (batch and sequence length dim) and labels must have the same shape.")
@@ -954,14 +959,15 @@ class SPPOTrainer(Trainer):
         labels[labels == label_pad_token_id] = 0
 
         per_token_logps = torch.gather(logits.log_softmax(-1), dim=2, index=labels.unsqueeze(2)).squeeze(2)
-
-        if average_log_prob:
-            return (per_token_logps * loss_mask).sum(-1) / loss_mask.sum(-1)
-        else:
-            return (per_token_logps * loss_mask).sum(-1)
+        
+        size_completion = loss_mask.sum(-1)
+        
+        return (per_token_logps * loss_mask).sum(-1), size_completion
 
     def concatenated_forward(
-        self, model: nn.Module, batch: Dict[str, Union[List, torch.LongTensor]]
+        self, 
+        model: nn.Module, 
+        batch: Dict[str, Union[List, torch.LongTensor]]
     ) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
         """Run the given model on the given batch of inputs, concatenating the chosen and rejected inputs together.
 
@@ -990,13 +996,51 @@ class SPPOTrainer(Trainer):
             **model_kwargs,
         ).logits
 
-        all_logps = self.get_batch_logps(
+        all_logps, size_completion = self.get_batch_logps(
             all_logits,
             concatenated_batch["concatenated_labels"],
-            average_log_prob=False,
             is_encoder_decoder=self.is_encoder_decoder,
             label_pad_token_id=self.label_pad_token_id,
         )
+
+        # ---------------------------------------------------------
+        # RPO relevant
+        def cross_entropy_loss(logits, labels, penalize_length_nll):
+            if not self.is_encoder_decoder:
+                # Shift so that tokens < n predict n
+                logits = logits[..., :-1, :].contiguous()
+                labels = labels[..., 1:].contiguous()
+                
+            # Flatten the tokens
+            loss_fct = nn.CrossEntropyLoss()
+            logits = logits.view(-1, logits.shape[-1])
+            labels = labels.view(-1)
+            
+            # Enable model parallelism
+            labels = labels.to(logits.device)
+            
+            # Get the loss
+            loss = loss_fct(logits, labels)
+            
+            # Add length penalty
+            if penalize_length_nll:
+                lengths = labels.ne(self.label_pad_token_id).sum(-1).float()
+                loss = loss / lengths.mean()
+            
+            return loss
+        
+        labels = concatenated_batch["concatenated_labels"].clone()
+        nll_loss = cross_entropy_loss(
+            logits=all_logits[:len_chosen], 
+            labels=labels[:len_chosen],
+            penalize_length_nll=self.args.penalize_length_nll)
+        # ---------------------------------------------------------
+        
+        # ---------------------------------------------------------
+        # FIX for IPO
+        if self.loss_type == "ipo":
+            all_logps = all_logps / size_completion
+        # ---------------------------------------------------------
 
         chosen_logps = all_logps[:len_chosen]
         rejected_logps = all_logps[len_chosen:]
@@ -1004,7 +1048,7 @@ class SPPOTrainer(Trainer):
         chosen_logits = all_logits[:len_chosen]
         rejected_logits = all_logits[len_chosen:]
 
-        return (chosen_logps, rejected_logps, chosen_logits, rejected_logits)
+        return (chosen_logps, rejected_logps, chosen_logits, rejected_logits, nll_loss)
 
     def get_batch_loss_metrics(
         self,
@@ -1012,22 +1056,37 @@ class SPPOTrainer(Trainer):
         batch: Dict[str, Union[List, torch.LongTensor]],
         train_eval: Literal["train", "eval"] = "train",
     ):
-        """Compute the SPPO loss and other metrics for the given batch of inputs for train or test."""
+        """Compute the loss and other metrics for the given batch of inputs for train or test."""
         metrics = {}
-
+        forward_output = self.concatenated_forward(model, batch)
         (
             policy_chosen_logps,
             policy_rejected_logps,
             policy_chosen_logits,
             policy_rejected_logits,
-        ) = self.concatenated_forward(model, batch)
+            policy_nll_loss,
+        ) = forward_output[:5]
 
-        chosen_probs = torch.tensor(batch["chosen_probs"], dtype=float, device=policy_chosen_logps.device)
-        chosen_probs_win = torch.tensor(batch["chosen_probs_win"], dtype=float, device=policy_chosen_logps.device)
-        chosen_probs_lose = torch.tensor(batch["chosen_probs_lose"], dtype=float, device=policy_chosen_logps.device)
+        # DEBUG: the below is only needed for sppo
+        try:
+            chosen_probs = torch.tensor(
+                batch["chosen_probs"], dtype=float, device=policy_chosen_logps.device)
+            chosen_probs_win = torch.tensor(
+                batch["chosen_probs_win"], dtype=float, device=policy_chosen_logps.device)
+            chosen_probs_lose = torch.tensor(
+                batch["chosen_probs_lose"], dtype=float, device=policy_chosen_logps.device)
+        except Exception as e:
+            chosen_probs = None
+            chosen_probs_win = None
+            chosen_probs_lose = None
+
         
         # if reference_chosen_logps and reference_rejected_logps in batch use them, otherwise use the reference model
-        if "reference_chosen_logps" in batch and "reference_rejected_logps" in batch:
+        if (
+            "reference_chosen_logps" in batch
+            and "reference_rejected_logps" in batch
+            and self.args.rpo_alpha is not None  # DEBUG
+        ):
             reference_chosen_logps = batch["reference_chosen_logps"]
             reference_rejected_logps = batch["reference_rejected_logps"]
         else:
@@ -1039,6 +1098,7 @@ class SPPOTrainer(Trainer):
                             reference_rejected_logps,
                             _,
                             _,
+                            _,  # nll loss
                         ) = self.concatenated_forward(self.model, batch)
                 else:
                     (
@@ -1046,6 +1106,7 @@ class SPPOTrainer(Trainer):
                         reference_rejected_logps,
                         _,
                         _,
+                        _,  # nll loss
                     ) = self.concatenated_forward(self.ref_model, batch)
 
         losses, chosen_rewards, rejected_rewards = self.sppo_loss(
@@ -1053,14 +1114,14 @@ class SPPOTrainer(Trainer):
             policy_rejected_logps,
             reference_chosen_logps,
             reference_rejected_logps,
-            chosen_probs,
-            chosen_probs_win,
-            chosen_probs_lose,
-            # rejected_probs,
+            chosen_probs,  # only for sppo
+            chosen_probs_win,  # only for sppo
+            chosen_probs_lose,  # only for sppo
         )
         reward_accuracies = (chosen_rewards > rejected_rewards).float()
 
         prefix = "eval_" if train_eval == "eval" else ""
+        metrics[f"{prefix}kl_div"] = (policy_chosen_logps - reference_chosen_logps).mean().cpu()
         metrics[f"{prefix}rewards/chosen"] = chosen_rewards.mean().cpu()
         metrics[f"{prefix}rewards/rejected"] = rejected_rewards.mean().cpu()
         metrics[f"{prefix}rewards/accuracies"] = reward_accuracies.mean().cpu()
@@ -1070,6 +1131,19 @@ class SPPOTrainer(Trainer):
         metrics[f"{prefix}logits/rejected"] = policy_rejected_logits.detach().mean().cpu()
         metrics[f"{prefix}logits/chosen"] = policy_chosen_logits.detach().mean().cpu()
 
+        if self.args.rpo_alpha is not None:
+            metrics[f"{prefix}nll_loss"] = policy_nll_loss.detach().mean().cpu()
+
+        # --------------------------------------------------------------------------
+        # RPO relevant
+        if self.args.rpo_alpha is not None:
+            # RPO loss from V3 of the paper:
+            losses = losses + policy_nll_loss * self.args.rpo_alpha
+
+        if self.args.rpo_alpha is not None:
+            metrics[f"{prefix}nll_loss"] = policy_nll_loss.detach().mean().cpu()
+        # --------------------------------------------------------------------------
+        
         return losses.mean(), metrics
 
     def compute_loss(
