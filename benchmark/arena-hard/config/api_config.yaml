@@ -12,19 +12,19 @@ gpt-3.5-turbo-0125:
     model_name: gpt-3.5-turbo-0125
     endpoints: null
     api_type: openai
-    parallel: 10
+    parallel: 100
 
 gpt-4-0314:
     model_name: gpt-4-0314
     endpoints: null
     api_type: openai
-    parallel: 10
+    parallel: 100
 
 gpt-4-1106-preview:
     model_name: gpt-4-1106-preview
     endpoints: null
     api_type: openai
-    parallel: 10
+    parallel: 100
 
 gpt-4o-mini:
     model_name: gpt-4o-mini
@@ -38,7 +38,7 @@ gemma-1.1-2b-it:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1 
+    parallel: 10 
 
 gemma-2-9b-it:
     model_name: google/gemma-2-9b-it
@@ -46,7 +46,7 @@ gemma-2-9b-it:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1 
+    parallel: 10 
 
 gemma-2-9b-it-sppo-iter-0:
     model_name: cat-searcher/gemma-2-9b-it-sppo-iter-0
@@ -54,7 +54,7 @@ gemma-2-9b-it-sppo-iter-0:
         - api_base: http://localhost:8000/v1
           api_key: eva
     api_type: openai
-    parallel: 1 
+    parallel: 10 
 
 gemma-2-9b-it-sppo-iter-1:
     model_name: cat-searcher/gemma-2-9b-it-sppo-iter-1
@@ -62,7 +62,7 @@ gemma-2-9b-it-sppo-iter-1:
         - api_base: http://localhost:8001/v1
           api_key: eva
     api_type: openai
-    parallel: 1 
+    parallel: 10 
 
 gemma-2-9b-it-sppo-iter-2:
     model_name: cat-searcher/gemma-2-9b-it-sppo-iter-2
@@ -70,7 +70,7 @@ gemma-2-9b-it-sppo-iter-2:
         - api_base: http://localhost:8002/v1
           api_key: eva
     api_type: openai
-    parallel: 1 
+    parallel: 10 
 
 gemma-2-9b-it-sppo-iter-3:
     model_name: cat-searcher/gemma-2-9b-it-sppo-iter-3
@@ -78,7 +78,7 @@ gemma-2-9b-it-sppo-iter-3:
         - api_base: http://localhost:8003/v1
           api_key: eva
     api_type: openai
-    parallel: 1 
+    parallel: 10 
 
 gemma-2-9b-it-sppo-iter-4:
     model_name: cat-searcher/gemma-2-9b-it-sppo-iter-4
@@ -86,7 +86,7 @@ gemma-2-9b-it-sppo-iter-4:
         - api_base: http://localhost:8004/v1
           api_key: eva
     api_type: openai
-    parallel: 1 
+    parallel: 10 
 
 gemma-2-9b-it-sppo-iter-5:
     model_name: cat-searcher/gemma-2-9b-it-sppo-iter-5
@@ -94,7 +94,7 @@ gemma-2-9b-it-sppo-iter-5:
         - api_base: http://localhost:8005/v1
           api_key: eva
     api_type: openai
-    parallel: 1 
+    parallel: 10 
 
 gemma-2-9b-it-sppo-iter-6:
     model_name: cat-searcher/gemma-2-9b-it-sppo-iter-6
@@ -102,7 +102,7 @@ gemma-2-9b-it-sppo-iter-6:
         - api_base: http://localhost:8006/v1
           api_key: eva
     api_type: openai
-    parallel: 1 
+    parallel: 10 
 
 llama-3.1-8b-instruct:
     model_name: meta-llama/Meta-Llama-3.1-8B-Instruct
@@ -110,7 +110,7 @@ llama-3.1-8b-instruct:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1 
+    parallel: 10 
 
 gemma-2-9b-it-sppo-iter-1-evol-1:
     model_name: cat-searcher/gemma-2-9b-it-sppo-iter-1-evol-1
@@ -118,7 +118,7 @@ gemma-2-9b-it-sppo-iter-1-evol-1:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 gemma-2-9b-it-dpo-iter-0:
     model_name: cat-searcher/gemma-2-9b-it-dpo-iter-0
@@ -126,7 +126,7 @@ gemma-2-9b-it-dpo-iter-0:
         - api_base: http://localhost:8000/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 gemma-2-9b-it-dpo-iter-1:
     model_name: cat-searcher/gemma-2-9b-it-dpo-iter-1
@@ -134,7 +134,7 @@ gemma-2-9b-it-dpo-iter-1:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 gemma-2-9b-it-dpo-iter-2:
     model_name: cat-searcher/gemma-2-9b-it-dpo-iter-2
@@ -142,7 +142,7 @@ gemma-2-9b-it-dpo-iter-2:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 gemma-2-9b-it-dpo-iter-3:
     model_name: cat-searcher/gemma-2-9b-it-dpo-iter-3
@@ -150,7 +150,7 @@ gemma-2-9b-it-dpo-iter-3:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 gemma-2-9b-it-dpo-iter-1-evol-1:
     model_name: cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1
@@ -158,7 +158,7 @@ gemma-2-9b-it-dpo-iter-1-evol-1:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 gemma-2-9b-it-dpo-iter-1-evol-1-greedy:
     model_name: cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-greedy
@@ -166,7 +166,7 @@ gemma-2-9b-it-dpo-iter-1-evol-1-greedy:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 gemma-2-9b-it-dpo-iter-1-evol-1-subset-iw:
     model_name: cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-subset-iw
@@ -174,7 +174,7 @@ gemma-2-9b-it-dpo-iter-1-evol-1-subset-iw:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 gemma-2-9b-it-dpo-iter-1-evol-1-subset-greedy:
     model_name: cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-subset-greedy
@@ -182,7 +182,7 @@ gemma-2-9b-it-dpo-iter-1-evol-1-subset-greedy:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 gemma-2-9b-it-ipo-iter-1:
     model_name: cat-searcher/gemma-2-9b-it-ipo-iter-1
@@ -190,7 +190,7 @@ gemma-2-9b-it-ipo-iter-1:
         - api_base: http://localhost:8000/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 gemma-2-9b-it-ipo-iter-1-evol-1:
     model_name: cat-searcher/gemma-2-9b-it-ipo-iter-1-evol-1
@@ -198,7 +198,7 @@ gemma-2-9b-it-ipo-iter-1-evol-1:
         - api_base: http://localhost:8000/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 NSPLIT3-gemma-2-9b-it-dpo-iter-1-evol-1:
     model_name: cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-1-evol-1
@@ -206,7 +206,7 @@ NSPLIT3-gemma-2-9b-it-dpo-iter-1-evol-1:
         - api_base: http://localhost:8000/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 NSPLIT3-gemma-2-9b-it-rpo-iter-1:
     model_name: cat-searcher/NSPLIT3-gemma-2-9b-it-rpo-iter-1
@@ -214,7 +214,7 @@ NSPLIT3-gemma-2-9b-it-rpo-iter-1:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 NSPLIT3-gemma-2-9b-it-rpo-iter-2:
     model_name: cat-searcher/NSPLIT3-gemma-2-9b-it-rpo-iter-2
@@ -222,7 +222,7 @@ NSPLIT3-gemma-2-9b-it-rpo-iter-2:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 5
+    parallel: 10
 
 NSPLIT3-gemma-2-9b-it-rpo-iter-3:
     model_name: cat-searcher/NSPLIT3-gemma-2-9b-it-rpo-iter-3
@@ -230,7 +230,7 @@ NSPLIT3-gemma-2-9b-it-rpo-iter-3:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 NSPLIT3-gemma-2-9b-it-rpo-iter-1-evol-1:
     model_name: cat-searcher/NSPLIT3-gemma-2-9b-it-rpo-iter-1-evol-1
@@ -238,7 +238,7 @@ NSPLIT3-gemma-2-9b-it-rpo-iter-1-evol-1:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 NSPLIT3-gemma-2-9b-it-dpo-iter-1:
     model_name: cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-1
@@ -246,7 +246,7 @@ NSPLIT3-gemma-2-9b-it-dpo-iter-1:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 NSPLIT3-gemma-2-9b-it-dpo-iter-2:
     model_name: cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-2
@@ -254,7 +254,7 @@ NSPLIT3-gemma-2-9b-it-dpo-iter-2:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
 
 NSPLIT3-gemma-2-9b-it-dpo-iter-3:
     model_name: cat-searcher/NSPLIT3-gemma-2-9b-it-dpo-iter-3
@@ -262,4 +262,4 @@ NSPLIT3-gemma-2-9b-it-dpo-iter-3:
         - api_base: http://localhost:8964/v1
           api_key: eva
     api_type: openai
-    parallel: 1
+    parallel: 10
