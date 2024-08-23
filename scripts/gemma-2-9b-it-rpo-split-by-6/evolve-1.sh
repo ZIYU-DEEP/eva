@@ -22,14 +22,14 @@ MAX_TOKENS=2048
 TEMPERATURE=0.7  # To Test
 TOP_P=0.9
 HF_USERNAME='cat-searcher'
-PROMPT_SET_NAME_PREFIX='ultrafeedback-split'
+PROMPT_SET_NAME_PREFIX='ultrafeedback-gemma-split'
 
 DTYPE="bfloat16"
 
 LEARNING_RATE="5.0e-7"
-BETA="0.05"
+BETA="0.1"
 OPTIM="adamw_torch"
-N_EPOCHS=1
+N_EPOCHS=2
 BATCH_SIZE=1
 ACCUMULATE=8
 

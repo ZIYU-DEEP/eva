@@ -4,8 +4,8 @@ set -e
 
 # Set the environmental variable
 export WANDB_PROJECT="rpo"
-folder_name="gemma-2-9b-it-rpo-split-by-3"
-EXP_PREFIX="NSPLIT3-"  # added on all the huggingface uploads
+folder_name="gemma-2-9b-it-rpo-split-by-6"
+EXP_PREFIX="NSPLIT6-"  # added on all the huggingface uploads
 
 # This file should be run under the project directory
 n_splits=${1:-3}
@@ -16,7 +16,7 @@ SFT_MODEL_PATH="google/gemma-2-9b-it"
 LOSS_TYPE="rpo"
 PREF="rpo_score"
 HF_USERNAME='cat-searcher'
-PROMPT_SET_NAME_PREFIX='ultrafeedback-split'
+PROMPT_SET_NAME_PREFIX='ultrafeedback-gemma-split'
 N_PAIRS=6
 DATA_ROOT="./data"
 MAX_TOKENS=2048
@@ -26,7 +26,7 @@ TOP_P=0.9
 LEARNING_RATE="5.0e-7"
 BETA="0.1"
 OPTIM="adamw_torch"
-N_EPOCHS=1
+N_EPOCHS=2
 BATCH_SIZE=1
 ACCUMULATE=8
 
