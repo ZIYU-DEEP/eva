@@ -10,6 +10,6 @@ echo ${CONFIG_PATH}
 envsubst '${CONFIG_PATH}' < "${CONFIG_PATH}/configs.yaml" > "${CONFIG_PATH}/local_configs.yaml"
 
 # Run alpaca_eval with the substituted configuration file
-alpaca_eval evaluate_from_model \
+CUDA_VISIBLE_DEVICES=1 alpaca_eval evaluate_from_model \
   --model_configs "${CONFIG_PATH}/local_configs.yaml" \
   --annotators_config 'alpaca_eval_gpt4_turbo_fn' 
