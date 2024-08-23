@@ -27,7 +27,7 @@ PROMPT_SET_NAME_PREFIX='ultrafeedback-split'
 DTYPE="bfloat16"
 
 LEARNING_RATE="5.0e-7"
-BETA="0.05"
+BETA="0.1"
 OPTIM="adamw_torch"
 N_EPOCHS=1
 BATCH_SIZE=1
@@ -60,7 +60,7 @@ do
          EXP_PREFIX PROMPT_SET_NAME_PREFIX
 
   source ./scripts/${folder_name}/evolve-create-gen-iter-1.sh
-  source ./scripts/${folder_name}/evolve-create-iter-1.sh
+  source ./scripts/${folder_name}/evolve-create-iter-1.sh  # use the debug
   source ./scripts/${folder_name}/evolve-gen-iter-1.sh
   source ./scripts/${folder_name}/evolve-train-iter-1.sh
 

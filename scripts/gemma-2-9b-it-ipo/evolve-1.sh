@@ -43,6 +43,7 @@ EVOL_NO=1
 RATIO_BASE=0.2
 RATIO_EVOL=0.8
 
+
 for ((i=1; i<=n_splits; i++))
 do
   echo "Split $i"
@@ -53,7 +54,7 @@ do
          N_PAIRS DATA_ROOT MAX_TOKENS DTYPE TEMPERATURE TOP_P \
          LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE 
 
-  source ./scripts/${folder_name}/evolve-create-gen-iter-1.sh
+  # source ./scripts/${folder_name}/evolve-create-gen-iter-1.sh
   source ./scripts/${folder_name}/evolve-create-iter-1.sh
   source ./scripts/${folder_name}/evolve-gen-iter-1.sh
   source ./scripts/${folder_name}/evolve-train-iter-1.sh

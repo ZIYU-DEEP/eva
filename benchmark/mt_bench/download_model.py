@@ -24,7 +24,7 @@ def main():
     parser.add_argument('--dtype', type=str, default="bfloat16", help='The type of dtype.')
     args = parser.parse_args()
 
-    load_model(args.model_path)
+    load_model(args.model_path, args.num_gpus_total, args.dtype)
     print(f"Model {args.model_path} loaded successfully.")
 
 if __name__ == "__main__":

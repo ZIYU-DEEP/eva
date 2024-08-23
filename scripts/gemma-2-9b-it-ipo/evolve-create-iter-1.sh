@@ -77,14 +77,14 @@ mkdir -p ./logs
 # TODO: REPLACE ALL WITH POINTWISE RM - REMOVE THE PAIRRM PART
 DATASET_TO_REWARD="${HF_USERNAME}/${OUTPUT_DIR}-all"
 
-python src/reward_hf.py \
-    --input_dataset $DATASET_TO_REWARD \
-    --output_dir $OUTPUT_DIR \
-    --n_generations $N_PAIRS \
-    --data_root $DATA_ROOT \
-    --hf_username  $HF_USERNAME\
-    --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
-    --torch_dtype $DTYPE
+# python src/reward_hf.py \
+#     --input_dataset $DATASET_TO_REWARD \
+#     --output_dir $OUTPUT_DIR \
+#     --n_generations $N_PAIRS \
+#     --data_root $DATA_ROOT \
+#     --hf_username  $HF_USERNAME\
+#     --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
+#     --torch_dtype $DTYPE
 
 echo "Pushed the annotated data to ${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards."
 
@@ -100,7 +100,23 @@ echo $DATASET_EVOLVED
 
 # WARNING
 # Depending on the max tokens and the method of generation, the num_workers should be adjusted, otherwise it will lead to API rate issue and will hang.
-python src/evolve_prompt.py \
+# python src/evolve_prompt.py \
+#     --hf_username  $HF_USERNAME \
+#     --input_dataset $DATASET_WITH_REWARDS \
+#     --subset_dataset $DATASET_SUBSET \
+#     --output_dataset $DATASET_EVOLVED \
+#     --data_root $DATA_ROOT \
+#     --gen_model_name $GEN_MODEL_NAME \
+#     --num_evolutions $NUM_EVOLUTIONS \
+#     --num_workers 2 \
+#     --do_adaptive_sample 1 \
+#     --sample_metric $SAMPLE_METRIC \
+#     --sample_frac $SAMPLE_FRAC \
+#     --sample_method $SAMPLE_METHOD \
+#     --max_prompt_length $MAX_PROMPT_LENGTH \
+#     --evolve_temperature $EVOLVE_TEMPERATURE
+
+python src/evolve_prompt-debug.py \
     --hf_username  $HF_USERNAME \
     --input_dataset $DATASET_WITH_REWARDS \
     --subset_dataset $DATASET_SUBSET \
@@ -108,7 +124,8 @@ python src/evolve_prompt.py \
     --data_root $DATA_ROOT \
     --gen_model_name $GEN_MODEL_NAME \
     --num_evolutions $NUM_EVOLUTIONS \
-    --num_workers 2 \
+    --num_workers 10 \
+    --queue_size 500 \
     --do_adaptive_sample 1 \
     --sample_metric $SAMPLE_METRIC \
     --sample_frac $SAMPLE_FRAC \

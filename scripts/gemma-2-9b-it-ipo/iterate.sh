@@ -7,7 +7,7 @@ export WANDB_PROJECT="ipo"
 
 # This file should be run under the project directory
 # Number of iterations
-n_splits=${1:-1}
+n_splits=${1:-3}
 folder_name="gemma-2-9b-it-ipo"
 
 # General parameters
@@ -29,7 +29,7 @@ N_EPOCHS=1
 BATCH_SIZE=1
 ACCUMULATE=8
 
-for ((i=1; i<=n_splits; i++))
+for ((i=2; i<=n_splits; i++))
 do
   echo "Split $i"
 
