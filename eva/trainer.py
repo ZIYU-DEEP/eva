@@ -868,6 +868,13 @@ class SPPOTrainer(Trainer):
                 -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
                 - F.logsigmoid(-self.beta * logits) * self.label_smoothing
             )
+
+        elif self.loss_type == "rpo":
+            assert self.args.rpo_alpha is not None, "set rpo_alpha in the config!"
+            losses = (
+                -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
+                - F.logsigmoid(-self.beta * logits) * self.label_smoothing
+            )
             
         elif self.loss_type == "hinge":
             losses = torch.relu(1 - self.beta * logits)
@@ -958,7 +965,9 @@ class SPPOTrainer(Trainer):
         return (per_token_logps * loss_mask).sum(-1), size_completion
 
     def concatenated_forward(
-        self, model: nn.Module, batch: Dict[str, Union[List, torch.LongTensor]]
+        self, 
+        model: nn.Module, 
+        batch: Dict[str, Union[List, torch.LongTensor]]
     ) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
         """Run the given model on the given batch of inputs, concatenating the chosen and rejected inputs together.
 
@@ -996,7 +1005,7 @@ class SPPOTrainer(Trainer):
 
         # ---------------------------------------------------------
         # RPO relevant
-        def cross_entropy_loss(logits, labels):
+        def cross_entropy_loss(logits, labels, penalize_length_nll):
             if not self.is_encoder_decoder:
                 # Shift so that tokens < n predict n
                 logits = logits[..., :-1, :].contiguous()
@@ -1012,11 +1021,19 @@ class SPPOTrainer(Trainer):
             
             # Get the loss
             loss = loss_fct(logits, labels)
+            
+            # Add length penalty
+            if penalize_length_nll:
+                lengths = labels.ne(self.label_pad_token_id).sum(-1).float()
+                nll_loss = nll_loss / lengths.mean()
+            
             return loss
         
         labels = concatenated_batch["concatenated_labels"].clone()
-        nll_loss = cross_entropy_loss(all_logits[:len_chosen], 
-                                      labels[:len_chosen])
+        nll_loss = cross_entropy_loss(
+            logits=all_logits[:len_chosen], 
+            labels=labels[:len_chosen],
+            penalize_length_nll=self.args.penalize_length_nll)
         # ---------------------------------------------------------
         
         # ---------------------------------------------------------
