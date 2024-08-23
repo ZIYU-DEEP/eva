@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-model_name=${1:-"cat-searcher/NSPLIT3-gemma-2-9b-it-rpo-iter-1"}
+model_name=${1:-"cat-searcher/NSPLIT3-gemma-2-9b-it-rpo-iter-1-evol-1"}
 dtype=${2:-"bfloat16"}
 host=${3:-"localhost"}
 port=${4:-8964}
