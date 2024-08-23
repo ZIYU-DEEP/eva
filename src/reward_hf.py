@@ -80,7 +80,7 @@ def process_dataset(rank: int,
     for idx, row in tqdm.tqdm(df.iterrows(), 
                               total=len(df), 
                               desc=f"Rewarding on GPU {rank}", 
-                              disable=rank != 0):
+                              disable=rank != 1):
         if idx in processed_indices:
             continue  # Skip already processed rows
         
