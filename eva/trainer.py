@@ -1121,6 +1121,7 @@ class SPPOTrainer(Trainer):
         reward_accuracies = (chosen_rewards > rejected_rewards).float()
 
         prefix = "eval_" if train_eval == "eval" else ""
+        metrics[f"{prefix}kl_div"] = (policy_chosen_logps - reference_chosen_logps).mean().cpu()
         metrics[f"{prefix}rewards/chosen"] = chosen_rewards.mean().cpu()
         metrics[f"{prefix}rewards/rejected"] = rejected_rewards.mean().cpu()
         metrics[f"{prefix}rewards/accuracies"] = reward_accuracies.mean().cpu()
@@ -1129,6 +1130,7 @@ class SPPOTrainer(Trainer):
         metrics[f"{prefix}logps/chosen"] = policy_chosen_logps.detach().mean().cpu()
         metrics[f"{prefix}logits/rejected"] = policy_rejected_logits.detach().mean().cpu()
         metrics[f"{prefix}logits/chosen"] = policy_chosen_logits.detach().mean().cpu()
+
         if self.args.rpo_alpha is not None:
             metrics[f"{prefix}nll_loss"] = policy_nll_loss.detach().mean().cpu()
 
