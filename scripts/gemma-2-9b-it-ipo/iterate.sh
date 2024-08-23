@@ -23,9 +23,9 @@ DTYPE="bfloat16"
 TEMPERATURE=0.7  # To Test
 TOP_P=0.9
 LEARNING_RATE="5.0e-7"
-BETA="0.05"
+BETA=0.6
 OPTIM="adamw_torch"
-N_EPOCHS=2
+N_EPOCHS=1
 BATCH_SIZE=1
 ACCUMULATE=8
 
@@ -41,8 +41,10 @@ do
          N_PAIRS DATA_ROOT MAX_TOKENS DTYPE TEMPERATURE TOP_P \
          LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE 
 
-  # # # Source the gen.sh script
-  source ./scripts/${folder_name}/gen.sh
+  if [[ $i -ne 1 ]]; then
+    # Source the gen.sh script only if i is not equal to 1
+    source ./scripts/${folder_name}/gen.sh
+  fi
 
   # Source the train.sh script
   source ./scripts/${folder_name}/train.sh 
