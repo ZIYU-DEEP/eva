@@ -27,7 +27,7 @@ PROMPT_SET_NAME_PREFIX='ultrafeedback-split'
 DTYPE="bfloat16"
 
 LEARNING_RATE="5.0e-7"
-BETA="0.05"
+BETA="0.1"
 OPTIM="adamw_torch"
 N_EPOCHS=1
 BATCH_SIZE=1

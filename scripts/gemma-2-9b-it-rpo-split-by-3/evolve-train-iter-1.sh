@@ -18,9 +18,9 @@ PREF=${PREF:-"rpo_score"}
 # Other general parameter to be reset
 HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 LEARNING_RATE=${LEARNING_RATE:-"5.0e-7"}
-BETA=${BETA:-"0.05"}
+BETA=${BETA:-"0.1"}
 OPTIM=${OPTIM:-"adamw_torch"}
-N_EPOCHS=${N_EPOCHS:-2}
+N_EPOCHS=${N_EPOCHS:-1}
 BATCH_SIZE=${BATCH_SIZE:-1}
 ACCUMULATE=${ACCUMULATE:-8}
 # ------------------------------------------------------------------
