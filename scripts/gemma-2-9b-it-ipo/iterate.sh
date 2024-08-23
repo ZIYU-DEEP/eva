@@ -7,7 +7,7 @@ export WANDB_PROJECT="ipo"
 
 # This file should be run under the project directory
 # Number of iterations
-n_splits=${1:-2}
+n_splits=${1:-3}
 folder_name="gemma-2-9b-it-ipo"
 
 # General parameters
