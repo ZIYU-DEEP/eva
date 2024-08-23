@@ -3,10 +3,10 @@ set -e
 
 MODEL_PATH=${1:-"cat-searcher/NSPLIT3-gemma-2-9b-it-rpo-iter-1"}
 MODEL_NAME=${2:-"NSPLIT3-gemma-2-9b-it-rpo-iter-1"}
-cuda_visible_devices=${3:-"0,1,2,3,4,5,6,7"}
+cuda_visible_devices=${3:-"0,1,2,3"}
 port=${4:-8964}
 dtype=${5:-"bfloat16"}
-tensor_parallel_size=${5:-8}
+tensor_parallel_size=${5:-4}
 
 echo "Server is up and running."
 
