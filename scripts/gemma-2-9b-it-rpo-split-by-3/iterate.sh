@@ -43,8 +43,10 @@ do
          LEARNING_RATE BETA OPTIM N_EPOCHS BATCH_SIZE ACCUMULATE \
          PROMPT_SET_NAME_PREFIX EXP_PREFIX
 
-  # # # Source the gen.sh script
-  source ./scripts/${folder_name}/gen.sh
+  if [[ $i -ne 1 ]]; then
+    # Source the gen.sh script only if i is not equal to 1
+    source ./scripts/${folder_name}/gen.sh
+  fi
 
   # Source the train.sh script
   source ./scripts/${folder_name}/train.sh 
