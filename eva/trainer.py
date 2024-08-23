@@ -1025,7 +1025,7 @@ class SPPOTrainer(Trainer):
             # Add length penalty
             if penalize_length_nll:
                 lengths = labels.ne(self.label_pad_token_id).sum(-1).float()
-                nll_loss = nll_loss / lengths.mean()
+                loss = loss / lengths.mean()
             
             return loss
         
