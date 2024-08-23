@@ -109,7 +109,23 @@ echo $DATASET_EVOLVED
 
 # WARNING
 # Depending on the max tokens and the method of generation, the num_workers should be adjusted, otherwise it will lead to API rate issue and will hang.
-python src/evolve_prompt.py \
+# python src/evolve_prompt.py \
+#     --hf_username  $HF_USERNAME \
+#     --input_dataset $DATASET_WITH_REWARDS \
+#     --subset_dataset $DATASET_SUBSET \
+#     --output_dataset $DATASET_EVOLVED \
+#     --data_root $DATA_ROOT \
+#     --gen_model_name $GEN_MODEL_NAME \
+#     --num_evolutions $NUM_EVOLUTIONS \
+#     --num_workers 1 \
+#     --do_adaptive_sample 1 \
+#     --sample_metric $SAMPLE_METRIC \
+#     --sample_frac $SAMPLE_FRAC \
+#     --sample_method $SAMPLE_METHOD \
+#     --max_prompt_length $MAX_PROMPT_LENGTH \
+#     --evolve_temperature $EVOLVE_TEMPERATURE
+
+python src/evolve_prompt-debug.py \
     --hf_username  $HF_USERNAME \
     --input_dataset $DATASET_WITH_REWARDS \
     --subset_dataset $DATASET_SUBSET \
@@ -117,7 +133,8 @@ python src/evolve_prompt.py \
     --data_root $DATA_ROOT \
     --gen_model_name $GEN_MODEL_NAME \
     --num_evolutions $NUM_EVOLUTIONS \
-    --num_workers 1 \
+    --num_workers 10 \
+    --queue_size 500 \
     --do_adaptive_sample 1 \
     --sample_metric $SAMPLE_METRIC \
     --sample_frac $SAMPLE_FRAC \
