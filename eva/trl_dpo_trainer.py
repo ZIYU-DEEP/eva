@@ -1,7 +1,17 @@
-#!/usr/bin/env python
+# DPO Authors: Rafael Rafailov, Archit Sharma, Eric Mitchell, Stefano Ermon, Christopher D. Manning, and Chelsea Finn 2023
+# Copyright 2023 The HuggingFace Team. All rights reserved.
 #
-# Adapted from https://github.com/huggingface/alignment-handbook
-
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 import inspect
 import random
 import warnings
@@ -13,10 +23,13 @@ from typing import Any, Callable, Dict, List, Literal, Optional, Tuple, Union
 
 import numpy as np
 import torch
+import torch.amp as amp
 import torch.nn as nn
 import torch.nn.functional as F
+from accelerate import PartialState
 from accelerate.utils import is_deepspeed_available, tqdm
 from datasets import Dataset
+from huggingface_hub.utils._deprecation import _deprecate_arguments
 from torch.utils.data import DataLoader
 from transformers import (
     AutoModelForCausalLM,
@@ -24,38 +37,42 @@ from transformers import (
     PreTrainedModel,
     PreTrainedTokenizerBase,
     Trainer,
-    TrainingArguments,
 )
+from transformers.models.auto.modeling_auto import MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES
 from transformers.trainer_callback import TrainerCallback
 from transformers.trainer_utils import EvalLoopOutput
 
-from trl.import_utils import is_peft_available, is_wandb_available
-from trl.models import PreTrainedModelWrapper, create_reference_model
-from trl.trainer.utils import (
+from ..import_utils import is_peft_available, is_wandb_available
+from ..models import PreTrainedModelWrapper, create_reference_model
+from .callbacks import SyncRefModelCallback
+from .dpo_config import DPOConfig, FDivergenceConstants, FDivergenceType
+from .utils import (
     DPODataCollatorWithPadding,
+    RunningMoments,
+    add_bos_token_if_needed,
+    add_eos_token_if_needed,
+    cap_exp,
     disable_dropout_in_model,
     pad_to_length,
+    peft_module_casting_to_bf16,
     trl_sanitze_kwargs_for_tagging,
 )
 
+
 if is_peft_available():
     from peft import PeftModel, get_peft_model, prepare_model_for_kbit_training
+
 
 if is_wandb_available():
     import wandb
 
 if is_deepspeed_available():
     import deepspeed
-    
-# def add_cols(feature, chosen_probs, chosen_probs_win, chosen_probs_lose):
-#     feature['chosen_probs'] = chosen_probs
-#     feature['chosen_probs_win'] = chosen_probs_win
-#     feature['chosen_probs_lose'] = chosen_probs_lose
-#     return feature
 
-class SPPOTrainer(Trainer):
+
+class DPOTrainer(Trainer):
     r"""
-    Initialize SPPOTrainer.
+    Initialize DPOTrainer.
 
     Args:
         model (`transformers.PreTrainedModel`):
@@ -63,23 +80,11 @@ class SPPOTrainer(Trainer):
         ref_model (`PreTrainedModelWrapper`):
             Hugging Face transformer model with a casual language modelling head. Used for implicit reward computation and loss. If no
             reference model is provided, the trainer will create a reference model with the same architecture as the model to be optimized.
-        beta (`float`, defaults to 0.1):
-            The beta factor in DPO loss. In SPPO, eta=1/beta. Higher beta means less divergence from the initial policy. For the IPO loss, beta is the regularization parameter denoted by tau in the paper.
-        label_smoothing (`float`, defaults to 0):
-            The robust DPO label smoothing parameter from the [cDPO](https://ericmitchell.ai/cdpo.pdf) report that should be between 0 and 0.5.
-        loss_type (`str`, defaults to `"sigmoid"`):
-            The type of loss to use. 'sppo' reproduces the SPPO algorithms. Other choices are explained as follows: `"sigmoid"` represents the default DPO loss,`"hinge"` loss from [SLiC](https://arxiv.org/abs/2305.10425) paper, `"ipo"` from [IPO](https://arxiv.org/abs/2310.12036) paper, or `"kto"` from the HALOs [report](https://github.com/ContextualAI/HALOs/blob/main/assets/report.pdf).
-        args (`transformers.TrainingArguments`):
-            The arguments to use for training.
+        args (`DPOConfig`):
+            The DPO config arguments to use for training.
         data_collator (`transformers.DataCollator`):
             The data collator to use for training. If None is specified, the default data collator (`DPODataCollatorWithPadding`) will be used
             which will pad the sequences to the maximum length of the sequences in the batch, given a dataset of paired sequences.
-        label_pad_token_id (`int`, defaults to `-100`):
-            The label pad token id. This argument is required if you want to use the default data collator.
-        padding_value (`int`, defaults to `0`):
-            The padding value if it is different to the tokenizer's pad_token_id.
-        truncation_mode (`str`, defaults to `keep_end`):
-            The truncation mode to use, either `keep_end` or `keep_start`. This argument is required if you want to use the default data collator.
         train_dataset (`datasets.Dataset`):
             The dataset to use for training.
         eval_dataset (`datasets.Dataset`):
@@ -94,49 +99,52 @@ class SPPOTrainer(Trainer):
             The optimizer and scheduler to use for training.
         preprocess_logits_for_metrics (`Callable[[torch.Tensor, torch.Tensor], torch.Tensor]`):
             The function to use to preprocess the logits before computing the metrics.
-        max_length (`int`, defaults to `None`):
-            The maximum length of the sequences in the batch. This argument is required if you want to use the default data collator.
-        max_prompt_length (`int`, defaults to `None`):
-            The maximum length of the prompt. This argument is required if you want to use the default data collator.
-        max_target_length (`int`, defaults to `None`):
-            The maximum length of the target. This argument is required if you want to use the default data collator and your model is an encoder-decoder.
         peft_config (`Dict`, defaults to `None`):
             The PEFT configuration to use for training. If you pass a PEFT configuration, the model will be wrapped in a PEFT model.
-        is_encoder_decoder (`Optional[bool]`, `optional`, defaults to `None`):
-            If no model is provided, we need to know if the model_init returns an encoder-decoder.
-        disable_dropout (`bool`, defaults to `True`):
-            Whether or not to disable dropouts in `model` and `ref_model`.
-        generate_during_eval (`bool`, defaults to `False`):
-            Whether to sample and log generations during evaluation step.
         compute_metrics (`Callable[[EvalPrediction], Dict]`, *optional*):
             The function to use to compute the metrics. Must take a `EvalPrediction` and return
             a dictionary string to metric values.
-        precompute_ref_log_probs (`bool`, defaults to `False`):
-            Flag to precompute reference model log probabilities and evaluation datasets. This is useful if you want to train
-            without the reference model and reduce the total GPU memory needed.
-        model_init_kwargs: (`Optional[Dict]`, *optional*):
-            Dict of Optional kwargs to pass when instantiating the model from a string
-        ref_model_init_kwargs: (`Optional[Dict]`, *optional*):
-            Dict of Optional kwargs to pass when instantiating the ref model from a string
-        model_adapter_name (`str`, defaults to `None`):
-            Name of the train target PEFT adapter, when using LoRA with multiple adapters.
-        ref_adapter_name (`str`, defaults to `None`):
-            Name of the reference PEFT adapter, when using LoRA with multiple adapters.
     """
 
-    _tag_names = ["trl", "sppo"]
+    _tag_names = ["trl", "dpo"]
 
+    @_deprecate_arguments(
+        version="1.0.0",
+        deprecated_args=[
+            "beta",
+            "label_smoothing",
+            "loss_type",
+            "label_pad_token_id",
+            "padding_value",
+            "truncation_mode",
+            "max_length",
+            "max_prompt_length",
+            "max_target_length",
+            "is_encoder_decoder",
+            "disable_dropout",
+            "generate_during_eval",
+            "precompute_ref_log_probs",
+            "dataset_num_proc",
+            "model_init_kwargs",
+            "ref_model_init_kwargs",
+            "model_adapter_name",
+            "ref_adapter_name",
+            "reference_free",
+            "force_use_ref_model",
+        ],
+        custom_message="Deprecated positional argument(s) used in DPOTrainer, please use the DPOConfig to set these arguments instead.",
+    )
     def __init__(
         self,
-        model: Union[PreTrainedModel, nn.Module, str] = None,
+        model: Optional[Union[PreTrainedModel, nn.Module, str]] = None,
         ref_model: Optional[Union[PreTrainedModel, nn.Module, str]] = None,
         beta: float = 0.1,
         label_smoothing: float = 0,
-        loss_type: Literal["sigmoid", "hinge", "ipo", "kto_pair", "rpo"] = "sigmoid",
-        args: TrainingArguments = None,
+        loss_type: Optional[str] = None,
+        args: Optional[DPOConfig] = None,
         data_collator: Optional[DataCollator] = None,
         label_pad_token_id: int = -100,
-        padding_value: int = 0,
+        padding_value: Optional[int] = None,
         truncation_mode: str = "keep_end",
         train_dataset: Optional[Dataset] = None,
         eval_dataset: Optional[Union[Dataset, Dict[str, Dataset]]] = None,
@@ -154,33 +162,74 @@ class SPPOTrainer(Trainer):
         generate_during_eval: bool = False,
         compute_metrics: Optional[Callable[[EvalLoopOutput], Dict]] = None,
         precompute_ref_log_probs: bool = False,
+        dataset_num_proc: Optional[int] = None,
         model_init_kwargs: Optional[Dict] = None,
         ref_model_init_kwargs: Optional[Dict] = None,
-        model_adapter_name: str = None,
-        ref_adapter_name: str = None,
+        model_adapter_name: Optional[str] = None,
+        ref_adapter_name: Optional[str] = None,
+        reference_free: bool = False,
+        force_use_ref_model: bool = False,
     ):
-        if model_init_kwargs is None:
+        if model_init_kwargs is not None:
+            warnings.warn(
+                "You passed `model_init_kwargs` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.model_init_kwargs = model_init_kwargs
+
+        if args.model_init_kwargs is None:
             model_init_kwargs = {}
         elif not isinstance(model, str):
-            raise ValueError("You passed model_kwargs to the SPPOTrainer. But your model is already instantiated.")
+            raise ValueError(
+                "You passed model_init_kwargs to the DPOTrainer/DPOConfig, but your model is already instantiated."
+            )
+        else:
+            model_init_kwargs = args.model_init_kwargs
+            torch_dtype = model_init_kwargs.get("torch_dtype")
+            if torch_dtype is not None:
+                # Convert to `torch.dtype` if an str is passed
+                if isinstance(torch_dtype, str) and torch_dtype != "auto":
+                    torch_dtype = getattr(torch, torch_dtype)
+                if torch_dtype != "auto" and not isinstance(torch_dtype, torch.dtype):
+                    raise ValueError(
+                        f"Invalid `torch_dtype` passed to the DPOConfig. Expected a string with either `torch.dtype` or 'auto', but got {torch_dtype}."
+                    )
+                model_init_kwargs["torch_dtype"] = torch_dtype
 
-        if ref_model_init_kwargs is None:
+        if ref_model_init_kwargs is not None:
+            warnings.warn(
+                "You passed `ref_model_init_kwargs` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.ref_model_init_kwargs = ref_model_init_kwargs
+
+        if args.ref_model_init_kwargs is None:
             ref_model_init_kwargs = {}
         elif not isinstance(ref_model, str):
             raise ValueError(
-                "You passed ref_model_kwargs to the SPPOTrainer. But your ref_model is already instantiated."
+                "You passed ref_model_init_kwargs to the DPOTrainer/DPOConfig, but your ref_model is already instantiated."
             )
+        else:
+            ref_model_init_kwargs = args.ref_model_init_kwargs
+            torch_dtype = ref_model_init_kwargs.get("torch_dtype")
+            if torch_dtype is not None:
+                # Convert to `torch.dtype` if an str is passed
+                if isinstance(torch_dtype, str) and torch_dtype != "auto":
+                    torch_dtype = getattr(torch, torch_dtype)
+                if torch_dtype != "auto" and not isinstance(torch_dtype, torch.dtype):
+                    raise ValueError(
+                        f"Invalid `torch_dtype` passed to the DPOConfig. Expected a string with either `torch.dtype` or 'auto', but got {torch_dtype}."
+                    )
+                ref_model_init_kwargs["torch_dtype"] = torch_dtype
 
         if isinstance(model, str):
             warnings.warn(
-                "You passed a model_id to the SPPOTrainer. This will automatically create an "
+                "You passed a model_id to the DPOTrainer. This will automatically create an "
                 "`AutoModelForCausalLM` or a `PeftModel` (if you passed a `peft_config`) for you."
             )
             model = AutoModelForCausalLM.from_pretrained(model, **model_init_kwargs)
 
         if isinstance(ref_model, str):
             warnings.warn(
-                "You passed a ref model_id to the SPPOTrainer. This will automatically create an "
+                "You passed a ref model_id to the DPOTrainer. This will automatically create an "
                 "`AutoModelForCausalLM`"
             )
             ref_model = AutoModelForCausalLM.from_pretrained(ref_model, **ref_model_init_kwargs)
@@ -189,48 +238,60 @@ class SPPOTrainer(Trainer):
         # has been called in order to properly call autocast if needed.
         self._peft_has_been_casted_to_bf16 = False
 
+        if force_use_ref_model:
+            warnings.warn(
+                "You passed `force_use_ref_model` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.force_use_ref_model = force_use_ref_model
+
         if not is_peft_available() and peft_config is not None:
             raise ValueError(
                 "PEFT is not installed and you passed a `peft_config` in the trainer's kwargs, please install it to use the PEFT models"
             )
         elif is_peft_available() and peft_config is not None:
-            raise NotImplementedError
-            # # if model is a peft model and we have a peft_config, we merge and unload it first
-            # if isinstance(model, PeftModel):
-            #     model = model.merge_and_unload()
+            # if model is a peft model and we have a peft_config, we merge and unload it first
+            if isinstance(model, PeftModel):
+                model = model.merge_and_unload()
 
-            # if getattr(model, "is_loaded_in_8bit", False) or getattr(model, "is_loaded_in_4bit", False):
-            #     _support_gc_kwargs = hasattr(
-            #         args, "gradient_checkpointing_kwargs"
-            #     ) and "gradient_checkpointing_kwargs" in list(
-            #         inspect.signature(prepare_model_for_kbit_training).parameters
-            #     )
+            if ref_model is not None and not args.force_use_ref_model:
+                raise ValueError(
+                    "You passed both a ref_model and a peft_config. For training PEFT adapters with DPO there is no need to pass a reference"
+                    " model. Please pass `ref_model=None` in case you want to train PEFT adapters, or pass a ref_model with `force_use_ref_model=True` in DPOTrainer's init."
+                    " if you want to use a different ref_model."
+                )
 
-            #     preprare_model_kwargs = {"use_gradient_checkpointing": args.gradient_checkpointing}
+            if getattr(model, "is_loaded_in_8bit", False) or getattr(model, "is_loaded_in_4bit", False):
+                _support_gc_kwargs = hasattr(
+                    args, "gradient_checkpointing_kwargs"
+                ) and "gradient_checkpointing_kwargs" in list(
+                    inspect.signature(prepare_model_for_kbit_training).parameters
+                )
 
-            #     if _support_gc_kwargs:
-            #         preprare_model_kwargs["gradient_checkpointing_kwargs"] = args.gradient_checkpointing_kwargs
+                prepare_model_kwargs = {"use_gradient_checkpointing": args.gradient_checkpointing}
 
-            #     model = prepare_model_for_kbit_training(model, **preprare_model_kwargs)
-            # elif getattr(args, "gradient_checkpointing", False):
-            #     # For backward compatibility with older versions of transformers
-            #     if hasattr(model, "enable_input_require_grads"):
-            #         model.enable_input_require_grads()
-            #     else:
+                if _support_gc_kwargs:
+                    prepare_model_kwargs["gradient_checkpointing_kwargs"] = args.gradient_checkpointing_kwargs
 
-            #         def make_inputs_require_grad(module, input, output):
-            #             output.requires_grad_(True)
+                model = prepare_model_for_kbit_training(model, **prepare_model_kwargs)
+            elif getattr(args, "gradient_checkpointing", False):
+                # For backward compatibility with older versions of transformers
+                if hasattr(model, "enable_input_require_grads"):
+                    model.enable_input_require_grads()
+                else:
 
-            #         model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
+                    def make_inputs_require_grad(module, input, output):
+                        output.requires_grad_(True)
 
-            # # get peft model with the given config
-            # model = get_peft_model(model, peft_config)
-            # if args.bf16 and getattr(model, "is_loaded_in_4bit", False):
-            #     peft_module_casting_to_bf16(model)
-            #     # If args.bf16 we need to explicitly call `generate` with torch amp autocast context manager
-            #     self._peft_has_been_casted_to_bf16 = True
+                    model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
-        # For models that use gradient_checkpoiting, we need to attach a hook that enables input
+            # get peft model with the given config
+            model = get_peft_model(model, peft_config)
+            if args.bf16 and getattr(model, "is_loaded_in_4bit", False):
+                peft_module_casting_to_bf16(model)
+                # If args.bf16 we need to explicitly call `generate` with torch amp autocast context manager
+                self._peft_has_been_casted_to_bf16 = True
+
+        # For models that use gradient_checkpointing, we need to attach a hook that enables input
         # to explicitly have `requires_grad=True`, otherwise training will either silently
         # fail or completely fail.
         elif getattr(args, "gradient_checkpointing", False):
@@ -244,60 +305,132 @@ class SPPOTrainer(Trainer):
 
                 model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
-        if generate_during_eval and not is_wandb_available():
+        if generate_during_eval:
+            warnings.warn(
+                "You passed `generate_during_eval` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.generate_during_eval = generate_during_eval
+        if args.generate_during_eval and not is_wandb_available():
             raise ValueError(
                 "`generate_during_eval=True` requires Weights and Biases to be installed."
                 " Please install `wandb` to resolve."
             )
 
+        if is_encoder_decoder is not None:
+            warnings.warn(
+                "You passed `is_encoder_decoder` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.is_encoder_decoder = is_encoder_decoder
         if model is not None:
             self.is_encoder_decoder = model.config.is_encoder_decoder
-        elif is_encoder_decoder is None:
-            raise ValueError("When no model is provided, you need to pass the parameter is_encoder_decoder.")
+        elif args.is_encoder_decoder is None:
+            raise ValueError(
+                "When no model is provided, you need to pass the parameter is_encoder_decoder to the DPOTrainer/DPOConfig."
+            )
         else:
-            self.is_encoder_decoder = is_encoder_decoder
+            self.is_encoder_decoder = args.is_encoder_decoder
+
+        if model is not None:
+            self.is_vision_model = model.config.model_type in MODEL_FOR_VISION_2_SEQ_MAPPING_NAMES.keys()
+        else:
+            warnings.warn(
+                "No model provided, cannot determine if it is a vision model. Setting is_vision_model to False."
+            )
+            self.is_vision_model = False
+
+        if self.is_vision_model:
+            self.processor = tokenizer
+            self.tokenizer = tokenizer.tokenizer  # tokenizer is actually a processor at this point
+        else:
+            self.tokenizer = tokenizer
 
         self.is_peft_model = is_peft_available() and isinstance(model, PeftModel)
-        self.model_adapter_name = model_adapter_name
-        self.ref_adapter_name = ref_adapter_name
+        if model_adapter_name is not None:
+            warnings.warn(
+                "You passed `model_adapter_name` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.model_adapter_name = model_adapter_name
+        self.model_adapter_name = args.model_adapter_name
+
+        if ref_adapter_name is not None:
+            warnings.warn(
+                "You passed `ref_adapter_name` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.ref_adapter_name = ref_adapter_name
+        self.ref_adapter_name = args.ref_adapter_name
+
+        if reference_free:
+            warnings.warn(
+                "You passed `reference_free` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.reference_free = reference_free
+        self.reference_free = args.reference_free
+
+        if precompute_ref_log_probs:
+            warnings.warn(
+                "You passed `precompute_ref_log_probs` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.precompute_ref_log_probs = precompute_ref_log_probs
 
         if ref_model:
             self.ref_model = ref_model
-        elif self.is_peft_model or precompute_ref_log_probs:
+        elif self.is_peft_model or args.precompute_ref_log_probs:
             # The `model` with adapters turned off will be used as the reference model
             self.ref_model = None
         else:
             self.ref_model = create_reference_model(model)
 
         if tokenizer is None:
-            raise ValueError("tokenizer must be specified to tokenize a SPPO dataset.")
-        if max_length is None:
+            raise ValueError("tokenizer must be specified to tokenize a DPO dataset.")
+
+        if max_length is not None:
             warnings.warn(
-                "`max_length` is not set in the SPPOTrainer's init"
+                "You passed `max_length` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.max_length = max_length
+        if args.max_length is None:
+            warnings.warn(
+                "`max_length` is not set in the DPOConfig's init"
                 " it will default to `512` by default, but you should do it yourself in the future.",
                 UserWarning,
             )
-            max_length = 512
-        if max_prompt_length is None:
+            args.max_length = 512
+
+        if max_prompt_length is not None:
             warnings.warn(
-                "`max_prompt_length` is not set in the SPPOTrainer's init"
+                "You passed `max_prompt_length` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.max_prompt_length = max_prompt_length
+        if args.max_prompt_length is None:
+            warnings.warn(
+                "`max_prompt_length` is not set in the DPOConfig's init"
                 " it will default to `128` by default, but you should do it yourself in the future.",
                 UserWarning,
             )
-            max_prompt_length = 128
+            args.max_prompt_length = 128
 
-        if max_target_length is None and self.is_encoder_decoder:
+        if max_target_length is not None:
             warnings.warn(
-                "When using an encoder decoder architecture, you should set `max_target_length` in the SPPOTrainer's init"
+                "You passed `max_target_length` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.max_target_length = max_target_length
+        if args.max_target_length is None and self.is_encoder_decoder:
+            warnings.warn(
+                "When using an encoder decoder architecture, you should set `max_target_length` in the DPOConfig's init"
                 " it will default to `128` by default, but you should do it yourself in the future.",
                 UserWarning,
             )
-            max_target_length = 128
+            args.max_target_length = 128
 
+        if label_pad_token_id != -100:
+            warnings.warn(
+                "You passed `label_pad_token_id` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.label_pad_token_id = label_pad_token_id
         if data_collator is None:
             data_collator = DPODataCollatorWithPadding(
-                pad_token_id=tokenizer.pad_token_id,
-                label_pad_token_id=label_pad_token_id,
+                pad_token_id=self.tokenizer.pad_token_id,
+                label_pad_token_id=args.label_pad_token_id,
                 is_encoder_decoder=self.is_encoder_decoder,
             )
 
@@ -314,55 +447,92 @@ class SPPOTrainer(Trainer):
         else:
             self.use_dpo_data_collator = False
 
-        if disable_dropout:
+        if not disable_dropout:
+            warnings.warn(
+                "You passed `disable_dropout` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.disable_dropout = disable_dropout
+        if args.disable_dropout:
             disable_dropout_in_model(model)
             if self.ref_model is not None:
                 disable_dropout_in_model(self.ref_model)
 
-        self.max_length = max_length
-        self.generate_during_eval = generate_during_eval
-        self.label_pad_token_id = label_pad_token_id
-        self.padding_value = padding_value if padding_value is not None else tokenizer.pad_token_id
-        self.max_prompt_length = max_prompt_length
-        self.truncation_mode = truncation_mode
-        self.max_target_length = max_target_length
-        self.tokenizer = tokenizer
-        self.precompute_ref_log_probs = precompute_ref_log_probs
+        self.max_length = args.max_length
+        self.generate_during_eval = args.generate_during_eval
+        self.label_pad_token_id = args.label_pad_token_id
+        if padding_value is not None:
+            warnings.warn(
+                "You passed `padding_value` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.padding_value = padding_value
+        self.padding_value = args.padding_value if padding_value is not None else self.tokenizer.pad_token_id
+        self.max_prompt_length = args.max_prompt_length
+        if truncation_mode != "keep_end":
+            warnings.warn(
+                "You passed `truncation_mode` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.truncation_mode = truncation_mode
+        self.truncation_mode = args.truncation_mode
+        self.max_target_length = args.max_target_length
+        self.precompute_ref_log_probs = args.precompute_ref_log_probs
 
         # Since ref_logs are precomputed on the first call to get_train/eval_dataloader
         # keep track of first called to avoid computation of future calls
         self._precomputed_train_ref_log_probs = False
         self._precomputed_eval_ref_log_probs = False
 
-        if loss_type in ["hinge", "ipo", "kto_pair"] and label_smoothing > 0:
+        if loss_type is not None:
+            warnings.warn(
+                "You passed `loss_type` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.loss_type = loss_type
+        if label_smoothing != 0:
+            warnings.warn(
+                "You passed `label_smoothing` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.label_smoothing = label_smoothing
+        if (
+            args.loss_type in ["hinge", "ipo", "bco_pair", "sppo_hard", "nca_pair", "apo_zero", "apo_down"]
+            and args.label_smoothing > 0
+        ):
             warnings.warn(
                 "You are using a loss type that does not support label smoothing. Ignoring label_smoothing parameter."
             )
+        if args.loss_type == "kto_pair":
+            raise ValueError("Support for kto_pair has been removed in DPOTrainer. Please use KTOTrainer.")
 
-        self.beta = beta
-        self.label_smoothing = label_smoothing
-        self.loss_type = loss_type
+        if beta != 0.1:
+            warnings.warn(
+                "You passed `beta` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.beta = beta
+        self.beta = args.beta
+        self.label_smoothing = args.label_smoothing
+        self.loss_type = args.loss_type
+        self.aux_loss_enabled = getattr(model.config, "output_router_logits", False)
 
         self._stored_metrics = defaultdict(lambda: defaultdict(list))
 
-        # tokenize the dataset
-        # print('=== before map', train_dataset.features)
-        # chosen_probs = train_dataset['chosen_probs']
-        # chosen_probs_win = train_dataset['chosen_probs_win']
-        # chosen_probs_lose = train_dataset['chosen_probs_lose']
-        # old_train_dataset = train_dataset
-        train_dataset = train_dataset.map(self.tokenize_row)
-        # print('=== before add', train_dataset.features)
-        # import pandas as pd
-        # mid_dataset = pd.DataFrame(train_dataset)
-        # mid_dataset['chosen_probs'] = chosen_probs
-        # mid_dataset['chosen_probs_win'] = chosen_probs_win
-        # mid_dataset['chosen_probs_lose'] = chosen_probs_lose
-        # train_dataset = Dataset.from_pandas(mid_dataset)
-        # print('=== after add', train_dataset.features)
-        if eval_dataset is not None:
-            eval_dataset = eval_dataset.map(self.tokenize_row)
-        #print('=========')
+        self.f_divergence_type = args.f_divergence_type
+        self.f_divergence_params = {FDivergenceConstants.ALPHA_DIVERGENCE_COEF_KEY: args.f_alpha_divergence_coef}
+
+        if dataset_num_proc is not None:
+            warnings.warn(
+                "You passed `dataset_num_proc` to the DPOTrainer, the value you passed will override the one in the `DPOConfig`."
+            )
+            args.dataset_num_proc = dataset_num_proc
+        self.dataset_num_proc = args.dataset_num_proc
+
+        # Compute that only on the main process for faster data processing.
+        # see: https://github.com/huggingface/trl/pull/1255
+        with PartialState().local_main_process_first():
+            # tokenize the dataset, lower writer batch size to avoid OOM (frequent in vision models)
+            train_dataset = train_dataset.map(self.tokenize_row, num_proc=self.dataset_num_proc, writer_batch_size=10)
+            if eval_dataset is not None:
+                eval_dataset = eval_dataset.map(
+                    self.tokenize_row, num_proc=self.dataset_num_proc, writer_batch_size=10
+                )
+
         super().__init__(
             model=model,
             args=args,
@@ -376,6 +546,10 @@ class SPPOTrainer(Trainer):
             optimizers=optimizers,
             preprocess_logits_for_metrics=preprocess_logits_for_metrics,
         )
+
+        # Add tags for models that have been loaded with the correct transformers version
+        if hasattr(self.model, "add_model_tags"):
+            self.model.add_model_tags(self._tag_names)
 
         if not hasattr(self, "accelerator"):
             raise AttributeError(
@@ -394,11 +568,25 @@ class SPPOTrainer(Trainer):
                 raise ValueError(
                     "No reference model and model is not a Peft model. Try setting `precompute_ref_log_probs=True`"
                 )
+            if args.sync_ref_model:
+                raise ValueError(
+                    "You currently cannot use `ref_model=None` with TR-DPO method. Please provide `ref_model`."
+                )
         else:
             if self.is_deepspeed_enabled:
                 self.ref_model = self._prepare_deepspeed(self.ref_model)
             else:
                 self.ref_model = self.accelerator.prepare_model(self.ref_model, evaluation_mode=True)
+
+        if args.sync_ref_model:
+            if precompute_ref_log_probs:
+                raise ValueError(
+                    "You cannot use `precompute_ref_log_probs=True` with TR-DPO method. Please set `precompute_ref_log_probs=False`."
+                )
+
+            self.add_callback(SyncRefModelCallback(ref_model=self.ref_model, accelerator=self.accelerator))
+        if self.loss_type == "bco_pair":
+            self.running = RunningMoments(self.accelerator)
 
     def _prepare_deepspeed(self, model: PreTrainedModelWrapper):
         # Adapted from accelerate: https://github.com/huggingface/accelerate/blob/739b135f8367becb67ffaada12fe76e3aa60fefd/src/accelerate/accelerator.py#L1473
@@ -526,16 +714,31 @@ class SPPOTrainer(Trainer):
 
         return super().get_eval_dataloader(eval_dataset=eval_dataset)
 
-    def build_tokenized_answer(self, prompt, answer):
+    def build_tokenized_answer(self, prompt, answer, images=None):
         """
         Llama tokenizer does satisfy `enc(a + b) = enc(a) + enc(b)`.
         It does ensure `enc(a + b) = enc(a) + enc(a + b)[len(enc(a)):]`.
         Reference:
             https://github.com/EleutherAI/lm-evaluation-harness/pull/531#issuecomment-1595586257
         """
-
-        full_tokenized = self.tokenizer(prompt + answer, add_special_tokens=False)
-        prompt_input_ids = self.tokenizer(prompt, add_special_tokens=False)["input_ids"]
+        if self.is_vision_model:
+            if answer.count("<image>") > 0:
+                raise NotImplementedError("Answer contains <image> token, which is not supported yet.")
+            if "add_special_tokens" in inspect.signature(self.processor).parameters:
+                processor_kwargs = {"add_special_tokens": False}
+            else:
+                processor_kwargs = {}
+            full_tokenized = self.processor(prompt + answer, images=images, **processor_kwargs)
+            full_tokenized = {k: v[0] for k, v in full_tokenized.items()}  # Unbatch, not done when using idefics
+            if not isinstance(full_tokenized["input_ids"], list):  # llava processor returns tensors
+                full_tokenized["input_ids"] = full_tokenized["input_ids"].tolist()
+                full_tokenized["attention_mask"] = full_tokenized["attention_mask"].tolist()
+            prompt_input_ids = self.processor(prompt, images=images, **processor_kwargs)["input_ids"][0]
+            if not isinstance(prompt_input_ids, list):  # llava processor returns tensors
+                prompt_input_ids = prompt_input_ids.tolist()
+        else:
+            full_tokenized = self.tokenizer(prompt + answer, add_special_tokens=False)
+            prompt_input_ids = self.tokenizer(prompt, add_special_tokens=False)["input_ids"]
 
         answer_input_ids = full_tokenized["input_ids"][len(prompt_input_ids) :]
         answer_attention_mask = full_tokenized["attention_mask"][len(prompt_input_ids) :]
@@ -569,15 +772,21 @@ class SPPOTrainer(Trainer):
         answer_input_ids = full_tokenized["input_ids"][response_token_ids_start_idx:]
         answer_attention_mask = full_tokenized["attention_mask"][response_token_ids_start_idx:]
 
-        return dict(
+        return_dict = dict(
             prompt_input_ids=prompt_input_ids,
             prompt_attention_mask=prompt_attention_mask,
             input_ids=answer_input_ids,
             attention_mask=answer_attention_mask,
         )
+        if "pixel_values" in full_tokenized:
+            return_dict["prompt_pixel_values"] = full_tokenized["pixel_values"]
+        if "pixel_attention_mask" in full_tokenized:
+            return_dict["prompt_pixel_attention_mask"] = full_tokenized["pixel_attention_mask"]
 
-    def tokenize_row(self, feature, model: Union[PreTrainedModel, nn.Module] = None) -> Dict:
-        """Tokenize a single row from a SPPO specific dataset.
+        return return_dict
+
+    def tokenize_row(self, feature, model: Optional[Union[PreTrainedModel, nn.Module]] = None) -> Dict:
+        """Tokenize a single row from a DPO specific dataset.
 
         At this stage, we don't convert to PyTorch tensors yet; we just handle the truncation
         in case the prompt + chosen or prompt + rejected responses is/are too long. First
@@ -591,6 +800,8 @@ class SPPOTrainer(Trainer):
         prompt = feature["prompt"]
         chosen = feature["chosen"]
         rejected = feature["rejected"]
+        images = feature.get("images")
+
         if not self.is_encoder_decoder:
             # Check issues below for more details
             #  1. https://github.com/huggingface/trl/issues/907
@@ -599,16 +810,29 @@ class SPPOTrainer(Trainer):
 
             if not isinstance(prompt, str):
                 raise ValueError(f"prompt should be an str but got {type(prompt)}")
-            prompt_tokens = self.tokenizer(prompt, add_special_tokens=False)
+            if self.is_vision_model:
+                if "add_special_tokens" in inspect.signature(self.processor).parameters:
+                    processor_kwargs = {"add_special_tokens": False}
+                else:
+                    processor_kwargs = {}
+                prompt_tokens = self.processor(prompt, images=images, **processor_kwargs)
+                prompt_tokens = {k: v[0] for k, v in prompt_tokens.items()}  # Unbatch, not done when using idefics
+                if not isinstance(prompt_tokens["input_ids"], list):  # llava processor returns tensors
+                    prompt_tokens["input_ids"] = prompt_tokens["input_ids"].tolist()
+                    prompt_tokens["attention_mask"] = prompt_tokens["attention_mask"].tolist()
+            else:
+                prompt_tokens = self.tokenizer(prompt, add_special_tokens=False)
+
             prompt_tokens = {f"prompt_{k}": v for k, v in prompt_tokens.items()}
 
             if not isinstance(chosen, str):
                 raise ValueError(f"chosen should be an str but got {type(chosen)}")
-            chosen_tokens = self.build_tokenized_answer(prompt, chosen)
+
+            chosen_tokens = self.build_tokenized_answer(prompt, chosen, images)
 
             if not isinstance(rejected, str):
                 raise ValueError(f"rejected should be an str but got {type(rejected)}")
-            rejected_tokens = self.build_tokenized_answer(prompt, rejected)
+            rejected_tokens = self.build_tokenized_answer(prompt, rejected, images)
 
             # Last prompt token might get merged by tokenizer and
             # it should not be included for generation if that happens
@@ -633,21 +857,21 @@ class SPPOTrainer(Trainer):
                     "last token due to tokenizer merge ops."
                 )
 
-            # add BOS token to head of prompt
-            prompt_tokens["prompt_input_ids"] = [self.tokenizer.bos_token_id] + prompt_tokens["prompt_input_ids"]
-            chosen_tokens["prompt_input_ids"] = [self.tokenizer.bos_token_id] + chosen_tokens["prompt_input_ids"]
-            rejected_tokens["prompt_input_ids"] = [self.tokenizer.bos_token_id] + rejected_tokens["prompt_input_ids"]
+            # add BOS token to head of prompt. Avoid adding if it's already there
+            prompt_tokens, chosen_tokens, rejected_tokens = add_bos_token_if_needed(
+                self.tokenizer.bos_token_id,
+                prompt_len_input_ids,
+                prompt_tokens,
+                chosen_prompt_len_input_ids,
+                chosen_tokens,
+                rejected_prompt_len_input_ids,
+                rejected_tokens,
+            )
 
-            prompt_tokens["prompt_attention_mask"] = [1] + prompt_tokens["prompt_attention_mask"]
-            chosen_tokens["prompt_attention_mask"] = [1] + chosen_tokens["prompt_attention_mask"]
-            rejected_tokens["prompt_attention_mask"] = [1] + rejected_tokens["prompt_attention_mask"]
-
-            # add EOS token to end of answer
-            chosen_tokens["input_ids"].append(self.tokenizer.eos_token_id)
-            chosen_tokens["attention_mask"].append(1)
-
-            rejected_tokens["input_ids"].append(self.tokenizer.eos_token_id)
-            rejected_tokens["attention_mask"].append(1)
+            # add EOS token to end of answer. Avoid adding if it's already there
+            chosen_tokens, rejected_tokens = add_eos_token_if_needed(
+                self.tokenizer.eos_token_id, chosen_tokens, rejected_tokens
+            )
 
             longer_response_length = max(len(chosen_tokens["input_ids"]), len(rejected_tokens["input_ids"]))
 
@@ -695,7 +919,6 @@ class SPPOTrainer(Trainer):
                         continue
                     batch[f"{k}{type_key}"] = tokens
 
-
         else:
             chosen_tokens = self.tokenizer(
                 chosen, truncation=True, max_length=self.max_target_length, add_special_tokens=True
@@ -714,12 +937,12 @@ class SPPOTrainer(Trainer):
 
             if model is not None and hasattr(model, "prepare_decoder_input_ids_from_labels"):
                 batch["rejected_decoder_input_ids"] = model.prepare_decoder_input_ids_from_labels(
-                    labels=batch["rejected_labels"]
+                    labels=torch.tensor(batch["rejected_labels"])
                 )
                 batch["chosen_decoder_input_ids"] = model.prepare_decoder_input_ids_from_labels(
-                    labels=batch["chosen_labels"]
+                    labels=torch.tensor(batch["chosen_labels"])
                 )
-        #print('batch=======', batch.keys())
+
         return batch
 
     @contextmanager
@@ -736,10 +959,10 @@ class SPPOTrainer(Trainer):
 
     def compute_reference_log_probs(self, padded_batch: Dict) -> Dict:
         """Computes log probabilities of the reference model for a single padded batch of a DPO specific dataset."""
-        compte_ref_context_manager = torch.cuda.amp.autocast if self._peft_has_been_casted_to_bf16 else nullcontext
+        compte_ref_context_manager = amp.autocast("cuda") if self._peft_has_been_casted_to_bf16 else nullcontext()
 
         # compute reference logps
-        with torch.no_grad(), compte_ref_context_manager():
+        with torch.no_grad(), compte_ref_context_manager:
             if self.ref_model is None:
                 with self.null_ref_context():
                     (
@@ -747,11 +970,13 @@ class SPPOTrainer(Trainer):
                         reference_rejected_logps,
                         _,
                         _,
+                        _,
                     ) = self.concatenated_forward(self.model, padded_batch)
             else:
                 (
                     reference_chosen_logps,
                     reference_rejected_logps,
+                    _,
                     _,
                     _,
                 ) = self.concatenated_forward(self.ref_model, padded_batch)
@@ -762,6 +987,7 @@ class SPPOTrainer(Trainer):
     def concatenated_inputs(
         batch: Dict[str, Union[List, torch.LongTensor]],
         is_encoder_decoder: bool = False,
+        is_vision_model: bool = False,
         label_pad_token_id: int = -100,
         padding_value: int = 0,
         device: Optional[torch.device] = None,
@@ -818,92 +1044,179 @@ class SPPOTrainer(Trainer):
                 batch["prompt_attention_mask"].repeat(2, 1).to(device=device)
             )
 
+        if is_vision_model:
+            concatenated_batch["pixel_values"] = torch.cat(
+                [batch["prompt_pixel_values"], batch["prompt_pixel_values"]], dim=0
+            )
+            if "prompt_pixel_attention_mask" in batch:
+                concatenated_batch["pixel_attention_mask"] = torch.cat(
+                    [batch["prompt_pixel_attention_mask"], batch["prompt_pixel_attention_mask"]], dim=0
+                )
         return concatenated_batch
 
-    def sppo_loss(
+    def dpo_loss(
         self,
         policy_chosen_logps: torch.FloatTensor,
         policy_rejected_logps: torch.FloatTensor,
         reference_chosen_logps: torch.FloatTensor,
         reference_rejected_logps: torch.FloatTensor,
-        chosen_probs: Union[torch.FloatTensor, None] = None,
-        chosen_probs_win: Union[torch.FloatTensor, None] = None,
-        chosen_probs_lose: Union[torch.FloatTensor, None] = None,
-        reference_free: bool = False,
     ) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
-        """Compute the SPPO loss for a batch of policy and reference model log probabilities.
+        """Compute the DPO loss for a batch of policy and reference model log probabilities.
 
         Args:
             policy_chosen_logps: Log probabilities of the policy model for the chosen responses. Shape: (batch_size,)
             policy_rejected_logps: Log probabilities of the policy model for the rejected responses. Shape: (batch_size,)
             reference_chosen_logps: Log probabilities of the reference model for the chosen responses. Shape: (batch_size,)
             reference_rejected_logps: Log probabilities of the reference model for the rejected responses. Shape: (batch_size,)
-            reference_free: If True, we ignore the _provided_ reference model and implicitly use a reference model that assigns equal probability to all responses.
 
         Returns:
             A tuple of three tensors: (losses, chosen_rewards, rejected_rewards).
-            The losses tensor contains the SPPO loss for each example in the batch.
+            The losses tensor contains the DPO loss for each example in the batch.
             The chosen_rewards and rejected_rewards tensors contain the rewards for the chosen and rejected responses, respectively.
         """
-        pi_logratios = policy_chosen_logps - policy_rejected_logps
-        if reference_free:
-            ref_logratios = 0
+        chosen_logratios = policy_chosen_logps.to(self.accelerator.device) - (
+            not self.reference_free
+        ) * reference_chosen_logps.to(self.accelerator.device)
+        rejected_logratios = policy_rejected_logps.to(self.accelerator.device) - (
+            not self.reference_free
+        ) * reference_rejected_logps.to(self.accelerator.device)
+
+        if self.f_divergence_type == FDivergenceType.ALPHA_DIVERGENCE.value:
+            # The alpha-divergence formula: (1 - u^-alpha) / alpha
+            # The divergence difference between the chosen and rejected sample is:
+            #     (1 - u[w]^-alpha) / alpha - (1 - u[l]^-alpha) / alpha
+            #        = (u[l]^-alpha - u[w]^-alpha) / alpha
+            # where u[w] and u[l] are the policy/reference probability ratios
+            # for the chosen and rejected samples, respectively.
+            alpha_coef = FDivergenceConstants.ALPHA_DIVERGENCE_COEF_DEFAULT
+            if self.f_divergence_params and FDivergenceConstants.ALPHA_DIVERGENCE_COEF_KEY in self.f_divergence_params:
+                alpha_coef = float(self.f_divergence_params[FDivergenceConstants.ALPHA_DIVERGENCE_COEF_KEY])
+            logits = (cap_exp(rejected_logratios * -alpha_coef) - cap_exp(chosen_logratios * -alpha_coef)) / alpha_coef
         else:
-            ref_logratios = reference_chosen_logps - reference_rejected_logps
+            pi_logratios = policy_chosen_logps - policy_rejected_logps
+            if self.reference_free:
+                ref_logratios = torch.tensor([0], dtype=pi_logratios.dtype, device=pi_logratios.device)
+            else:
+                ref_logratios = reference_chosen_logps - reference_rejected_logps
 
-        pi_logratios = pi_logratios.to(self.accelerator.device)
-        ref_logratios = ref_logratios.to(self.accelerator.device)
-        logits = pi_logratios - ref_logratios
+            pi_logratios = pi_logratios.to(self.accelerator.device)
+            ref_logratios = ref_logratios.to(self.accelerator.device)
+            logits = pi_logratios - ref_logratios
 
-        # For sppo
-        logits_w = policy_chosen_logps - reference_chosen_logps
-        logits_l = policy_rejected_logps - reference_rejected_logps
+            if self.f_divergence_type == FDivergenceType.JS_DIVERGENCE.value:
+                # The js-divergence formula: log(2 * u / (1 + u))
+                # The divergence difference between the chosen and rejected sample is:
+                #     log(2 * u[w] / (1 + u[w])) - log(2 * u[l] / (1 + u[l]))
+                #       = log(u[w]) - log(u[l]) - (log(1 + u[w]) - log(1 + u[l]))
+                # where u[w] and u[l] are the policy/reference probability ratios
+                # for the chosen and rejected samples, respectively.
+                logits -= F.softplus(chosen_logratios) - F.softplus(rejected_logratios)
 
-        # The beta is a temperature parameter for the DPO loss, typically something in the range of 0.1 to 0.5. In SPPO, beta=1/eta has a different meaning, and is usually chosen around 1e-3.
+        # The beta is a temperature parameter for the DPO loss, typically something in the range of 0.1 to 0.5.
         # We ignore the reference model as beta -> 0. The label_smoothing parameter encodes our uncertainty about the labels and
-        # calculates a conservative SPPO loss.
-        
+        # calculates a conservative DPO loss.
         if self.loss_type == "sigmoid":
             losses = (
                 -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
                 - F.logsigmoid(-self.beta * logits) * self.label_smoothing
             )
-            
+        elif self.loss_type == "robust":
+            losses = (
+                -F.logsigmoid(self.beta * logits) * (1 - self.label_smoothing)
+                + F.logsigmoid(-self.beta * logits) * self.label_smoothing
+            ) / (1 - 2 * self.label_smoothing)
+        elif self.loss_type == "exo_pair":
+            # eqn (16) of the EXO paper: https://huggingface.co/papers/2402.00856
+            import math
+
+            if self.label_smoothing == 0:
+                self.label_smoothing = 1e-3
+            losses = (self.beta * logits).sigmoid() * (
+                F.logsigmoid(self.beta * logits) - math.log(1 - self.label_smoothing)
+            ) + (-self.beta * logits).sigmoid() * (F.logsigmoid(-self.beta * logits) - math.log(self.label_smoothing))
         elif self.loss_type == "hinge":
             losses = torch.relu(1 - self.beta * logits)
-            
         elif self.loss_type == "ipo":
             # eqn (17) of the paper where beta is the regularization parameter for the IPO loss, denoted by tau in the paper.
             losses = (logits - 1 / (2 * self.beta)) ** 2
-            
-        elif self.loss_type == "sppo":
-            loss_w = (logits_w - (1 / self.beta) * (chosen_probs_win - 0.5)) ** 2
-            loss_l = (logits_l - (1 / self.beta) * (chosen_probs_lose - 0.5)) ** 2
-            losses = (loss_w + loss_l)/2
-            
-        elif self.loss_type == "sppo_single":
-            loss_w = (logits_w - (1 / self.beta) * (chosen_probs - 0.5)) ** 2
-            loss_l = (logits_l + (1 / self.beta) * (chosen_probs - 0.5)) ** 2
-            losses = (loss_w + loss_l)/2
-            
-        elif self.loss_type == "kto_pair":
-            # eqn (7) of the HALOs paper
-            chosen_KL = (policy_chosen_logps - reference_chosen_logps).mean().clamp(min=0)
-            rejected_KL = (policy_rejected_logps - reference_rejected_logps).mean().clamp(min=0)
-
+        elif self.loss_type == "bco_pair":
             chosen_logratios = policy_chosen_logps - reference_chosen_logps
             rejected_logratios = policy_rejected_logps - reference_rejected_logps
-            # As described in the KTO report, the KL term for chosen (rejected) is estimated using the rejected (chosen) half.
-            losses = torch.cat(
-                (
-                    1 - F.sigmoid(self.beta * (chosen_logratios - rejected_KL)),
-                    1 - F.sigmoid(self.beta * (chosen_KL - rejected_logratios)),
-                ),
-                0,
+
+            chosen_rewards = self.beta * chosen_logratios
+            rejected_rewards = self.beta * rejected_logratios
+            rewards = torch.cat((chosen_rewards, rejected_rewards), 0).mean().detach()
+            self.running.update(rewards)
+            delta = self.running.mean
+
+            losses = -F.logsigmoid((self.beta * chosen_logratios) - delta) - F.logsigmoid(
+                -(self.beta * rejected_logratios - delta)
             )
+        elif self.loss_type == "sppo_hard":
+            # In the paper (https://huggingface.co/papers/2405.00675), SPPO employs a soft probability approach, estimated using the PairRM score. The probability calculation is conducted outside of the trainer class. The version described here is the hard probability version, where P in Equation (4.7) of Algorithm 1 is set to 1 for the winner and 0 for the loser.
+            a = policy_chosen_logps - reference_chosen_logps
+            b = policy_rejected_logps - reference_rejected_logps
+
+            losses = (a - 0.5 / self.beta) ** 2 + (b + 0.5 / self.beta) ** 2
+        elif self.loss_type == "nca_pair":
+            chosen_rewards = (policy_chosen_logps - reference_chosen_logps) * self.beta
+            rejected_rewards = (policy_rejected_logps - reference_rejected_logps) * self.beta
+            losses = (
+                -F.logsigmoid(chosen_rewards)
+                - 0.5 * F.logsigmoid(-chosen_rewards)
+                - 0.5 * F.logsigmoid(-rejected_rewards)
+            )
+        elif self.loss_type == "aot_pair":
+            chosen_logratios = policy_chosen_logps - reference_chosen_logps
+            rejected_logratios = policy_rejected_logps - reference_rejected_logps
+
+            chosen_logratios_sorted, _ = torch.sort(chosen_logratios, dim=0)
+            rejected_logratios_sorted, _ = torch.sort(rejected_logratios, dim=0)
+
+            delta = chosen_logratios_sorted - rejected_logratios_sorted
+
+            losses = (
+                -F.logsigmoid(self.beta * delta) * (1 - self.label_smoothing)
+                - F.logsigmoid(-self.beta * delta) * self.label_smoothing
+            )
+
+        elif self.loss_type == "aot":
+            pi_logratios = policy_chosen_logps - policy_rejected_logps
+            ref_logratios = reference_chosen_logps - reference_rejected_logps
+
+            pi_logratios_sorted, _ = torch.sort(pi_logratios, dim=0)
+            ref_logratios_sorted, _ = torch.sort(ref_logratios, dim=0)
+
+            delta = pi_logratios_sorted - ref_logratios_sorted
+
+            losses = (
+                -F.logsigmoid(self.beta * delta) * (1 - self.label_smoothing)
+                - F.logsigmoid(-self.beta * delta) * self.label_smoothing
+            )
+
+        elif self.loss_type == "apo_zero":
+            # Eqn (7) of the APO paper (https://huggingface.co/papers/2408.06266)
+            # Use this loss when you believe the chosen outputs are better than your model's default output
+
+            losses_chosen = 1 - F.sigmoid(self.beta * chosen_logratios)  # Increase chosen likelihood
+            losses_rejected = F.sigmoid(self.beta * rejected_logratios)  # Decrease rejected likelihood
+
+            losses = losses_chosen + losses_rejected
+
+        elif self.loss_type == "apo_down":
+            # Eqn (8) of the APO paper (https://huggingface.co/papers/2408.06266)
+            # Use this loss when you believe the chosen outputs are worse than your model's default output
+
+            losses_chosen = F.sigmoid(self.beta * chosen_logratios)  # Decrease chosen likelihood
+            losses_rejected = 1 - F.sigmoid(
+                self.beta * (chosen_logratios - rejected_logratios)
+            )  # Decrease rejected likelihood more
+
+            losses = losses_chosen + losses_rejected
+
         else:
             raise ValueError(
-                f"Unknown loss type: {self.loss_type}. Should be one of ['sigmoid', 'hinge', 'ipo', 'kto_pair']"
+                f"Unknown loss type: {self.loss_type}. Should be one of ['sigmoid', 'hinge', 'ipo', 'exo_pair', 'nca_pair', 'robust', 'bco_pair', 'sppo_hard', 'aot', 'aot_pair', 'apo_zero', 'apo_down']"
             )
 
         chosen_rewards = (
@@ -928,7 +1241,7 @@ class SPPOTrainer(Trainer):
         labels: torch.LongTensor,
         label_pad_token_id: int = -100,
         is_encoder_decoder: bool = False,
-    ) -> torch.FloatTensor:
+    ) -> Tuple[torch.FloatTensor, torch.LongTensor]:
         """Compute the log probabilities of the given labels under the given logits.
 
         Args:
@@ -952,14 +1265,12 @@ class SPPOTrainer(Trainer):
         labels[labels == label_pad_token_id] = 0
 
         per_token_logps = torch.gather(logits.log_softmax(-1), dim=2, index=labels.unsqueeze(2)).squeeze(2)
-        
-        size_completion = loss_mask.sum(-1)
-        
-        return (per_token_logps * loss_mask).sum(-1), size_completion
+
+        return (per_token_logps * loss_mask).sum(-1), loss_mask.sum(-1)
 
     def concatenated_forward(
         self, model: nn.Module, batch: Dict[str, Union[List, torch.LongTensor]]
-    ) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
+    ) -> Tuple[torch.FloatTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor, torch.FloatTensor]:
         """Run the given model on the given batch of inputs, concatenating the chosen and rejected inputs together.
 
         We do this to avoid doing two forward passes, because it's faster for FSDP.
@@ -967,35 +1278,48 @@ class SPPOTrainer(Trainer):
         concatenated_batch = self.concatenated_inputs(
             batch,
             is_encoder_decoder=self.is_encoder_decoder,
+            is_vision_model=self.is_vision_model,
             label_pad_token_id=self.label_pad_token_id,
             padding_value=self.padding_value,
             device=self.accelerator.device,
         )
         len_chosen = batch["chosen_labels"].shape[0]
 
-        model_kwargs = (
-            {
-                "labels": concatenated_batch["concatenated_labels"],
-                "decoder_input_ids": concatenated_batch.pop("concatenated_decoder_input_ids", None),
-            }
-            if self.is_encoder_decoder
-            else {}
-        )
-        all_logits = model(
+        model_kwargs = {}
+
+        if self.is_encoder_decoder:
+            model_kwargs["labels"] = concatenated_batch["concatenated_labels"]
+            model_kwargs["decoder_input_ids"] = concatenated_batch.pop("concatenated_decoder_input_ids", None)
+
+        if self.is_vision_model:
+            model_kwargs["pixel_values"] = concatenated_batch["pixel_values"]
+            if "pixel_attention_mask" in concatenated_batch:
+                model_kwargs["pixel_attention_mask"] = concatenated_batch["pixel_attention_mask"]
+
+        if self.aux_loss_enabled:
+            model_kwargs["output_router_logits"] = True
+
+        outputs = model(
             concatenated_batch["concatenated_input_ids"],
             attention_mask=concatenated_batch["concatenated_attention_mask"],
+            use_cache=False,
             **model_kwargs,
-        ).logits
+        )
+        all_logits = outputs.logits
+
+        if all_logits.shape[:2] != concatenated_batch["concatenated_labels"].shape[:2]:
+            # for llava, the model returns logits for the entire sequence, including the image tokens (placed before the text tokens)
+            seq_len = concatenated_batch["concatenated_labels"].shape[1]
+            all_logits = all_logits[:, -seq_len:]
 
         all_logps, size_completion = self.get_batch_logps(
             all_logits,
             concatenated_batch["concatenated_labels"],
+            # average_log_prob=self.loss_type == "ipo",
             is_encoder_decoder=self.is_encoder_decoder,
             label_pad_token_id=self.label_pad_token_id,
         )
 
-        # ---------------------------------------------------------
-        # RPO relevant
         def cross_entropy_loss(logits, labels):
             if not self.is_encoder_decoder:
                 # Shift so that tokens < n predict n
@@ -1009,23 +1333,21 @@ class SPPOTrainer(Trainer):
             labels = labels.to(logits.device)
             loss = loss_fct(logits, labels)
             return loss
-        
+
         labels = concatenated_batch["concatenated_labels"].clone()
-        nll_loss = cross_entropy_loss(all_logits[:len_chosen], 
-                                      labels[:len_chosen])
-        # ---------------------------------------------------------
-        
-        # ---------------------------------------------------------
-        # FIX for IPO
+        nll_loss = cross_entropy_loss(all_logits[:len_chosen], labels[:len_chosen])
+
         if self.loss_type == "ipo":
             all_logps = all_logps / size_completion
-        # ---------------------------------------------------------
 
         chosen_logps = all_logps[:len_chosen]
         rejected_logps = all_logps[len_chosen:]
 
         chosen_logits = all_logits[:len_chosen]
         rejected_logits = all_logits[len_chosen:]
+
+        if self.aux_loss_enabled:
+            return (chosen_logps, rejected_logps, chosen_logits, rejected_logits, nll_loss, outputs.aux_loss)
 
         return (chosen_logps, rejected_logps, chosen_logits, rejected_logits, nll_loss)
 
@@ -1035,8 +1357,9 @@ class SPPOTrainer(Trainer):
         batch: Dict[str, Union[List, torch.LongTensor]],
         train_eval: Literal["train", "eval"] = "train",
     ):
-        """Compute the loss and other metrics for the given batch of inputs for train or test."""
+        """Compute the DPO loss and other metrics for the given batch of inputs for train or test."""
         metrics = {}
+
         forward_output = self.concatenated_forward(model, batch)
         (
             policy_chosen_logps,
@@ -1045,26 +1368,14 @@ class SPPOTrainer(Trainer):
             policy_rejected_logits,
             policy_nll_loss,
         ) = forward_output[:5]
+        if self.aux_loss_enabled:
+            aux_loss = forward_output[5]
 
-        # DEBUG: the below is only needed for sppo
-        try:
-            chosen_probs = torch.tensor(
-                batch["chosen_probs"], dtype=float, device=policy_chosen_logps.device)
-            chosen_probs_win = torch.tensor(
-                batch["chosen_probs_win"], dtype=float, device=policy_chosen_logps.device)
-            chosen_probs_lose = torch.tensor(
-                batch["chosen_probs_lose"], dtype=float, device=policy_chosen_logps.device)
-        except Exception as e:
-            chosen_probs = None
-            chosen_probs_win = None
-            chosen_probs_lose = None
-
-        
         # if reference_chosen_logps and reference_rejected_logps in batch use them, otherwise use the reference model
         if (
             "reference_chosen_logps" in batch
             and "reference_rejected_logps" in batch
-            and self.args.rpo_alpha is not None  # DEBUG
+            and self.args.rpo_alpha is not None
         ):
             reference_chosen_logps = batch["reference_chosen_logps"]
             reference_rejected_logps = batch["reference_rejected_logps"]
@@ -1077,7 +1388,7 @@ class SPPOTrainer(Trainer):
                             reference_rejected_logps,
                             _,
                             _,
-                            _,  # nll loss
+                            _,
                         ) = self.concatenated_forward(self.model, batch)
                 else:
                     (
@@ -1085,19 +1396,20 @@ class SPPOTrainer(Trainer):
                         reference_rejected_logps,
                         _,
                         _,
-                        _,  # nll loss
+                        _,
                     ) = self.concatenated_forward(self.ref_model, batch)
 
-        losses, chosen_rewards, rejected_rewards = self.sppo_loss(
+        losses, chosen_rewards, rejected_rewards = self.dpo_loss(
             policy_chosen_logps,
             policy_rejected_logps,
             reference_chosen_logps,
             reference_rejected_logps,
-            chosen_probs,  # only for sppo
-            chosen_probs_win,  # only for sppo
-            chosen_probs_lose,  # only for sppo
         )
         reward_accuracies = (chosen_rewards > rejected_rewards).float()
+
+        if self.args.rpo_alpha is not None:
+            # RPO loss from V3 of the paper:
+            losses = losses + policy_nll_loss * self.args.rpo_alpha
 
         prefix = "eval_" if train_eval == "eval" else ""
         metrics[f"{prefix}rewards/chosen"] = chosen_rewards.mean().cpu()
@@ -1111,16 +1423,9 @@ class SPPOTrainer(Trainer):
         if self.args.rpo_alpha is not None:
             metrics[f"{prefix}nll_loss"] = policy_nll_loss.detach().mean().cpu()
 
-        # --------------------------------------------------------------------------
-        # RPO relevant
-        if self.args.rpo_alpha is not None:
-            # RPO loss from V3 of the paper:
-            losses = losses + policy_nll_loss * self.args.rpo_alpha
+        if self.aux_loss_enabled:
+            return losses.mean() + getattr(model.config, "router_aux_loss_coef", 0.0) * aux_loss, metrics
 
-        if self.args.rpo_alpha is not None:
-            metrics[f"{prefix}nll_loss"] = policy_nll_loss.detach().mean().cpu()
-        # --------------------------------------------------------------------------
-        
         return losses.mean(), metrics
 
     def compute_loss(
@@ -1135,11 +1440,13 @@ class SPPOTrainer(Trainer):
                 "DPODataCollatorWithPadding - you might see unexpected behavior. Alternatively, you can implement your own prediction_step method if you are using a custom data collator"
             )
 
-        compute_loss_context_manager = torch.cuda.amp.autocast if self._peft_has_been_casted_to_bf16 else nullcontext
+        compute_loss_context_manager = amp.autocast("cuda") if self._peft_has_been_casted_to_bf16 else nullcontext()
 
-        with compute_loss_context_manager():
+        with compute_loss_context_manager:
             loss, metrics = self.get_batch_loss_metrics(model, inputs, train_eval="train")
 
+        # Make sure to move the loss to the device the original accumulating loss is at back in the `Trainer` class:
+        loss = loss.to(self.args.device)
         # force log the metrics
         self.store_metrics(metrics, train_eval="train")
 
@@ -1152,9 +1459,9 @@ class SPPOTrainer(Trainer):
 
         # If one uses `generate_during_eval` with peft + bf16, we need to explicitly call generate with
         # the torch cuda amp context manager as some hidden states are silently casted to full precision.
-        generate_context_manager = nullcontext if not self._peft_has_been_casted_to_bf16 else torch.cuda.amp.autocast
+        generate_context_manager = amp.autocast("cuda") if self._peft_has_been_casted_to_bf16 else nullcontext()
 
-        with generate_context_manager():
+        with generate_context_manager:
             policy_output = model.generate(
                 input_ids=batch["prompt_input_ids"],
                 attention_mask=batch["prompt_attention_mask"],
@@ -1211,9 +1518,9 @@ class SPPOTrainer(Trainer):
             else:
                 ignore_keys = []
 
-        prediction_context_manager = torch.cuda.amp.autocast if self._peft_has_been_casted_to_bf16 else nullcontext
+        prediction_context_manager = amp.autocast("cuda") if self._peft_has_been_casted_to_bf16 else nullcontext()
 
-        with torch.no_grad(), prediction_context_manager():
+        with torch.no_grad(), prediction_context_manager:
             loss, metrics = self.get_batch_loss_metrics(model, inputs, train_eval="eval")
 
         # force log the metrics
@@ -1304,11 +1611,16 @@ class SPPOTrainer(Trainer):
         return super().log(logs)
 
     @wraps(Trainer.push_to_hub)
-    def push_to_hub(self, commit_message: Optional[str] = "End of training", blocking: bool = True, **kwargs) -> str:
+    def push_to_hub(
+        self,
+        commit_message: Optional[str] = "End of training",
+        blocking: bool = True,
+        **kwargs,
+    ) -> str:
         """
-        Overwrite the `push_to_hub` method in order to force-add the tag "sft" when pushing the
+        Overwrite the `push_to_hub` method in order to force-add the tag "dpo" when pushing the
         model on the Hub. Please refer to `~transformers.Trainer.push_to_hub` for more details.
+        Unlike the parent class, we don't use the `token` argument to mitigate security risks.
         """
         kwargs = trl_sanitze_kwargs_for_tagging(model=self.model, tag_names=self._tag_names, kwargs=kwargs)
-
         return super().push_to_hub(commit_message=commit_message, blocking=blocking, **kwargs)

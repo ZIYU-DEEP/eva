@@ -264,3 +264,9 @@ class SPPOConfig(transformers.TrainingArguments):
     optim: Optional[str] = field(default="rmsprop")
     remove_unused_columns: bool = field(default=False)
     loss_type: Optional[str] = field(default="sigmoid", metadata={"help": ("The loss type for SPPO.")})
+
+    # Add rpo_alpha for RPO loss weighting
+    rpo_alpha: Optional[float] = field(
+        default=None,
+        metadata={"help": ("The weight for the RPO loss term. Set to None to disable RPO.")},
+    )
