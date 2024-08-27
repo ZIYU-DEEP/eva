@@ -47,6 +47,8 @@ def parse_arguments():
     parser.add_argument("--sample_metric", type=str, default='reward_mean')
     parser.add_argument("--sample_frac", type=float, default=0.25)
     parser.add_argument("--sample_method", type=str, default='importance_weighted')
+    parser.add_argument("--iw_topic_coef", type=int, default=0.25,
+                        help="The coefficient for inverse weight based on topic frequency.")
 
     return parser.parse_args()
 
@@ -92,7 +94,7 @@ def adaptive_sample(
     sample_frac: float = 0.25,
     sample_method: str = 'importance_weighted',
     subset_dataset: str = 'cat-searcher/responses-gemma-1.1-2b-it-split-0-subset-reward_gap-0.25',
-    iw_topic_coef: float = 0.5,
+    iw_topic_coef: float = 0.25,
 ) -> str:
     """
     Sample prompts based on a specified metric with conditional logic and advanced sampling.
@@ -143,16 +145,26 @@ def adaptive_sample(
                                replace=False)).reset_index(drop=True)
                                         
     elif sample_method == 'iw_topic':
-        # Adjust weights by inverse topic frequency using the topic_freq column
-        adjusted_weights = weights / (iw_topic_coef * df['topic_freq'])
+        # Get the original weights
+        df['weights'] = weights
         
-        # Normalize the adjusted weights
-        normalized_adjusted_weights = adjusted_weights / adjusted_weights.sum()
+        # Calculate inverse of topic frequencies using the existing 'topic_freq' column
+        inverse_topic_freqs = 1 / df['topic_freq']
         
-        # Perform sampling
-        df['weights'] = normalized_adjusted_weights
+        # Normalize inverse frequency
+        normalized_inv_freqs = inverse_topic_freqs / inverse_topic_freqs.sum()
+        
+        # Calculate final weights as a blend of original weights and inverse frequency
+        assert 0 <= iw_topic_coef <= 1, "iw_topic_coef must be between 0 and 1"
+        
+        final_weights = (1 - iw_topic_coef) * weights + iw_topic_coef * normalized_inv_freqs
+        
+        # Normalize final weights to ensure they sum to 1
+        final_weights /= final_weights.sum()
+        
+        # Perform sampling based on the final weights
         sampled_df = df.sample(n=int(len(df) * sample_frac), 
-                            weights=normalized_adjusted_weights, 
+                            weights=final_weights, 
                             replace=False)
 
                                         
@@ -199,6 +211,7 @@ def main():
     sample_frac = args.sample_frac
     sample_method = args.sample_method
     subset_dataset = args.subset_dataset
+    iw_topic_coef = args.iw_topic_coef
     max_prompt_length = args.max_prompt_length
     evolve_temperature = args.evolve_temperature
     
@@ -227,6 +240,7 @@ def main():
             sample_frac=sample_frac,
             sample_method=sample_method,
             subset_dataset=subset_dataset,
+            iw_topic_coef=iw_topic_coef,
         )
         dataset = load_dataset(input_dataset, split='train')
         
