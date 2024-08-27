@@ -48,8 +48,8 @@ def parse_arguments():
     )
     
     parser.add_argument(
-        "--private", 
-        action='store_false', 
+        "--public", 
+        action='store_true', 
         help="Set the output dataset to private"
     )
     
@@ -89,7 +89,7 @@ def main():
         
         # Push the updated dataset split to the hub
         ds.push_to_hub(args.output_dataset if args.output_dataset else args.dataset, 
-                       private=args.private, 
+                       private=not args.public, 
                        split=split)
 
 
