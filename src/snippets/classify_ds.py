@@ -63,7 +63,8 @@ def main():
     # Load the zero-shot classification model
     classifier = pipeline('zero-shot-classification', 
                           model=args.model, 
-                          device_map='auto')
+                        #   device_map='auto',
+                          )
 
     # Function to classify prompts with progress tracking
     def classify_prompts(prompts):
