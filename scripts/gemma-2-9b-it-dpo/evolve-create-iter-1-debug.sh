@@ -99,6 +99,11 @@ DATASET_WITH_REWARDS="${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards"
 DATASET_SUBSET="${HF_USERNAME}/${OUTPUT_DIR}-subset-${SAMPLE_METRIC}-${SAMPLE_FRAC}"
 DATASET_EVOLVED="${HF_USERNAME}/${OUTPUT_DIR}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}"  
 
+if [ "$SAMPLE_METHOD" = 'iw_topic' ]; then
+    DATASET_SUBSET+="-iw_topic-${IW_TOPIC_COEF}"
+    DATASET_EVOLVED+="-iw_topic-${IW_TOPIC_COEF}"
+fi
+
 echo $DATASET_EVOLVED
 
 python src/evolve_prompt.py \
@@ -114,6 +119,7 @@ python src/evolve_prompt.py \
     --sample_metric $SAMPLE_METRIC \
     --sample_frac $SAMPLE_FRAC \
     --sample_method $SAMPLE_METHOD \
+    --iw_topic_coef $IW_TOPIC_COEF \
     --max_prompt_length $MAX_PROMPT_LENGTH \
     --evolve_temperature $EVOLVE_TEMPERATURE
 
