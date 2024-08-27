@@ -1,11 +1,11 @@
 """
 Given a topic list and a HF dataset with prompts,
 classify the prompts into topics using a pre-trained model;
-add the topic as a column to the dataset and push to the hub.
+add the topic as a column to the dataset and push the entire dataset (all splits) to the hub.
 """
 
 import argparse
-from datasets import load_dataset
+from datasets import load_dataset, DatasetDict
 from transformers import pipeline
 from tqdm import tqdm
 
@@ -50,7 +50,7 @@ def parse_arguments():
     parser.add_argument(
         "--public", 
         action='store_true', 
-        help="Set the output dataset to private"
+        help="Set the output dataset to public"
     )
     
     return parser.parse_args()
@@ -75,7 +75,8 @@ def main():
 
     # Load the dataset to get all splits
     dataset_dict = load_dataset(args.dataset)
-    
+    updated_dataset_dict = DatasetDict()
+
     # Iterate over each split in the dataset
     for split in dataset_dict.keys():
         ds = dataset_dict[split]
@@ -87,10 +88,13 @@ def main():
         # Add the topic column to the dataset
         ds = ds.add_column('topic', topics)
         
-        # Push the updated dataset split to the hub
-        ds.push_to_hub(args.output_dataset if args.output_dataset else args.dataset, 
-                       private=not args.public, 
-                       split=split)
+        # Add the updated split to the new DatasetDict
+        updated_dataset_dict[split] = ds
+
+    # Push the entire updated dataset (all splits) to the hub
+    updated_dataset_dict.push_to_hub(
+        args.output_dataset if args.output_dataset else args.dataset, 
+        private=not args.public)
 
 
 if __name__ == "__main__":

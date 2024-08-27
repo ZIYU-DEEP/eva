@@ -41,6 +41,9 @@ MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-666}  # Test longer length
 EVOLVE_TEMPERATURE=${EVOLVE_TEMPERATURE:-0.88}  # Test lower temperature
 SAMPLE_METHOD=${SAMPLE_METHOD:-'importance_weighted'}
 GEN_MODEL_NAME=${GEN_MODEL_NAME:-'gpt-4-0125-preview'}
+
+# NEW
+IW_TOPIC_COEF=${IW_TOPIC_COEF:-0.25}
 # ------------------------------------------------------------------
 
 # NOTICE THERE SHOULD BE DEDUPLICATION BUT WE TEMPORARIALLY IGNORED!

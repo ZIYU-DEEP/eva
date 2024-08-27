@@ -55,7 +55,7 @@ fi
 DATASET_PREFIX="${HF_USERNAME}/ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"
 DATASET_BASE="${DATASET_PREFIX}-pair"
 DATASET_EVOL="${DATASET_PREFIX}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}-pair"
-DATASET="${DATASET_BASE}-evol-${EVOL_NO}-mixed-${RATIO_BASE}-${RATIO_EVOL}-pair"
+DATASET="${DATASET_BASE}-evol-${SAMPLE_METRIC}-mixed-${RATIO_BASE}-${RATIO_EVOL}-pair"
 
 # The directory for the saved model
 SAVE_DIR="checkpoints/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}"
