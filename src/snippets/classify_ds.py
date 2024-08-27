@@ -42,8 +42,8 @@ def parse_arguments():
         "--categories", 
         type=str, 
         nargs='+', 
-        default=["Writing", "Reasoning", "Math", "Coding",
-                 "Summarization", "STEM", "Humanities", "Roleplay"],
+        default=["Writing", "Reasoning", "Math", "Coding", "Summarization",
+                 "STEM / Science", "Humanities", "Multilingual"],
         help="List of topics for classification"
     )
     
