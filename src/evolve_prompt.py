@@ -47,7 +47,7 @@ def parse_arguments():
     parser.add_argument("--sample_metric", type=str, default='reward_mean')
     parser.add_argument("--sample_frac", type=float, default=0.25)
     parser.add_argument("--sample_method", type=str, default='importance_weighted')
-    parser.add_argument("--iw_topic_coef", type=int, default=0.25,
+    parser.add_argument("--iw_topic_coef", type=float, default=0.25,
                         help="The coefficient for inverse weight based on topic frequency.")
 
     return parser.parse_args()
