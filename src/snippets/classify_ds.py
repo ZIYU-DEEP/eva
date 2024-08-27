@@ -6,6 +6,7 @@ add the topic as a column to the dataset and push the entire dataset (all splits
 
 import argparse
 import time
+import numpy as np
 from datasets import load_dataset, DatasetDict, Dataset
 from tqdm import tqdm
 import openai
@@ -140,6 +141,7 @@ def main():
                 topics.extend(future.result())
         
         # Add the topic column to the dataset
+        np.save('temp_topics.npy', np.array(topics))
         ds = add_or_replace_column(ds, 'topic', topics)
         
         # Add the updated split to the new DatasetDict
