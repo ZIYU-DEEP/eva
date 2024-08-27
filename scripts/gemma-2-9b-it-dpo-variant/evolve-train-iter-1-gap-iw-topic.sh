@@ -61,7 +61,8 @@ DATASET="${DATASET_BASE}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}-mixed-${RATIO_BASE
 
 if [ "$SAMPLE_METHOD" = 'iw_topic' ]; then
     DATASET_EVOL="${DATASET_PREFIX}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}-iw_topic-${IW_TOPIC_COEF}-pair"
-    DATASET="${DATASET_BASE}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}-iw_topic-${IW_TOPIC_COEF}-mixed-${RATIO_BASE}-${RATIO_EVOL}-pair"
+    # DEBUG SHORTEN THE NAME
+    DATASET="uf-1-6-dpo-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}-iw_topic-${IW_TOPIC_COEF}-mixed-${RATIO_BASE}-${RATIO_EVOL}-pair"
 fi
 
 # The directory for the saved model
