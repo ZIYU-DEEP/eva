@@ -26,7 +26,7 @@ def parse_arguments():
     parser.add_argument(
         "--target_dataset", 
         type=str, 
-        default="cat-searcher/ultrafeedback-dpo-gemma-2-9b-it-split-1-iter-1-all-hf-rewards", 
+        default="cat-searcher/ultrafeedback-dpo-gemma-2-9b-it-split-1-iter-0-all-hf-rewards", 
         help="Hugging Face target dataset to update with the column"
     )
     
