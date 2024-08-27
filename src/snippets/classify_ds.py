@@ -5,9 +5,25 @@ add the topic as a column to the dataset and push the entire dataset (all splits
 """
 
 import argparse
-from datasets import load_dataset, DatasetDict
-from transformers import pipeline
+import time
+from datasets import load_dataset, DatasetDict, Dataset
 from tqdm import tqdm
+import openai
+from openai import OpenAI
+import os
+from concurrent.futures import ThreadPoolExecutor
+
+API_MAX_RETRY = 5
+API_RETRY_SLEEP = 10
+API_ERROR_OUTPUT = None
+MAX_WORKERS = 100  
+
+
+def add_or_replace_column(ds: Dataset, column_name: str, new_column):
+    if column_name in ds.column_names:
+        ds = ds.remove_columns([column_name])
+    ds = ds.add_column(column_name, new_column)
+    return ds
 
 
 def parse_arguments():
@@ -34,16 +50,16 @@ def parse_arguments():
     parser.add_argument(
         "--model", 
         type=str, 
-        default='MoritzLaurer/deberta-v3-large-zeroshot-v2.0', 
-        help="Model to use for zero-shot classification"
+        default='gpt-4o-mini', 
+        help="ChatGPT model to use for classification"
     )
     
     parser.add_argument(
         "--categories", 
         type=str, 
         nargs='+', 
-        default=["Writing", "Reasoning", "Math", "Coding", "Summarization",
-                 "STEM / Science", "Humanities", "Multilingual"],
+        default=["writing", "reasoning", "math", "coding", "summarization",
+                 "stem/science", "humanities", "multilingual", "other"],
         help="List of topics for classification"
     )
     
@@ -55,28 +71,51 @@ def parse_arguments():
     
     return parser.parse_args()
 
+def classify_prompt_with_chatgpt(prompt, categories, model, client):
+    messages = [
+        {"role": "system", 
+         "content": "You are a helpful assistant that classifies text into predefined categories."},
+        {"role": "user", "content": f"Classify the following prompt into one of these categories (answer only in lowercase with one of the category name in the list, without any punctuation. DO NOT ADD ANYTHING ELSE): {categories}\n\nPROMPT: {prompt}\n\nCATEGORY:"}
+    ]
+
+    output = API_ERROR_OUTPUT
+    for _ in range(API_MAX_RETRY):
+        try:
+            response = client.chat.completions.create(
+                model=model,
+                messages=messages,
+                n=1,
+                temperature=0.0,
+                max_tokens=4096  # Max token length for prompt + response
+            )
+            raw_output = response.choices[0].message.content.strip().lower()
+            output = raw_output if raw_output in categories else "other"
+            break
+        except openai.RateLimitError as e:
+            print(f"OpenAI API request exceeded rate limit: {e}")
+            time.sleep(API_RETRY_SLEEP) 
+        except openai.APIConnectionError as e:
+            print(f"Failed to connect to OpenAI API: {e}")
+            time.sleep(API_RETRY_SLEEP)
+        except openai.APIError as e:
+            print(f"OpenAI API returned an API Error: {e}")
+            time.sleep(API_RETRY_SLEEP)
+    return output
+
+
+def classify_chunk(prompts_chunk, categories, model, client):
+    topics = []
+    for prompt in tqdm(prompts_chunk, desc="Classifying Prompts"):
+        topic = classify_prompt_with_chatgpt(prompt, categories, model, client)
+        topics.append(topic)
+    return topics
+
 
 def main():
     # Parse command line arguments
     args = parse_arguments()
 
-    # Load the zero-shot classification model
-    classifier = pipeline('zero-shot-classification', 
-                          model=args.model, 
-                        #   device_map='auto',
-                          )
-
-    # Function to classify prompts with progress tracking
-    def classify_prompts(prompts):
-        topics = []
-        hypothesis_template = "This text is about {}"
-        for prompt in tqdm(prompts, desc="Classifying Prompts"):
-            result = classifier(prompt, 
-                                candidate_labels=args.categories,
-                                hypothesis_template=hypothesis_template,
-                                multi_label=False)
-            topics.append(result['labels'][0])
-        return topics
+    client = OpenAI()
 
     # Load the dataset to get all splits
     dataset_dict = load_dataset(args.dataset)
@@ -86,12 +125,22 @@ def main():
     for split in dataset_dict.keys():
         ds = dataset_dict[split]
         
-        # Extract prompts and classify them
+        # Extract prompts and classify them using ChatGPT with parallel processing
         prompts = ds['prompt']
-        topics = classify_prompts(prompts)
+        chunk_size = len(prompts) // MAX_WORKERS
+
+        with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
+            future_to_chunk = {
+                executor.submit(classify_chunk, prompts[i:i + chunk_size], args.categories, args.model, client): i
+                for i in range(0, len(prompts), chunk_size)
+            }
+
+            topics = []
+            for future in tqdm(future_to_chunk.keys(), desc="Collecting Results"):
+                topics.extend(future.result())
         
         # Add the topic column to the dataset
-        ds = ds.add_column('topic', topics)
+        ds = add_or_replace_column(ds, 'topic', topics)
         
         # Add the updated split to the new DatasetDict
         updated_dataset_dict[split] = ds
