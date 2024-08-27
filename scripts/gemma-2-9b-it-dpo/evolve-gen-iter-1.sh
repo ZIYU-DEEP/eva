@@ -29,6 +29,10 @@ HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 # Specifically for evol
 SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_gap'}
 SAMPLE_FRAC=${SAMPLE_FRAC:-0.25}
+
+# NEW
+SAMPLE_METHOD=${SAMPLE_METHOD:-'importance_weighted'}
+IW_TOPIC_COEF=${IW_TOPIC_COEF:-0.25}
 # ------------------------------------------------------------------
 
 
