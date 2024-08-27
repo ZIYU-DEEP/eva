@@ -55,11 +55,21 @@ fi
 DATASET_PREFIX="${HF_USERNAME}/ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"
 DATASET_BASE="${DATASET_PREFIX}-pair"
 DATASET_EVOL="${DATASET_PREFIX}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}-pair"
-DATASET="${DATASET_BASE}-evol-${SAMPLE_METRIC}-mixed-${RATIO_BASE}-${RATIO_EVOL}-pair"
+DATASET="${DATASET_BASE}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}-mixed-${RATIO_BASE}-${RATIO_EVOL}-pair"
+
+if [ "$SAMPLE_METHOD" = 'iw_topic' ]; then
+    DATASET_EVOL="${DATASET_PREFIX}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}-iw_topic-${IW_TOPIC_COEF}-pair"
+    DATASET="${DATASET_BASE}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}-iw_topic-${IW_TOPIC_COEF}-mixed-${RATIO_BASE}-${RATIO_EVOL}-pair"
+fi
 
 # The directory for the saved model
-SAVE_DIR="checkpoints/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}"
-HUB_MODEL_ID="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}"
+SAVE_DIR="checkpoints/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}-${SAMPLE_METRIC}-${SAMPLE_FRAC}"
+HUB_MODEL_ID="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}-evol-${EVOL_NO}-${SAMPLE_METRIC}-${SAMPLE_FRAC}"
+
+if [ "$SAMPLE_METHOD" = 'iw_topic' ]; then
+    SAVE_DIR+="-iw_topic-${IW_TOPIC_COEF}"
+    HUB_MODEL_ID+="-iw_topic-${IW_TOPIC_COEF}"
+fi
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------

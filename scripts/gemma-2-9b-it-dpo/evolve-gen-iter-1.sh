@@ -58,6 +58,11 @@ MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"
 
 # The below will be used for local folder, and HF upload
 OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}" 
+
+if [ "$SAMPLE_METHOD" = 'iw_topic' ]; then
+    OUTPUT_DIR+="-iw_topic-${IW_TOPIC_COEF}"
+fi
+
 PROMPT_SET_NAME="${HF_USERNAME}/${OUTPUT_DIR}"
 
 # PROMPT_SET_NAME="cat-searcher/ultrafeedback-gemma-2-9b-it-split-1-iter-1-evol-reward_gap-0.25"
