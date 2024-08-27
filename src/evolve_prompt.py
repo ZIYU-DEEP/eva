@@ -141,6 +141,16 @@ def adaptive_sample(
                                weights=x['weights'], 
                                replace=False)).reset_index(drop=True)
                                         
+    elif sample_method == 'iw_topic':
+        # TODO: edit this; weighted by the frequency of the topic
+        # The less likely topics will have more samples
+        # This is simply like entropy bonus
+        # We will need to have a paramter here to adjust
+        df['weights'] = weights
+        sampled_df = df.sample(n=int(len(df) * sample_frac), 
+                               weights=weights, 
+                               replace=False)
+                                        
     elif sample_method == 'greedy':
         # Sort the data based on the weights in descending order (highest weight first)
         df['weights'] = weights
