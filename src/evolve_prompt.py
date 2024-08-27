@@ -92,6 +92,7 @@ def adaptive_sample(
     sample_frac: float = 0.25,
     sample_method: str = 'importance_weighted',
     subset_dataset: str = 'cat-searcher/responses-gemma-1.1-2b-it-split-0-subset-reward_gap-0.25',
+    iw_topic_coef: float = 0.5,
 ) -> str:
     """
     Sample prompts based on a specified metric with conditional logic and advanced sampling.
@@ -142,14 +143,18 @@ def adaptive_sample(
                                replace=False)).reset_index(drop=True)
                                         
     elif sample_method == 'iw_topic':
-        # TODO: edit this; weighted by the frequency of the topic
-        # The less likely topics will have more samples
-        # This is simply like entropy bonus
-        # We will need to have a paramter here to adjust
-        df['weights'] = weights
+        # Adjust weights by inverse topic frequency using the topic_freq column
+        adjusted_weights = weights / (iw_topic_coef * df['topic_freq'])
+        
+        # Normalize the adjusted weights
+        normalized_adjusted_weights = adjusted_weights / adjusted_weights.sum()
+        
+        # Perform sampling
+        df['weights'] = normalized_adjusted_weights
         sampled_df = df.sample(n=int(len(df) * sample_frac), 
-                               weights=weights, 
-                               replace=False)
+                            weights=normalized_adjusted_weights, 
+                            replace=False)
+
                                         
     elif sample_method == 'greedy':
         # Sort the data based on the weights in descending order (highest weight first)
