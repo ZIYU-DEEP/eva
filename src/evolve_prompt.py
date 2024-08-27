@@ -147,9 +147,12 @@ def adaptive_sample(
     elif sample_method == 'iw_topic':
         # Get the original weights
         df['weights'] = weights
-        
-        # Calculate inverse of topic frequencies using the existing 'topic_freq' column
-        inverse_topic_freqs = 1 / df['topic_freq']
+
+        # Calculate the frequency of each topic
+        topic_counts = df['topic'].value_counts()
+        total_prompts = len(df)
+        topic_freqs = df['topic'].apply(lambda x: topic_counts[x] / total_prompts)
+        inverse_topic_freqs = 1 / topic_freqs
         
         # Normalize inverse frequency
         normalized_inv_freqs = inverse_topic_freqs / inverse_topic_freqs.sum()
