@@ -2,12 +2,12 @@
 
 MODEL_PATHS=(
     "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_gap-0.25-iw_topic-0.25"
-    "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_maxmean-0.25"
+    # "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_maxmean-0.25"
 )
 
 MODEL_IDS=(
     "gemma-2-9b-it-dpo-iter-1-evol-1-reward_gap-0.25-iw_topic-0.25"
-    "gemma-2-9b-it-dpo-iter-1-evol-1-reward_maxmean-0.25"
+    # "gemma-2-9b-it-dpo-iter-1-evol-1-reward_maxmean-0.25"
 )
 
 _MODEL="cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_gap-0.25-iw_topic-0.25"
