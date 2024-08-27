@@ -7,7 +7,6 @@ add the topic as a column to the dataset and push to the hub.
 import argparse
 from datasets import load_dataset
 from transformers import pipeline
-from collections import Counter
 from tqdm import tqdm
 
 
@@ -21,7 +20,7 @@ def parse_arguments():
     parser.add_argument(
         "--dataset", 
         type=str, 
-        default="cat-searcher/ultrafeedback-dpo-gemma-2-9b-it-split-1-iter-1-subset-reward_gap-0.25", 
+        default="cat-searcher/ultrafeedback-gemma-split-1", 
         help="Hugging Face dataset to classify"
     )
     
@@ -49,13 +48,6 @@ def parse_arguments():
     )
     
     parser.add_argument(
-        "--split", 
-        type=str, 
-        default='train', 
-        help="Dataset split to process"
-    )
-    
-    parser.add_argument(
         "--private", 
         action='store_false', 
         help="Set the output dataset to private"
@@ -68,13 +60,7 @@ def main():
     # Parse command line arguments
     args = parse_arguments()
 
-    # Load the dataset from Hugging Face
-    ds = load_dataset(args.dataset, split=args.split)
-
-    # Extract prompts
-    prompts = ds['prompt']
-
-    # Load zero-shot classification model
+    # Load the zero-shot classification model
     classifier = pipeline('zero-shot-classification', 
                           model=args.model, 
                           device_map='auto')
@@ -87,20 +73,24 @@ def main():
             topics.append(result['labels'][0])
         return topics
 
-    # Apply classification to all prompts
-    topics = classify_prompts(prompts)
-    ds = ds.add_column('topic', topics)
+    # Load the dataset to get all splits
+    dataset_dict = load_dataset(args.dataset)
     
-    # Get the frequency
-    topic_counts = Counter(topics)
-    total_prompts = len(topics)
-    topic_freqs = [topic_counts[topic] / total_prompts for topic in topics]
-    ds = ds.add_column('topic_freq', topic_freqs)
-    
-    # Push the updated dataset to the hub
-    ds.push_to_hub(args.output_dataset if args.output_dataset else args.dataset, 
-                   private=args.private, 
-                   split=args.split)
+    # Iterate over each split in the dataset
+    for split in dataset_dict.keys():
+        ds = dataset_dict[split]
+        
+        # Extract prompts and classify them
+        prompts = ds['prompt']
+        topics = classify_prompts(prompts)
+        
+        # Add the topic column to the dataset
+        ds = ds.add_column('topic', topics)
+        
+        # Push the updated dataset split to the hub
+        ds.push_to_hub(args.output_dataset if args.output_dataset else args.dataset, 
+                       private=args.private, 
+                       split=split)
 
 
 if __name__ == "__main__":
