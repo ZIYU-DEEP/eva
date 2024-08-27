@@ -34,7 +34,7 @@ def parse_arguments():
     parser.add_argument(
         "--model", 
         type=str, 
-        default='facebook/bart-large-mnli', 
+        default='MoritzLaurer/deberta-v3-large-zeroshot-v2.0', 
         help="Model to use for zero-shot classification"
     )
     
@@ -68,8 +68,12 @@ def main():
     # Function to classify prompts with progress tracking
     def classify_prompts(prompts):
         topics = []
+        hypothesis_template = "This text is about {}"
         for prompt in tqdm(prompts, desc="Classifying Prompts"):
-            result = classifier(prompt, candidate_labels=args.categories)
+            result = classifier(prompt, 
+                                candidate_labels=args.categories,
+                                hypothesis_template=hypothesis_template,
+                                multi_label=False)
             topics.append(result['labels'][0])
         return topics
 
