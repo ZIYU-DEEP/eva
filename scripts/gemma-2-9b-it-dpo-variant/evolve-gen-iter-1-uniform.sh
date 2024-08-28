@@ -27,7 +27,7 @@ HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 
 # ------------------------------------------------------------------
 # Specifically for evol
-SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_loo'}
+SAMPLE_METRIC=${SAMPLE_METRIC:-'uniform'}
 SAMPLE_FRAC=${SAMPLE_FRAC:-0.25}
 
 # NEW
