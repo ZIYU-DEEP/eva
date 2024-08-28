@@ -186,6 +186,13 @@ def save_temp_results(rank,
     results_df['reward_maxmean'] = results_df['rewards'].apply(
         lambda x: max(x) - np.mean(x))
     results_df['reward_loo'] = results_df['rewards'].apply(leave_one_out)
+
+    # Add reward_doublets: the gap between the best and the second best
+    def reward_doublet_gap(rewards):
+        sorted_rewards = sorted(rewards, reverse=True)
+        return sorted_rewards[0] - sorted_rewards[1]
+    
+    results_df['reward_dts'] = results_df['rewards'].apply(reward_doublet_gap)
     
     # DDDEBUG
     tokenizer = AutoTokenizer.from_pretrained('cat-searcher/gemma-2-9b-it-dpo-iter-0')
