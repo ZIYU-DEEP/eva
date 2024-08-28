@@ -12,6 +12,7 @@ from tqdm import tqdm
 from functools import partial
 
 import pandas as pd
+import numpy as np
 import argparse
 import time
 import os
@@ -120,6 +121,10 @@ def adaptive_sample(
         min_value, max_value = values.min(), values.max()
         normalized_values = (values - min_value) / (max_value - min_value)
         weights = normalized_values / normalized_values.sum()
+
+    elif sample_metric == 'uniform':
+        # Uniform sampling, all samples have equal weight
+        weights = np.ones(len(df)) / len(df)
         
     else:
         raise ValueError(f"Metric {sample_metric} not recognized.")
