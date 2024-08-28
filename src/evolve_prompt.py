@@ -115,7 +115,7 @@ def adaptive_sample(
         inverted_weights = 1 - normalized_values
         weights = inverted_weights / inverted_weights.sum()
     
-    elif sample_metric in ['reward_maxmean', 'reward_loo', 'reward_var', 'reward_gap', 'reward_mean']:
+    elif sample_metric in ['reward_maxmean', 'reward_loo', 'reward_var', 'reward_gap', 'reward_mean', 'reward_dts']:
         # Encourage where we there are improvement room or more contrast
         values = df[sample_metric]
         min_value, max_value = values.min(), values.max()
