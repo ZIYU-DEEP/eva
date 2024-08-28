@@ -34,7 +34,7 @@ HF_USERNAME=${HF_USERNAME:-'cat-searcher'}
 
 # ------------------------------------------------------------------
 # Specifically for evol
-SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_loo'}
+SAMPLE_METRIC=${SAMPLE_METRIC:-'uniform'}
 SAMPLE_FRAC=${SAMPLE_FRAC:-0.25}
 NUM_EVOLUTIONS=${NUM_EVOLUTIONS:-4}
 MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-666}  # Test longer length
