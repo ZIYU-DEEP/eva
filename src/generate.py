@@ -1,3 +1,13 @@
+"""
+Generate Y | X with a fixed model checkpoint.
+
+Input: the dataset and models on huggingface.
+Output: json files with the generated responses.
+        named as responses_{i}_{j}.json,
+        where i is the GPU index and j is the response index.
+"""
+
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from transformers import AutoTokenizer
 from datasets import load_dataset
 from vllm import LLM, SamplingParams
@@ -12,15 +22,15 @@ import random
 import warnings
 import numpy as np
 import math
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 warnings.filterwarnings("ignore")
-
+    
 
 def parse_arguments():
     """
     Parse command line arguments.
     """
+    
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--model_path", type=str, 
@@ -52,6 +62,19 @@ def set_seed(seed=5775709):
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     
+    
+# def apply_template(text, tokenizer):
+#     """
+#     Apply chat template to the tokenizer.
+#     """
+    
+#     return tokenizer.apply_chat_template(
+#         [{"role": "user", "content": text}, 
+#          {"role": "assistant", "content": "None"}],
+#         tokenize=False, 
+#         add_generate_prompt=True,
+#     ).split("None")[0]
+
 
 def apply_template(text, tokenizer):
     """
@@ -87,35 +110,8 @@ def split_prompts(prompts, n_gpus, local_rank):
     return prompts[start:end]
 
 
-def generate_responses_for_pair(p, prompts, model_path, vllm_world_size, dtype, temperature, top_p, max_tokens):
-    """
-    Function to generate responses for a given pair index.
-    """
-    set_seed(p * 50)
-    sampling_params = SamplingParams(
-        temperature=temperature,
-        top_p=top_p,
-        max_tokens=max_tokens,  # Maximum number of tokens to generate
-        seed=p * 50,
-    )
-
-    # Set the language model
-    llm = LLM(
-        model=model_path,
-        tensor_parallel_size=vllm_world_size,
-        dtype=dtype,
-    )
-    
-    # Generate responses
-    response = llm.generate(prompts, sampling_params)
-    
-    # Extract the text part
-    output = list(map(lambda x: x.outputs[0].text, response))
-    
-    return output, p
-
-
 def main():
+    
     # -------------- Set up the arguments --------------- #
     args = parse_arguments()
     
@@ -138,6 +134,7 @@ def main():
     gen_dir = data_root / 'generated' / output_dir
     gen_dir.mkdir(parents=True, exist_ok=True)
 
+
     # -------------- Set up the data --------------- #
     # Load the dataset
     data = load_dataset(dataset_name, split="train")
@@ -153,30 +150,40 @@ def main():
     # Check the prompts
     print(prompts[0])
     
-    # Split the prompts to fit in multiple GPUs
+    # Split the prompts to fit in multiple gpus
     prompts = split_prompts(prompts=prompts, 
                             n_gpus=n_gpus,
                             local_rank=local_rank)
 
-    # -------------- Parallel Generation for `n_pairs` --------------- #
-    with ThreadPoolExecutor(max_workers=n_pairs) as executor:
-        futures = [
-            executor.submit(
-                generate_responses_for_pair, p, prompts, model_path, vllm_world_size, dtype, temperature, top_p, max_tokens
-            )
-            for p in range(n_pairs)
-        ]
-        
-        for future in as_completed(futures):
-            try:
-                output, p = future.result()  # This will raise an exception if the task failed
-                
-                # Save the responses
-                with open(gen_dir / f'responses_{local_rank}_{p}.json', 'w') as f:
-                    json.dump(output, f)
 
-            except Exception as e:
-                print(f"Generation failed for pair {p} with error: {e}")
+    # -------------- Set up the model --------------- #
+    # Set the language model
+    llm = LLM(
+        model=model_path,
+        tensor_parallel_size=vllm_world_size,
+        dtype=dtype,
+    )
+    
+    # Generate responses
+    for p in range(n_pairs):
+        set_seed(p * 50)
+        sampling_params = SamplingParams(
+            temperature=temperature,
+            top_p=top_p,
+            max_tokens=max_tokens,  # Maximum number of tokens to generate
+            seed=p * 50,
+        )
+        
+        # Batch generation
+        response = llm.generate(prompts, sampling_params)
+        
+        # Extract the text part
+        output = list(map(lambda x: x.outputs[0].text, response))
+        
+        # Save the responses
+        with open(gen_dir / f'responses_{local_rank}_{p}.json', 'w') as f:
+            json.dump(output, f)
+
 
 if __name__ == "__main__":
     main()
