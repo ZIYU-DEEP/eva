@@ -122,7 +122,7 @@ def main():
 
     with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
         for index in random.sample(range(len(raw_datasets["train"])), 3):
-            logger.info(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text']}")
+            logger.info(f"Sample {index} of the processed training set:\n\n{raw_datasets['train'][index]['text_chosen']}")
 
     #######################
     # Load pretrained model
