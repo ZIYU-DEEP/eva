@@ -152,7 +152,7 @@ def main():
         model_init_kwargs=model_kwargs,
         args=training_args,
         train_dataset=train_dataset,
-        eval_dataset=eval_dataset,
+        # eval_dataset=eval_dataset,
         dataset_text_field="text",  # CHANGE
         max_seq_length=training_args.max_seq_length,
         tokenizer=tokenizer,
