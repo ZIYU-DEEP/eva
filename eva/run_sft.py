@@ -107,7 +107,8 @@ def main():
         remove_columns=column_names,
         desc="Applying chat template",
     )
-    # train_dataset = raw_datasets["train"]
+    
+    train_dataset = raw_datasets["train"]
     try:
         eval_dataset = raw_datasets["test"]
     except:
