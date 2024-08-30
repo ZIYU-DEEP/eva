@@ -20,7 +20,6 @@ dataset_splits:
 - train
 # - test
 preprocessing_num_workers: 12
-dataset_num_proc: 6
 
 # SFT trainer config
 seed: 42
