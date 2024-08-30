@@ -24,7 +24,7 @@ import sys
 import datasets
 import torch
 import transformers
-from transformers import set_seed
+from transformers import AutoModelForCausalLM, set_seed
 
 from alignment import (
     DataArguments,
@@ -100,13 +100,26 @@ def main():
     #####################
     raw_datasets = raw_datasets.map(
         apply_chat_template,
-        fn_kwargs={"tokenizer": tokenizer, "task": "sft"},
+        fn_kwargs={"tokenizer": tokenizer, 
+                   "task": "sft",
+                   "skip_system_message": True},
         num_proc=data_args.preprocessing_num_workers,
         remove_columns=column_names,
         desc="Applying chat template",
     )
-    train_dataset = raw_datasets["train"]
-    eval_dataset = raw_datasets["test"]
+    # train_dataset = raw_datasets["train"]
+    try:
+        eval_dataset = raw_datasets["test"]
+    except:
+        eval_dataset = None
+    
+    # CHANGE: we use the chosen to to SFT
+    for split in ["train"]:
+        raw_datasets[split] = raw_datasets[split].rename_columns(
+            {"text_prompt": "prompt", 
+             "text_chosen": "chosen", 
+             "text_rejected": "rejected"}
+        )
 
     with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
         for index in random.sample(range(len(raw_datasets["train"])), 3):
@@ -141,7 +154,7 @@ def main():
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
-        dataset_text_field="text",
+        dataset_text_field="chosen",  # CHANGE
         max_seq_length=training_args.max_seq_length,
         tokenizer=tokenizer,
         packing=True,
