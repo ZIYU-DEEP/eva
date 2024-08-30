@@ -17,6 +17,7 @@
 
 
 import dataclasses
+import trl
 import os
 import sys
 from dataclasses import dataclass, field
@@ -222,21 +223,41 @@ class DataArguments:
     )
 
 
+# @dataclass
+# class SFTConfig(transformers.TrainingArguments):
+#     """
+#     Arguments related to the training process itself. For all parameters, see: https://huggingface.co/docs/transformers/v4.26.1/en/main_classes/trainer#transformers.TrainingArguments
+#     """
+
+#     max_seq_length: Optional[int] = field(
+#         default=None,
+#         metadata={"help": ("Used by TRL for reward model training, which tries to read this parameter in init.")},
+#     )
+#     logging_first_step: bool = field(
+#         default=True,
+#         metadata={"help": ("Whether to log and evaluate the first global_step or not.")},
+#     )
+#     optim: Optional[str] = field(default="adamw_torch")
+#     logging_first_step: bool = field(
+#         default=True,
+#         metadata={"help": ("Whether to log and evaluate the first global_step or not.")},
+#     )
+
 @dataclass
-class SFTConfig(transformers.TrainingArguments):
+class SFTConfig(trl.SFTConfig):
     """
-    Arguments related to the training process itself. For all parameters, see: https://huggingface.co/docs/transformers/v4.26.1/en/main_classes/trainer#transformers.TrainingArguments
+    Arguments related to the training process itself. For all parameters, see: https://huggingface.co/docs/transformers/v4.39.3/en/main_classes/trainer#transformers.TrainingArguments
+    Also used for the continued pretraining task.
     """
 
-    max_seq_length: Optional[int] = field(
-        default=None,
-        metadata={"help": ("Used by TRL for reward model training, which tries to read this parameter in init.")},
+    hub_model_revision: Optional[str] = field(
+        default="main",
+        metadata={"help": ("The Hub model branch to push the model to.")},
     )
     logging_first_step: bool = field(
         default=True,
         metadata={"help": ("Whether to log and evaluate the first global_step or not.")},
     )
-    optim: Optional[str] = field(default="adamw_torch")
 
 
 @dataclass
