@@ -46,8 +46,7 @@ do_eval: true
 evaluation_strategy: epoch
 
 # Length
-max_length: 2048          # Test the longer context
-max_prompt_length: 1024   # Test the longer context
+max_seq_length: 2048 
 
 # Save strategy
 save_strategy: "epoch"
