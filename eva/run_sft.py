@@ -115,10 +115,10 @@ def main():
         eval_dataset = None
     
     # CHANGE: we use the chosen to to SFT
-    for split in ["train"]:
-        raw_datasets[split] = raw_datasets[split].rename_columns(
-            {"text_chosen": "text"}  # CHANGE: we use chosen for SFT
-        )
+    # for split in ["train"]:
+    #     raw_datasets[split] = raw_datasets[split].rename_columns(
+    #         {"text_chosen": "text"}  # CHANGE: we use chosen for SFT
+    #     )
 
     with training_args.main_process_first(desc="Log a few random samples from the processed training set"):
         for index in random.sample(range(len(raw_datasets["train"])), 3):
@@ -153,7 +153,7 @@ def main():
         args=training_args,
         train_dataset=train_dataset,
         # eval_dataset=eval_dataset,
-        dataset_text_field="text",  # CHANGE
+        dataset_text_field="text_chosen",  # CHANGE
         max_seq_length=training_args.max_seq_length,
         tokenizer=tokenizer,
         packing=True,
