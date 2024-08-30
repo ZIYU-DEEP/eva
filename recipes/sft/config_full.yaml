@@ -19,7 +19,7 @@ dataset_mixer:
   cat-searcher/NSPLIT3-ultrafeedback-dpo-gemma-2-9b-it-split-1-iter-0-pair: 1.0  # TO BE MODIFIED
 dataset_splits:
 - train
-- test
+# - test
 preprocessing_num_workers: 12
 
 # SFT trainer config
