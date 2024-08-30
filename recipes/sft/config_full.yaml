@@ -1,6 +1,5 @@
 # Model arguments
 model_name_or_path: google/gemma-2-9b-it  # TO BE MODIFIED
-tokenizer_name_or_path: google/gemma-2-9b-it
 torch_dtype: bfloat16
 
 # Push to hub arguments
@@ -12,7 +11,6 @@ output_dir: checkpoints/NSPLIT3-gemma-2-9b-it-sft-iter-0
 # Checkpoint setting
 hub_strategy: all_checkpoints
 resume_from_checkpoint: null  # Let it automatically resume training
-overwrite_output_dir: true
 
 # Data training arguments
 # For definitions, see: src/h4/training/config.py
@@ -27,10 +25,10 @@ preprocessing_num_workers: 12
 seed: 42
 bf16: true
 optim: adamw_torch
-warmup_ratio: 0.1
 learning_rate: 2.0e-05
 lr_scheduler_type: cosine
 num_train_epochs: 3
+warmup_ratio: 0.1
 
 # Gradient accumulation settings
 gradient_accumulation_steps: 4
