@@ -103,7 +103,7 @@ def main():
         fn_kwargs={"tokenizer": tokenizer, 
                    "task": "sft",
                    "skip_system_message": True},
-        num_proc=data_args.preprocessing_num_workers,
+        # num_proc=data_args.preprocessing_num_workers,
         remove_columns=column_names,
         desc="Applying chat template",
     )
