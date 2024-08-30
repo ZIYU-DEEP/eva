@@ -31,6 +31,7 @@ def apply_chat_template(
     example,
     tokenizer,
     skip_system_message,
+    task: str='dpo',  # CHANGE: we just use the dpo format for raw datasets
 ):
     if all(k in example.keys() for k in ("chosen", "rejected")):
         prompt_messages = example["chosen"][:-1]
