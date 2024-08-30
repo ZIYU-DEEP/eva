@@ -213,6 +213,10 @@ class DataArguments:
         default=None,
         metadata={"help": "The number of processes to use for the preprocessing."},
     )
+    dataset_num_proc: Optional[int] = field(
+        default=None,
+        metadata={"help": "The number of processes to use for the preprocessing."},
+    )
     truncation_side: Optional[str] = field(
         default=None, metadata={"help": "Truncation side to use for the tokenizer."}
     )
