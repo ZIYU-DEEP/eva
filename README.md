@@ -39,9 +39,11 @@ We present a new asymmetric self-play framework for self-improving language mode
 3. **Misc:**
    ```bash
    huggingface-cli login       
-   wandb login                 
-   export OPENAI_API_KEY="..."  # get a key at platform.openai.com/api-keys
-   export WANDB_PROJECT=EVA
+   wandb login  
+   export WANDB_PROJECT=EVA               
+   export OPENAI_API_KEY="..." 
+   export GEMINI_API_KEY="..."
+   export HF_API_KEY="..."
 
    # To run VLLM with Gemma-2 models, we have tested with the following setup:
    # Version 1
