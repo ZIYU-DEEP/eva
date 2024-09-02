@@ -3,7 +3,7 @@
 # e.g., YOUR_ROOT/benchmark/alpaca_eval
 
 # Define CONFIG_PATH to point to your configuration directory
-CONFIG_PATH=$(pwd)/models_configs/NSPLIT3-gemma-2-9b-it-rpo-iter-1
+CONFIG_PATH=$(pwd)/models_configs/NOSPLIT-gemma-2-9b-it-dpo-iter-1
 echo ${CONFIG_PATH}
 
 # Substitute the environment variables in configs.yaml and save to local_configs.yaml
