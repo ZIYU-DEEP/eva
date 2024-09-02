@@ -3,17 +3,19 @@
 MODEL_PATHS=(
     # "cat-searcher/gemma-2-9b-it-dpo-iter-2"
     # "princeton-nlp/gemma-2-9b-it-DPO"
-    "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
+    # "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
+    "cat-searcher/NOSPLIT-gemma-2-9b-it-dpo-iter-1"
 )
 
 MODEL_IDS=(
     # "gemma-2-9b-it-dpo-iter-2"
     # "princeton-nlp-gemma-2-9b-it-DPO"
-    "gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
+    # "gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
+    "NOSPLIT-gemma-2-9b-it-dpo-iter-1"
 )
 
-_MODEL="cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
-_MODEL_ID="gemma-2-9b-it-dpo-iter-1-evol-1-greedy"
+_MODEL="cat-searcher/NOSPLIT-gemma-2-9b-it-dpo-iter-1"
+_MODEL_ID="NOSPLIT-gemma-2-9b-it-dpo-iter-1"
 
 
 # MODEL_PATHS+=($_MODEL)
