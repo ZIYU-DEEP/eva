@@ -25,6 +25,8 @@ OPTIM=${OPTIM:-"adamw_torch"}
 N_EPOCHS=${N_EPOCHS:-2}
 BATCH_SIZE=${BATCH_SIZE:-1}
 ACCUMULATE=${ACCUMULATE:-8}
+MAX_LENGTH=${MAX_LENGTH:-2048}
+MAX_PROMPT_LENGTH=${MAX_PROMPT_LENGTH:-1024}
 # ------------------------------------------------------------------
 
 # ------------------------------------------------------------------
@@ -115,6 +117,8 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --per_device_train_batch_size=$BATCH_SIZE \
     --gradient_accumulation_steps=$ACCUMULATE \
     --model_name_or_path=$MODEL_PATH \
-    --num_train_epochs=$N_EPOCHS
+    --num_train_epochs=$N_EPOCHS \
+    --max_length=$MAX_LENGTH \
+    -max_prompt_length=$MAX_PROMPT_LENGTH 
 # 2>&1 | tee "logs/train_$log_file.log"
 # ------------------------------------------------------------------
