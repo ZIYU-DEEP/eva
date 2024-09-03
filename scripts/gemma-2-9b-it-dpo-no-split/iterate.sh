@@ -47,7 +47,7 @@ do
          MAX_LENGTH MAX_PROMPT_LENGTH
 
   # # # Source the gen.sh script
-  source ./scripts/${folder_name}/gen.sh
+  # source ./scripts/${folder_name}/gen.sh
 
   # Source the train.sh script
   source ./scripts/${folder_name}/train.sh 
