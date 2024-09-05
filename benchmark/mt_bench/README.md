@@ -51,6 +51,8 @@ MODEL_IDS=(
 for i in "${!MODEL_PATHS[@]}"; do
     python download_model.py \
         --model-path "${MODEL_PATHS[$i]}"
+        --num-gpus-total 8 \
+        --dtype bfloat16
 done
 
 # 2. Generate answers 
@@ -83,7 +85,9 @@ MODEL_IDS+=($_MODEL_ID)
 
 # 1. Download the model if it is not already in HF cache
 python download_model.py \
-    --model-path $_MODEL
+    --model-path $_MODEL \
+    --num-gpus-total 8 \
+    --dtype bfloat16
 
 # 2. Generate answers
 python gen_model_answer.py \
