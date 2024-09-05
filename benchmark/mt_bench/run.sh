@@ -22,6 +22,8 @@ MODEL_IDS=(
 for i in "${!MODEL_PATHS[@]}"; do
     python download_model.py \
         --model-path "${MODEL_PATHS[$i]}"
+        --num-gpus-total 8 \
+        --dtype bfloat16
 done
 # # --------------------------------------------------------------------------
 
