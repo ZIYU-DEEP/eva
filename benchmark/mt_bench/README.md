@@ -19,6 +19,7 @@ CATEGORIES = ["Writing", "Roleplay", "Reasoning", "Math", "Coding", "Extraction"
 git clone https://github.com/lm-sys/FastChat.git
 cd FastChat
 pip install -e ".[model_worker,llm_judge]"
+pip install openai==1.40.3  # Notice we modify the original code
 ```
 
 
