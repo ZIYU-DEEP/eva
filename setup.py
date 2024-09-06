@@ -81,6 +81,7 @@ _deps = [
     "httpx==0.25.2",
     "gradio==3.40.0",
     "plotly==5.22.0",
+    "litellm==1.41.23",
 ]
 
 # this is a lookup table with items like:

@@ -12,7 +12,6 @@ from tqdm import tqdm
 from functools import partial
 
 import pandas as pd
-import numpy as np
 import argparse
 import time
 import os
@@ -38,7 +37,9 @@ def parse_arguments():
     parser.add_argument("--data_root", type=str, default="./data")
     parser.add_argument("--gen_model_name", type=str, default="gpt-4-0125-preview")
     parser.add_argument("--num_evolutions", type=int, default=4)
-    parser.add_argument("--num_workers", type=int, default=20)
+    parser.add_argument("--num_workers", type=int, default=10)
+    parser.add_argument("--queue_size", type=int, default=1000,
+                        help="Use a smaller number to avoid hitting the API limit.")
     parser.add_argument("--max_prompt_length", type=int, default=512)
     parser.add_argument("--evolve_temperature", type=float, default=1.0)
     
@@ -48,8 +49,6 @@ def parse_arguments():
     parser.add_argument("--sample_metric", type=str, default='reward_mean')
     parser.add_argument("--sample_frac", type=float, default=0.25)
     parser.add_argument("--sample_method", type=str, default='importance_weighted')
-    parser.add_argument("--iw_topic_coef", type=float, default=0.25,
-                        help="The coefficient for inverse weight based on topic frequency.")
 
     return parser.parse_args()
 
@@ -107,7 +106,6 @@ def adaptive_sample(
     sample_frac: float = 0.25,
     sample_method: str = 'importance_weighted',
     subset_dataset: str = 'cat-searcher/responses-gemma-1.1-2b-it-split-0-subset-reward_gap-0.25',
-    iw_topic_coef: float = 0.25,
 ) -> str:
     """
     Sample prompts based on a specified metric with conditional logic and advanced sampling.
@@ -119,24 +117,20 @@ def adaptive_sample(
 
     # ----------------------------------------------------------------------------------
     # Calculate weights based on the metric
-    if sample_metric in ['reward_mean_inv']:
+    if sample_metric in ['reward_mean']:
         # Encourage where you are weak
-        values = df['reward_mean']
+        values = df[sample_metric]
         min_value, max_value = values.min(), values.max()
         normalized_values = (values - min_value) / (max_value - min_value)
         inverted_weights = 1 - normalized_values
         weights = inverted_weights / inverted_weights.sum()
     
-    elif sample_metric in ['reward_maxmean', 'reward_loo', 'reward_var', 'reward_gap', 'reward_mean', 'reward_dts']:
+    elif sample_metric in ['reward_maxmean', 'reward_loo', 'reward_var', 'reward_gap']:
         # Encourage where we there are improvement room or more contrast
         values = df[sample_metric]
         min_value, max_value = values.min(), values.max()
         normalized_values = (values - min_value) / (max_value - min_value)
         weights = normalized_values / normalized_values.sum()
-
-    elif sample_metric == 'uniform':
-        # Uniform sampling, all samples have equal weight
-        weights = np.ones(len(df)) / len(df)
         
     else:
         raise ValueError(f"Metric {sample_metric} not recognized.")
@@ -160,34 +154,7 @@ def adaptive_sample(
             lambda x: x.sample(frac=sample_frac, 
                                weights=x['weights'], 
                                replace=False)).reset_index(drop=True)
-                                        
-    elif sample_method == 'iw_topic':
-        # Get the original weights
-        df['weights'] = weights
 
-        # Calculate the frequency of each topic
-        topic_counts = df['topic'].value_counts()
-        total_prompts = len(df)
-        topic_freqs = df['topic'].apply(lambda x: topic_counts[x] / total_prompts)
-        inverse_topic_freqs = 1 / topic_freqs
-        
-        # Normalize inverse frequency
-        normalized_inv_freqs = inverse_topic_freqs / inverse_topic_freqs.sum()
-        
-        # Calculate final weights as a blend of original weights and inverse frequency
-        assert 0 <= iw_topic_coef <= 1, "iw_topic_coef must be between 0 and 1"
-        
-        final_weights = (1 - iw_topic_coef) * weights + iw_topic_coef * normalized_inv_freqs
-        
-        # Normalize final weights to ensure they sum to 1
-        final_weights /= final_weights.sum()
-        
-        # Perform sampling based on the final weights
-        sampled_df = df.sample(n=int(len(df) * sample_frac), 
-                            weights=final_weights, 
-                            replace=False)
-
-                                        
     elif sample_method == 'greedy':
         # Sort the data based on the weights in descending order (highest weight first)
         df['weights'] = weights
@@ -222,6 +189,7 @@ def main():
     input_dataset = args.input_dataset
     output_dataset = args.output_dataset
     num_workers = args.num_workers
+    queue_size = args.queue_size
     gen_model_name = args.gen_model_name 
     num_evolutions = args.num_evolutions
     
@@ -231,7 +199,6 @@ def main():
     sample_frac = args.sample_frac
     sample_method = args.sample_method
     subset_dataset = args.subset_dataset
-    iw_topic_coef = args.iw_topic_coef
     max_prompt_length = args.max_prompt_length
     evolve_temperature = args.evolve_temperature
     
@@ -244,13 +211,6 @@ def main():
     # Get the dataset
     dataset = load_dataset(input_dataset, split='train')
     
-    # DEBUG
-    # print('The original dataset.')
-    # print(f"Dataset size: {len(dataset)}")
-    # print(f"Dataset columns: {dataset.column_names}")
-    # print(f"First few entries: {dataset[:1]}")
-    # dataset = dataset.select(range(0, 50))  # DEBUG: this line is for debug
-    
     # Create an informative subset
     if do_adaptive_sample:
         input_dataset = adaptive_sample(
@@ -260,58 +220,61 @@ def main():
             sample_frac=sample_frac,
             sample_method=sample_method,
             subset_dataset=subset_dataset,
-            iw_topic_coef=iw_topic_coef,
         )
         dataset = load_dataset(input_dataset, split='train')
-        
-        print('The subsampling dataset.')
-        print(f"Dataset size: {len(dataset)}")
-        print(f"Dataset columns: {dataset.column_names}")
-        print(f"First few entries: {dataset[:1]}")
-        
-    instruction_list = [{'instruction': prompt} for prompt in dataset['prompt']]
-    # --------------------------------------------------------
-
-    # --------------------------------------------------------
-    # Split instruction list into chunks
-    chunk_size = len(instruction_list) // num_workers
-    instruction_chunks = [instruction_list[i:i + chunk_size] 
-                          for i in range(0, len(instruction_list), chunk_size)]
-
-    if len(instruction_chunks[-1]) < chunk_size:  # Ensure the last chunk is not empty
-        instruction_chunks[-2].extend(instruction_chunks[-1])
-        instruction_chunks.pop()
-    # --------------------------------------------------------
-
-    # --------------------------------------------------------
-    # Wrap evolve_chunk to handle multiple arguments
-    evolve_chunk_wrapper = partial(evolve_chunk, 
-                                   gen_model_name=gen_model_name, 
-                                   num_evolutions=num_evolutions,
-                                   max_prompt_length=max_prompt_length,
-                                   evolve_temperature=evolve_temperature)
     
-    # Process the chunks in parallel with progress bar
-    with Pool(num_workers) as pool:
-        result_chunks = []
-        for result in tqdm(pool.imap_unordered(
-                evolve_chunk_wrapper, 
-                instruction_chunks), total=len(instruction_chunks)):
-            result_chunks.append(result)
-            
-    # Flatten the list of results
-    prompt_list = [prompt for sublist in result_chunks for prompt in sublist] 
-    # --------------------------------------------------------
+    all_evolved_prompts = []
+    # queue_size = 1000  # DEBUG
+    num_batches = len(dataset) // queue_size + (len(dataset) % queue_size > 0)
+    # num_batches = 1    # DEBUG
+
+    for batch_num in tqdm(range(num_batches), desc="Processing Batches"):
+        # Select a subset (batch) of the dataset
+        batch_dataset = dataset.select(range(batch_num * queue_size, min((batch_num + 1) * queue_size, len(dataset))))
+        instruction_list = [{'instruction': prompt} for prompt in batch_dataset['prompt']]
+
+        # --------------------------------------------------------
+        # Split instruction list into chunks
+        chunk_size = len(instruction_list) // num_workers
+        instruction_chunks = [instruction_list[i:i + chunk_size] 
+                              for i in range(0, len(instruction_list), chunk_size)]
+
+        if len(instruction_chunks[-1]) < chunk_size:  # Ensure the last chunk is not empty
+            instruction_chunks[-2].extend(instruction_chunks[-1])
+            instruction_chunks.pop()
+        # --------------------------------------------------------
+
+        # --------------------------------------------------------
+        # Wrap evolve_chunk to handle multiple arguments
+        evolve_chunk_wrapper = partial(evolve_chunk, 
+                                       gen_model_name=gen_model_name, 
+                                       num_evolutions=num_evolutions,
+                                       max_prompt_length=max_prompt_length,
+                                       evolve_temperature=evolve_temperature)
+        
+        # Process the chunks in parallel with progress bar
+        with Pool(num_workers) as pool:
+            result_chunks = []
+            for result in pool.imap_unordered(evolve_chunk_wrapper, instruction_chunks):
+                result_chunks.append(result)
+                
+        # Flatten the list of results
+        evolved_prompts = [prompt for sublist in result_chunks for prompt in sublist]
+        all_evolved_prompts.extend(evolved_prompts)
+        
+        print("Waiting for 10 seconds to avoid hitting API limits...")
+        time.sleep(10)
+        # --------------------------------------------------------
 
     # --------------------------------------------------------
     # Make it a dataframe
     df_chunk = pd.DataFrame()
-    df_chunk['prompt'] = prompt_list
+    df_chunk['prompt'] = all_evolved_prompts
 
     # Save and push it
     df_chunk.to_csv(csv_path, index=False)
     repo = Dataset.from_csv(csv_path)
-    # repo.push_to_hub(output_dataset, split='train', private=True)  # DEBUG: not push for now
+    # repo.push_to_hub(output_dataset, split='train', private=True)
     print(f'Dataset pushed to huggingface.co/datasets/{output_dataset}.')
     
     elapsed_time = time.time() - start_time
