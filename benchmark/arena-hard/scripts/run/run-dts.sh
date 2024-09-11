@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-MODEL_PATH=${1:-"cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_dts-0.25-0.25"}
+MODEL_PATH=${1:-"cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_dts-0.25"}
 MODEL_NAME=${2:-"gemma-2-9b-it-dpo-iter-1-evol-1-reward_dts-0.25-0.25"}
 
 echo "Server is up and running."
