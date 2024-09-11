@@ -303,3 +303,11 @@ gemma-2-9b-it-dpo-iter-1-evol-1-reward_loo-0.25:
           api_key: eva
     api_type: openai
     parallel: 50
+
+gemma-2-9b-it-dpo-iter-1-evol-1-reward_gap_inv-0.25:
+    model_name: cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_gap_inv-0.25
+    endpoints: 
+        - api_base: http://localhost:8964/v1
+          api_key: eva
+    api_type: openai
+    parallel: 50
