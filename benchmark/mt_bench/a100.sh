@@ -5,18 +5,18 @@ MODEL_PATHS=(
     "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_dts-0.25"
     "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_loo-0.25"
     "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_var-0.25"
-    "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_mean-0.25"
-    "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_gap_inv-0.25"
-    "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_mean_inv-0.25"
+    # "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_mean-0.25"
+    # "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_gap_inv-0.25"
+    # "cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_mean_inv-0.25"
 )
 
 MODEL_IDS=(
     "gemma-2-9b-it-dpo-iter-1-evol-1-reward_dts-0.25"
     "gemma-2-9b-it-dpo-iter-1-evol-1-reward_loo-0.25"
     "gemma-2-9b-it-dpo-iter-1-evol-1-reward_var-0.25"
-    "gemma-2-9b-it-dpo-iter-1-evol-1-reward_mean-0.25"
-    "gemma-2-9b-it-dpo-iter-1-evol-1-reward_gap_inv-0.25"
-    "gemma-2-9b-it-dpo-iter-1-evol-1-reward_mean_inv-0.25"
+    # "gemma-2-9b-it-dpo-iter-1-evol-1-reward_mean-0.25"
+    # "gemma-2-9b-it-dpo-iter-1-evol-1-reward_gap_inv-0.25"
+    # "gemma-2-9b-it-dpo-iter-1-evol-1-reward_mean_inv-0.25"
 )
 
 # # --------------------------------------------------------------------------
