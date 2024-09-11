@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-model_name=${1:-"cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_mean_inv-0.25-iw_topic-0.25"}
+model_name=${1:-"cat-searcher/gemma-2-9b-it-dpo-iter-1-evol-1-reward_mean_inv-0.25-0.25"}
 dtype=${2:-"bfloat16"}
 host=${3:-"localhost"}
 port=${4:-8964}
