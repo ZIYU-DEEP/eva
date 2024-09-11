@@ -119,9 +119,6 @@ See detailed instructions for different benchmarks in `./benchmark`.
    bash run.sh
    ```
 
-## TODO
-The generate part is quite slow. Consider rewriting it.
-
 ## Acknowledgements
 This repo has referenced [SPPO](https://github.com/uclaml/sppo), [The Alignment Handbook](https://github.com/huggingface/alignment-handbook), [TRL](https://github.com/huggingface/trl), [FastChat](https://github.com/lm-sys/FastChat), [PairRM](https://github.com/yuchenlin/LLM-Blender), [vllm](https://github.com/vllm-project/vllm), [distilabel](https://distilabel.argilla.io/1.2.1/).
 
