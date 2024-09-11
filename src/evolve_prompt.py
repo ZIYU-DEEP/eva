@@ -107,13 +107,26 @@ def adaptive_sample(
 
     # ----------------------------------------------------------------------------------
     # Calculate weights based on the metric
-    if sample_metric in ['reward_mean_inv']:
+    # if sample_metric in ['reward_mean_inv']:
+    #     # Encourage where you are weak
+    #     values = df['reward_mean']
+    #     min_value, max_value = values.min(), values.max()
+    #     normalized_values = (values - min_value) / (max_value - min_value)
+    #     inverted_weights = 1 - normalized_values
+    #     weights = inverted_weights / inverted_weights.sum()
+
+    if sample_metric in ['reward_mean_inv', 'reward_gap_inv']:
         # Encourage where you are weak
-        values = df['reward_mean']
+        if sample_metric == 'reward_mean_inv':
+            values = df['reward_mean']
+        elif sample_metric == 'reward_gap_inv':
+            values = df['reward_gap']
+        
         min_value, max_value = values.min(), values.max()
         normalized_values = (values - min_value) / (max_value - min_value)
         inverted_weights = 1 - normalized_values
         weights = inverted_weights / inverted_weights.sum()
+
     
     elif sample_metric in ['reward_maxmean', 'reward_loo', 'reward_var', 'reward_gap', 'reward_mean', 'reward_dts']:
         # Encourage where we there are improvement room or more contrast
