@@ -28,7 +28,7 @@ ACCUMULATE=${ACCUMULATE:-8}
 # ------------------------------------------------------------------
 # Specifically for evol
 SAMPLE_METHOD=${SAMPLE_METHOD:-'importance_weighted'}
-SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_mean_inv'}
+SAMPLE_METRIC=${SAMPLE_METRIC:-'reward_mean'}
 SAMPLE_FRAC=${SAMPLE_FRAC:-0.25}
 
 # For identify the evol 
