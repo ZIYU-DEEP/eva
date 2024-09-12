@@ -26,6 +26,6 @@ sed -i "s/${DEFAULT_MODEL_NAME}/${TARGET_MODEL_NAME}/g" "${CONFIG_PATH}/configs.
 echo "Updated configs.yaml at ${CONFIG_PATH}"
 
 # Run alpaca_eval with the modified configuration
-alpaca_eval evaluate_from_model \
+CUDA_VISIBLE_DEVICES=4 alpaca_eval evaluate_from_model \
   --model_configs "${CONFIG_PATH}/configs.yaml" \
   --annotators_config 'alpaca_eval_gpt4_turbo_fn' 
