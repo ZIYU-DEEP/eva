@@ -37,9 +37,9 @@ awk -v model_name="$MODEL_NAME" '
 
 # -----------------------------------------------------------------------
 # Generate answer for the specific model using the temporary config file
-python gen_answer.py \
-    --setting-file $TEMP_CONFIG_GEN \
-    --endpoint-file config/api_config.yaml
+# python gen_answer.py \
+#     --setting-file $TEMP_CONFIG_GEN \
+#     --endpoint-file config/api_config.yaml
 # -----------------------------------------------------------------------
 
 # Stop the sglang server
