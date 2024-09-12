@@ -10,11 +10,11 @@ TARGET_MODEL_NAME=${1:-"gemma-2-9b-it-dpo-iter-1-evol-1-reward_mean-0.25"}
 CONFIG_PATH=$(pwd)/models_configs/${TARGET_MODEL_NAME}
 echo "Creating config at ${CONFIG_PATH}"
 
-# Check if the target directory already exists
-if [ -d "${CONFIG_PATH}" ]; then
-  echo "Directory ${CONFIG_PATH} already exists. Exiting to prevent overwriting."
-  exit 1
-fi
+# # Check if the target directory already exists
+# if [ -d "${CONFIG_PATH}" ]; then
+#   echo "Directory ${CONFIG_PATH} already exists. Exiting to prevent overwriting."
+#   exit 1
+# fi
 
 # Copy the default config folder to the new folder
 cp -r ${DEFAULT_CONFIG_PATH} ${CONFIG_PATH}
