@@ -135,8 +135,9 @@ class OnlineDPOTrainer(Trainer):
             self.reward_model.eval()
 
         # Disable dropout in the model if specified
-        if args.disable_dropout:
-            disable_dropout_in_model(model)
+        # if args.disable_dropout:
+        # TODO: Disable dropout by default
+        disable_dropout_in_model(model)
 
         # Define the collator is not provided
         if data_collator is None:
