@@ -45,10 +45,11 @@ from accelerate import PartialState
 from trl import (
     DPOScriptArguments,
     ModelConfig,
-    OnlineDPOConfig,
+    # OnlineDPOConfig,
     get_kbit_device_map,
     get_quantization_config,
 )
+from alignment import OnlineDPOConfig
 from alignment import get_datasets
 from online_dpo_trainer import OnlineDPOTrainer
 from trl.commands.cli_utils import TrlParser
