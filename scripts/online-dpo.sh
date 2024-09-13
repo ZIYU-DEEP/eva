@@ -11,7 +11,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 8 \
     --num_train_epochs 1 \
-    --max_new_tokens 1024 \
+    --max_new_tokens 50 \
     --warmup_ratio 0.1 \
     --missing_eos_penalty 1.0 \
     --logging_steps 20 \
