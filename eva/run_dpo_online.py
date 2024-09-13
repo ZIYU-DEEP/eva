@@ -105,6 +105,27 @@ if __name__ == "__main__":
     dataset = load_dataset(args.dataset_name)[args.dataset_train_split]
 
 
+    def check_prompt_message(example):
+        """
+        Check if the 'prompt' field in the example is None or empty.
+        
+        Args:
+            example (dict): A single example from the dataset.
+        
+        Returns:
+            bool: True if the 'prompt' is valid (not None or empty), False otherwise.
+        """
+        prompt_message = example.get('prompt')
+        
+        # Check if the prompt message is None or empty
+        if prompt_message is None or prompt_message == "":
+            return False  # Invalid prompt
+        return True  # Valid prompt
+
+    dataset = dataset.filter(check_prompt_message, num_proc=6)
+    print('Dataset is now filtered!')
+
+
     def prepare_dataset(example, tokenizer, skip_system_message=True):
 
         # Get only the prompt message
