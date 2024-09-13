@@ -124,7 +124,8 @@ if __name__ == "__main__":
             return False  # Invalid prompt
         return True  # Valid prompt
 
-    dataset = dataset.filter(check_prompt_message, num_proc=6)
+    dataset = dataset.filter(check_prompt_message, 
+                             num_proc=training_args.dataset_num_proc)
     print('Dataset is now filtered!')
 
 
