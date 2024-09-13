@@ -47,6 +47,7 @@ from trl import (
     get_kbit_device_map,
     get_quantization_config,
 )
+from alignment import get_datasets
 from online_dpo_trainer import OnlineDPOTrainer
 from trl.commands.cli_utils import TrlParser
 from trl.trainer.callbacks import LogCompletionsCallback
@@ -103,13 +104,36 @@ if __name__ == "__main__":
     # SET THE PROMPTS
     dataset = load_dataset(args.dataset_name)
 
-    def prepare_dataset(row):
-        row["prompt"] = tokenizer.apply_chat_template(
-            row["prompt"], tokenize=False, add_generation_prompt=True)
-        return row
+
+    def prepare_dataset(example, tokenizer, skip_system_message=True):
+
+        # Get only the prompt message
+        prompt_message = example['prompt']
+
+        if type(prompt_message) is str:
+            # We need to reformat it to be [{'content': <text>, 'role': 'user'}]
+            prompt_message = [{'content': prompt_message, 
+                               'role': 'user'}]
+
+        if not skip_system_message:
+            prompt_message.insert(0, 
+                                  {'content': '', 
+                                   'role': 'system'})
+
+        example['prompt'] = tokenizer.apply_chat_template(
+            prompt_message, 
+            tokenize=False, 
+            add_generate_prompt=True,
+        ) 
+        
+        return example
+
 
     with PartialState().local_main_process_first():
-        dataset = dataset.map(prepare_dataset, num_proc=training_args.dataset_num_proc)
+        dataset = dataset.map(
+            prepare_dataset, 
+            fn_kwargs={"tokenizer": tokenizer, "skip_system_message": True},
+            num_proc=training_args.dataset_num_proc)
 
     prompts = dataset[args.dataset_test_split]["prompt"]
     # -------------------------------------------------------------------------
