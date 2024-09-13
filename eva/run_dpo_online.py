@@ -33,7 +33,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --missing_eos_penalty 1.0 \
     --logging_steps 20 \
     --save_steps 0.1 \
-    --bf16 \
+    --bf16 True \
     --push_to_hub
 """
 
