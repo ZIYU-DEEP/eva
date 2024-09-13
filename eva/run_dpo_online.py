@@ -166,7 +166,7 @@ if __name__ == "__main__":
         ref_model=ref_model,
         reward_model=reward_model,
         args=training_args,
-        train_dataset=dataset[args.dataset_train_split],
+        train_dataset=dataset,
         # eval_dataset=dataset[args.dataset_test_split],
         tokenizer=tokenizer,
     )
