@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     # -------------------------------------------------------------------------
     # SET THE PROMPTS
-    dataset = load_dataset(args.dataset_name)
+    dataset = load_dataset(args.dataset_name)[args.dataset_test_split]
 
 
     def prepare_dataset(example, tokenizer, skip_system_message=True):
@@ -135,7 +135,7 @@ if __name__ == "__main__":
             fn_kwargs={"tokenizer": tokenizer, "skip_system_message": True},
             num_proc=training_args.dataset_num_proc)
 
-    prompts = dataset[args.dataset_test_split]["prompt"]
+    prompts = dataset["prompt"]
     # -------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------
