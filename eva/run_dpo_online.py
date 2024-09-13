@@ -102,7 +102,7 @@ if __name__ == "__main__":
 
     # -------------------------------------------------------------------------
     # SET THE PROMPTS
-    dataset = load_dataset(args.dataset_name)[args.dataset_test_split]
+    dataset = load_dataset(args.dataset_name)[args.dataset_train_split]
 
 
     def prepare_dataset(example, tokenizer, skip_system_message=True):
@@ -146,7 +146,7 @@ if __name__ == "__main__":
         reward_model=reward_model,
         args=training_args,
         train_dataset=dataset[args.dataset_train_split],
-        eval_dataset=dataset[args.dataset_test_split],
+        # eval_dataset=dataset[args.dataset_test_split],
         tokenizer=tokenizer,
     )
     log_completions_callback = LogCompletionsCallback(prompts)
