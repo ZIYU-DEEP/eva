@@ -147,10 +147,18 @@ class OnlineDPOTrainer(Trainer):
         # see: https://github.com/huggingface/trl/pull/1255
         with PartialState().local_main_process_first():
             # Tokenize the dataset
-            fn_kwargs = {"is_encoder_decoder": model.config.is_encoder_decoder, "tokenizer": tokenizer}
-            train_dataset = train_dataset.map(self.tokenize_row, fn_kwargs=fn_kwargs, num_proc=args.dataset_num_proc)
+            fn_kwargs = {
+                "is_encoder_decoder": model.config.is_encoder_decoder, 
+                "tokenizer": tokenizer}
+            train_dataset = train_dataset.map(
+                self.tokenize_row, 
+                fn_kwargs=fn_kwargs, 
+                num_proc=args.dataset_num_proc)
             if eval_dataset is not None:
-                eval_dataset = eval_dataset.map(self.tokenize_row, fn_kwargs=fn_kwargs, num_proc=args.dataset_num_proc)
+                eval_dataset = eval_dataset.map(
+                    self.tokenize_row, 
+                    fn_kwargs=fn_kwargs, 
+                    num_proc=args.dataset_num_proc)
 
         self.stats = {
             "objective/kl": [],
@@ -170,7 +178,7 @@ class OnlineDPOTrainer(Trainer):
 
         self.generation_config = GenerationConfig(
             max_new_tokens=args.max_new_tokens,
-            min_new_tokens=args.max_new_tokens,
+            min_new_tokens=args.min_new_tokens,
             temperature=args.temperature,
             top_k=0,
             top_p=1.0,
