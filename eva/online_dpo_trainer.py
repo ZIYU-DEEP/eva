@@ -23,7 +23,8 @@ from transformers.utils import (
 
 from trl.models.utils import unwrap_model_for_generation
 from trl.trainer.judges import BasePairwiseJudge
-from trl.trainer.online_dpo_config import OnlineDPOConfig
+# from trl.trainer.online_dpo_config import OnlineDPOConfig
+from alignment import OnlineDPOConfig
 from trl.trainer.utils import (
     DPODataCollatorWithPadding,
     disable_dropout_in_model,
