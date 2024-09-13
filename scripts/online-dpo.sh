@@ -2,8 +2,8 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --config_file ./recipes/accelerate_configs/deepspeed_zero3.yaml \
     --main_process_port 8964 \
     eva/run_dpo_online.py \
-    --model_name_or_path trl-lib/pythia-2.8b-deduped-tldr-sft    \
-    --reward_model_path trl-lib/pythia-2.8b-deduped-tldr-rm \
+    --model_name_or_path trl-lib/pythia-1b-deduped-tldr-sft     \
+    --reward_model_path trl-lib/pythia-1b-deduped-tldr-rm \
     --dataset_name trl-lib/tldr \
     --learning_rate 5.0e-7 \
     --lr_scheduler_type "cosine" \
