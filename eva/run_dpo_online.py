@@ -21,7 +21,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     eva/run_dpo_online.py \
     --model_name_or_path trl-lib/pythia-1b-deduped-tldr-sft  \
     --reward_model_path trl-lib/pythia-1b-deduped-tldr-rm \
-    --dataset_name trl-lib/tldr \
+    --dataset_name cat-searcher/ultrafeedback-dpo-gemma-2-9b-it-split-1-iter-1-pair-evol-reward_var-0.25-mixed-0.2-0.8-pair \
     --learning_rate 5.0e-7 \
     --output_dir checkpoints/pythia-1b-deduped-tldr-online-dpo \
     --beta 0.1 \
@@ -104,7 +104,8 @@ if __name__ == "__main__":
     dataset = load_dataset(args.dataset_name)
 
     def prepare_dataset(row):
-        row["prompt"] = tokenizer.apply_chat_template(row["prompt"], tokenize=False, add_generation_prompt=True)
+        row["prompt"] = tokenizer.apply_chat_template(
+            row["prompt"], tokenize=False, add_generation_prompt=True)
         return row
 
     with PartialState().local_main_process_first():
