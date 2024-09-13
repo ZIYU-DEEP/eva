@@ -141,11 +141,13 @@ class OnlineDPOTrainer(Trainer):
 
         # Define the collator is not provided
         if data_collator is None:
-            data_collator = DPODataCollatorWithPadding(pad_token_id=tokenizer.pad_token_id)
+            data_collator = DPODataCollatorWithPadding(
+                pad_token_id=tokenizer.pad_token_id)
 
         # Compute that only on the main process for faster data processing.
         # see: https://github.com/huggingface/trl/pull/1255
         with PartialState().local_main_process_first():
+            
             # Tokenize the dataset
             fn_kwargs = {
                 "is_encoder_decoder": model.config.is_encoder_decoder, 
