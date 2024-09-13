@@ -6,6 +6,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --reward_model_path trl-lib/pythia-1b-deduped-tldr-rm \
     --dataset_name cat-searcher/ultrafeedback-dpo-gemma-2-9b-it-split-1-iter-1-pair-evol-reward_var-0.25-mixed-0.2-0.8-pair \
     --learning_rate 5.0e-7 \
+    --lr_scheduler_type "cosine" \
     --output_dir checkpoints/pythia-1b-deduped-tldr-online-dpo \
     --beta 0.1 \
     --per_device_train_batch_size 2 \
@@ -15,7 +16,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --warmup_ratio 0.1 \
     --missing_eos_penalty 1.0 \
     --logging_steps 20 \
-    --save_steps 0.1 \
     --gradient_checkpointing \
+    --save_strategy "epoch" \
     --bf16 
     # --push_to_hub
