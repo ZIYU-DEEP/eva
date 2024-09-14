@@ -50,6 +50,8 @@ else:
 
 logger = logging.get_logger(__name__)
 
+INVALID_LOGPROB = 1.0
+
 
 class OnlineDPOTrainer(Trainer):
     r"""
@@ -320,16 +322,18 @@ class OnlineDPOTrainer(Trainer):
         self, 
         model: nn.Module, 
         inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
-        
+
+        # -----------------------------------------------------------------------------
         # Set the training mode
         model.train()
 
-        # Sample 2 completations per prompt of size `max_new_tokens` from the model
+        # Sample several completations per prompt of size `max_new_tokens` from the model
         # TODO: using multiple completions
         inputs = self._prepare_inputs(inputs)
-        num_examples, context_length = inputs["prompt_input_ids"].shape
+        num_examples, context_length = inputs["prompt_input_ids"].shape  # num_examples is batch_size
         n_completions = self.args.n_completions
         
+        # Get the output
         prompt_ids = inputs["prompt_input_ids"].repeat(n_completions, 1)
         prompt_mask = inputs["prompt_attention_mask"].repeat(n_completions, 1)
         with unwrap_model_for_generation(model, self.accelerator) as unwrapped_model:
@@ -340,63 +344,115 @@ class OnlineDPOTrainer(Trainer):
             )
         del inputs
 
+        # Get the ids from the output
         completion_ids = output[:, context_length:]
         completion_ids, completion_mask = truncate_right(
             completion_ids, self.tokenizer.eos_token_id, self.tokenizer.pad_token_id
         )
         prompt_completion_ids = torch.cat((prompt_ids, completion_ids), dim=1)
         prompt_completion_mask = torch.cat((prompt_mask, completion_mask), dim=1)
+        # -----------------------------------------------------------------------------
+        
 
-        # Get the logprobs of the completions from the model
-        output = model(prompt_completion_ids, attention_mask=prompt_completion_mask)
+        # -----------------------------------------------------------------------------
+        # Get the logprobs of the completions from the model 
+        output = model(
+            input_ids=prompt_completion_ids, 
+            attention_mask=prompt_completion_mask)
+        
         # There is 1 offset, because the model predict the next token
+        # shape = (batch_size * n_completions, sequence_lenght, vocab_size)
         logits = output.logits[:, context_length - 1 : -1]
+        
         # Turn logits into logprobs
         all_logprobs = F.log_softmax(logits, dim=-1)
+        
         # Take the completion tokens logprob
-        logprobs = torch.take_along_dim(all_logprobs, completion_ids.unsqueeze(-1), dim=2).squeeze(-1)
-        del output, logits, all_logprobs  # free memory
-
+        # completion_ids.shape = (batch_size * n_completions, sequence_length)
+        # logprobs.shape = (batch_size * n_completions, sequence_length)
+        # Get the logprob of the only the generated tokens
+        logprobs = torch.take_along_dim(
+            all_logprobs, 
+            completion_ids.unsqueeze(-1), 
+            dim=2).squeeze(-1)
+        
+        # Free memory
+        del output, logits, all_logprobs 
+        # -----------------------------------------------------------------------------
+        
+        
+        # -----------------------------------------------------------------------------
         # Same for the reference model
         with torch.no_grad():
-            ref_output = self.ref_model(prompt_completion_ids, attention_mask=prompt_completion_mask)
+            ref_output = self.ref_model(
+                input_ids=prompt_completion_ids, 
+                attention_mask=prompt_completion_mask)
+        
+        # Get the logits for the output
         ref_logits = ref_output.logits[:, context_length - 1 : -1]
+        
+        # Normalize to get logprobs
         ref_all_logprobs = F.log_softmax(ref_logits, dim=-1)
-        ref_logprobs = torch.take_along_dim(ref_all_logprobs, completion_ids.unsqueeze(-1), dim=2).squeeze(-1)
+        
+        # Grab only the log_probs for the generated tokens
+        ref_logprobs = torch.take_along_dim(
+            ref_all_logprobs, 
+            completion_ids.unsqueeze(-1), 
+            dim=2).squeeze(-1)
+        
         del ref_output, ref_logits, ref_all_logprobs  # free memory
+        # -----------------------------------------------------------------------------
 
+
+        # -----------------------------------------------------------------------------
         # Get the reward from the reward model
+        # scores.shape = (batch_size * n_completions,)
         with torch.no_grad():
             _, scores, _ = get_reward(
-                self.reward_model, prompt_completion_ids, self.tokenizer.pad_token_id, context_length
+                self.reward_model, 
+                prompt_completion_ids, 
+                self.tokenizer.pad_token_id, 
+                context_length
             )
+        # -----------------------------------------------------------------------------
 
+
+        # -----------------------------------------------------------------------------
         # Filter completion. Ensure that the sample contains stop_token_id
         # Completions not passing that filter will receive a lower score.
-        contain_eos_token = torch.any(completion_ids == self.tokenizer.eos_token_id, dim=-1)
+        # i.e., penalize if the sentence is unfinished
+        contain_eos_token = torch.any(
+            completion_ids == self.tokenizer.eos_token_id, dim=-1)
+        
         if self.args.missing_eos_penalty is not None:
             scores[~contain_eos_token] -= self.args.missing_eos_penalty
 
         # Replace the logprobs of the padding tokens by 1.0
         padding_mask = ~completion_mask.bool()
-        logprobs = logprobs.masked_fill(padding_mask, 1.0)
-        ref_logprobs = ref_logprobs.masked_fill(padding_mask, 1.0)
+        
+        # Process the logprobs
+        logprobs = logprobs.masked_fill(padding_mask, INVALID_LOGPROB)  # double check this usage with 1.0
+        ref_logprobs = ref_logprobs.masked_fill(padding_mask, INVALID_LOGPROB)
 
         # Split the scores in 2 (the prompts of the first half are the same as the second half)
+        # each with shape = (batch_size, ), and the split creates n_completions of such tensors
         first_half, second_half = scores.split(num_examples)
 
         # Get the indices of the chosen and rejected examples
         num_examples_range = torch.arange(num_examples, device=scores.device)
-        mask = first_half >= second_half
+        mask = first_half >= second_half  # shape = (batch_size, )
+        
+        # Get the indices for the chosen/rejected in the flattened scores tensor
         chosen_indices = num_examples_range + (~mask * num_examples)
         rejected_indices = num_examples_range + (mask * num_examples)
 
-        # Build tensor so that the first half is the chosen examples and the second half the rejected examples
-        cr_indices = torch.cat((chosen_indices, rejected_indices), dim=0)  # cr = chosen and rejected
-        cr_logprobs = logprobs[cr_indices]
+        # Build a list so that the first half is the chosen examples and the second half the rejected examples
+        cr_indices = torch.cat((chosen_indices, rejected_indices), dim=0)  # cr = chosen and rejected; shape = (batch_size * 2,)
+        cr_logprobs = logprobs[cr_indices]  # shape = (batch_size * 2,); just re-order
         cr_ref_logprobs = ref_logprobs[cr_indices]
         cr_padding_mask = padding_mask[cr_indices]
 
+        # Get the summed logprob for each sequence
         cr_logprobs_sum = (cr_logprobs * ~cr_padding_mask).sum(1)
         cr_ref_logprobs_sum = (cr_ref_logprobs * ~cr_padding_mask).sum(1)
 
@@ -406,8 +462,13 @@ class OnlineDPOTrainer(Trainer):
         pi_logratios = chosen_logprobs_sum - rejected_logprobs_sum
         ref_logratios = chosen_ref_logprobs_sum - rejected_ref_logprobs_sum
 
-        logits = pi_logratios - ref_logratios
+        # Get the contrastive ratio
+        logits = pi_logratios - ref_logratios  # We may directly use this as the informativeness measure
+        # -----------------------------------------------------------------------------
 
+
+        # ------------------------------------------------------------------------------
+        # SET LOSS
         if self.args.loss_type == "sigmoid":
             losses = -F.logsigmoid(self.args.beta * logits)
         elif self.args.loss_type == "ipo":
@@ -416,44 +477,62 @@ class OnlineDPOTrainer(Trainer):
             raise NotImplementedError(f"invalid loss type {self.loss_type}")
 
         loss = losses.mean()
+        # ------------------------------------------------------------------------------
+        
+        
+        # ------------------------------------------------------------------------------
+        # GET OTHER METRICS
+        # kl
+        kl = logprobs - ref_logprobs
+        mean_kl = kl.sum(1).mean()
+        
+        # non-score-reward
+        non_score_reward = (-self.args.beta * kl).sum(1)
+        mean_non_score_reward = non_score_reward.mean()
+        
+        # total reward
+        rlhf_reward = scores + non_score_reward
+        
+        # entropy
+        mean_entropy = -logprobs.sum(1).mean()
+        
+        # scores margin
+        scores_margin = scores[chosen_indices] - scores[rejected_indices]
+        
+        # chosen fitted rewards
+        chosen_rewards = self.args.beta * (chosen_logprobs_sum - chosen_ref_logprobs_sum)
+        gathered_chosen_rewards = self.accelerator.gather(chosen_rewards)
+        
+        # rejected fitted rewards
+        rejected_rewards = self.args.beta * (rejected_logprobs_sum - rejected_ref_logprobs_sum)
+        gathered_rejected_rewards = self.accelerator.gather(rejected_rewards)
+        
+        # margin between the fitted rewards of the chosen and the rejected
+        margin = gathered_chosen_rewards - gathered_rejected_rewards
+        accuracy = margin > 0
+        # ------------------------------------------------------------------------------
+        
 
-        # Log everything
+        # ------------------------------------------------------------------------------
+        # LOG EVERTHING
         self.stats["val/contain_eos_token"].append(contain_eos_token.float().mean().item())
         self.stats["logps/chosen"].append(self.accelerator.gather(chosen_logprobs_sum).mean().item())
         self.stats["logps/rejected"].append(self.accelerator.gather(rejected_logprobs_sum).mean().item())
         self.stats["objective/scores"].append(self.accelerator.gather(scores.mean()).mean().item())
-        
-        kl = logprobs - ref_logprobs
-        mean_kl = kl.sum(1).mean()
         self.stats["objective/kl"].append(self.accelerator.gather(mean_kl).mean().item())
-        
-        non_score_reward = (-self.args.beta * kl).sum(1)
-        mean_non_score_reward = non_score_reward.mean()
         self.stats["objective/non_score_reward"].append(self.accelerator.gather(mean_non_score_reward).mean().item())
-        
-        rlhf_reward = scores + non_score_reward
         self.stats["objective/rlhf_reward"].append(self.accelerator.gather(rlhf_reward).mean().item())
-        
-        mean_entropy = -logprobs.sum(1).mean()
         self.stats["objective/entropy"].append(self.accelerator.gather(mean_entropy).mean().item())
-        
-        scores_margin = scores[chosen_indices] - scores[rejected_indices]
         self.stats["objective/scores_margin"].append(self.accelerator.gather(scores_margin.mean()).mean().item())
-        
-        chosen_rewards = self.args.beta * (chosen_logprobs_sum - chosen_ref_logprobs_sum)
-        gathered_chosen_rewards = self.accelerator.gather(chosen_rewards)
         self.stats["rewards/chosen"].append(gathered_chosen_rewards.mean().item())
-        
-        rejected_rewards = self.args.beta * (rejected_logprobs_sum - rejected_ref_logprobs_sum)
-        gathered_rejected_rewards = self.accelerator.gather(rejected_rewards)
         self.stats["rewards/rejected"].append(gathered_rejected_rewards.mean().item())
-        
-        margin = gathered_chosen_rewards - gathered_rejected_rewards
         self.stats["rewards/margins"].append(margin.mean().item())
-        
-        accuracy = margin > 0
         self.stats["rewards/accuracies"].append(accuracy.float().mean().item())
+        # ------------------------------------------------------------------------------
 
+
+        # ------------------------------------------------------------------------------
+        # MISC
         if (
             self.args.torch_empty_cache_steps is not None
             and self.state.global_step % self.args.torch_empty_cache_steps == 0
@@ -474,6 +553,7 @@ class OnlineDPOTrainer(Trainer):
                 scaled_loss.backward()
         else:
             self.accelerator.backward(loss, **kwargs)
+        # ------------------------------------------------------------------------------
 
         return loss.detach() / self.args.gradient_accumulation_steps
 
