@@ -335,6 +335,8 @@ class OnlineDPOConfig(transformers.TrainingArguments):
             Number of processes to use for processing the dataset.
         disable_dropout (`bool`, *optional*, defaults to `True`):
             Whether to disable dropout in the model.
+        n_completions (`int`, *optional*, defaults to `2`):
+            Number of completions to generate.
     """
 
     reward_model_path: Optional[str] = None
@@ -346,3 +348,4 @@ class OnlineDPOConfig(transformers.TrainingArguments):
     loss_type: Literal["sigmoid", "ipo"] = "sigmoid"
     dataset_num_proc: Optional[int] = None
     disable_dropout: bool = True
+    n_completions: int = 2

@@ -207,19 +207,29 @@ class OnlineDPOTrainer(Trainer):
         if self.is_deepspeed_enabled:
             if self.reward_model is not None:
                 self.reward_model = prepare_deepspeed(
-                    self.reward_model, args.per_device_train_batch_size, args.fp16, args.bf16
+                    self.reward_model, 
+                    args.per_device_train_batch_size, 
+                    args.fp16, 
+                    args.bf16
                 )
-            self.ref_model = prepare_deepspeed(self.ref_model, args.per_device_train_batch_size, args.fp16, args.bf16)
+            self.ref_model = prepare_deepspeed(
+                self.ref_model, 
+                args.per_device_train_batch_size, 
+                args.fp16, 
+                args.bf16)
         else:
             self.ref_model = self.ref_model.to(self.accelerator.device)
             if self.reward_model is not None:
                 self.reward_model = self.reward_model.to(self.accelerator.device)
 
     @staticmethod
-    def tokenize_row(feature, is_encoder_decoder: bool, tokenizer: PreTrainedTokenizerBase) -> Dict[str, Any]:
+    def tokenize_row(feature, 
+                     is_encoder_decoder: bool, 
+                     tokenizer: PreTrainedTokenizerBase) -> Dict[str, Any]:
         """Tokenize a single row from a DPO specific dataset."""
         if not is_encoder_decoder:
             batch = tokenizer(feature["prompt"], add_special_tokens=False)
+            
             # Add BOS token to head of prompt. Avoid adding if it's already there
             if tokenizer.bos_token_id is not None:
                 prompt_len_input_ids = len(batch["input_ids"])
@@ -228,6 +238,7 @@ class OnlineDPOTrainer(Trainer):
                     batch["attention_mask"] = [1] + batch["attention_mask"]
         else:
             batch = tokenizer(feature["prompt"], add_special_tokens=True)
+            
         batch = {f"prompt_{key}": value for key, value in batch.items()}
         return batch
 
@@ -257,7 +268,8 @@ class OnlineDPOTrainer(Trainer):
 
     # Same as Trainer.get_eval_dataloader but skip the "remove_unused_columns".
     @wraps(Trainer.get_eval_dataloader)
-    def get_eval_dataloader(self, eval_dataset: Optional[Union[str, Dataset]] = None) -> DataLoader:
+    def get_eval_dataloader(self, 
+                            eval_dataset: Optional[Union[str, Dataset]] = None) -> DataLoader:
         if eval_dataset is None and self.eval_dataset is None:
             raise ValueError("Trainer: evaluation requires an eval_dataset.")
 
@@ -304,14 +316,22 @@ class OnlineDPOTrainer(Trainer):
 
         return self.accelerator.prepare(eval_dataloader)
 
-    def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
+    def training_step(
+        self, 
+        model: nn.Module, 
+        inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
+        
+        # Set the training mode
         model.train()
 
         # Sample 2 completations per prompt of size `max_new_tokens` from the model
+        # TODO: using multiple completions
         inputs = self._prepare_inputs(inputs)
         num_examples, context_length = inputs["prompt_input_ids"].shape
-        prompt_ids = inputs["prompt_input_ids"].repeat(2, 1)
-        prompt_mask = inputs["prompt_attention_mask"].repeat(2, 1)
+        n_completions = self.args.n_completions
+        
+        prompt_ids = inputs["prompt_input_ids"].repeat(n_completions, 1)
+        prompt_mask = inputs["prompt_attention_mask"].repeat(n_completions, 1)
         with unwrap_model_for_generation(model, self.accelerator) as unwrapped_model:
             output = unwrapped_model.generate(
                 input_ids=prompt_ids,
@@ -402,26 +422,35 @@ class OnlineDPOTrainer(Trainer):
         self.stats["logps/chosen"].append(self.accelerator.gather(chosen_logprobs_sum).mean().item())
         self.stats["logps/rejected"].append(self.accelerator.gather(rejected_logprobs_sum).mean().item())
         self.stats["objective/scores"].append(self.accelerator.gather(scores.mean()).mean().item())
+        
         kl = logprobs - ref_logprobs
         mean_kl = kl.sum(1).mean()
         self.stats["objective/kl"].append(self.accelerator.gather(mean_kl).mean().item())
+        
         non_score_reward = (-self.args.beta * kl).sum(1)
         mean_non_score_reward = non_score_reward.mean()
         self.stats["objective/non_score_reward"].append(self.accelerator.gather(mean_non_score_reward).mean().item())
+        
         rlhf_reward = scores + non_score_reward
         self.stats["objective/rlhf_reward"].append(self.accelerator.gather(rlhf_reward).mean().item())
+        
         mean_entropy = -logprobs.sum(1).mean()
         self.stats["objective/entropy"].append(self.accelerator.gather(mean_entropy).mean().item())
+        
         scores_margin = scores[chosen_indices] - scores[rejected_indices]
         self.stats["objective/scores_margin"].append(self.accelerator.gather(scores_margin.mean()).mean().item())
+        
         chosen_rewards = self.args.beta * (chosen_logprobs_sum - chosen_ref_logprobs_sum)
         gathered_chosen_rewards = self.accelerator.gather(chosen_rewards)
         self.stats["rewards/chosen"].append(gathered_chosen_rewards.mean().item())
+        
         rejected_rewards = self.args.beta * (rejected_logprobs_sum - rejected_ref_logprobs_sum)
         gathered_rejected_rewards = self.accelerator.gather(rejected_rewards)
         self.stats["rewards/rejected"].append(gathered_rejected_rewards.mean().item())
+        
         margin = gathered_chosen_rewards - gathered_rejected_rewards
         self.stats["rewards/margins"].append(margin.mean().item())
+        
         accuracy = margin > 0
         self.stats["rewards/accuracies"].append(accuracy.float().mean().item())
 
@@ -449,7 +478,15 @@ class OnlineDPOTrainer(Trainer):
         return loss.detach() / self.args.gradient_accumulation_steps
 
     # Same as Trainer.evaluate but log our metrics
-    def _maybe_log_save_evaluate(self, tr_loss, grad_norm, model, trial, epoch, ignore_keys_for_eval):
+    def _maybe_log_save_evaluate(
+        self, 
+        tr_loss, 
+        grad_norm, 
+        model, 
+        trial, 
+        epoch, 
+        ignore_keys_for_eval):
+        
         if self.control.should_log and self.state.global_step > self._globalstep_last_logged:
             logs: Dict[str, float] = {}
 
@@ -495,5 +532,12 @@ class OnlineDPOTrainer(Trainer):
         model on the Hub. Please refer to `~transformers.Trainer.push_to_hub` for more details.
         Unlike the parent class, we don't use the `token` argument to mitigate security risks.
         """
-        kwargs = trl_sanitze_kwargs_for_tagging(model=self.model, tag_names=self._tag_names, kwargs=kwargs)
-        return super().push_to_hub(commit_message=commit_message, blocking=blocking, **kwargs)
+        kwargs = trl_sanitze_kwargs_for_tagging(
+            model=self.model, 
+            tag_names=self._tag_names, 
+            kwargs=kwargs)
+        
+        return super().push_to_hub(
+            commit_message=commit_message, 
+            blocking=blocking, 
+            **kwargs)
