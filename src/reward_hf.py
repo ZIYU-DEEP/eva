@@ -69,11 +69,23 @@ def process_dataset(rank: int,
     all_responses = {f'generate_{i}': [] for i in range(n_generations)}
 
     # Initialize the model and tokenizer only once
-    model = AutoModelForSequenceClassification.from_pretrained(
-        reward_model_path, 
-        device_map='cuda', 
-        trust_remote_code=True, 
-        torch_dtype=torch_dtype).to(torch.device('cuda'))
+    if "armorm-llama3-8b" in reward_model_path.lower():
+        model = AutoModelForSequenceClassification.from_pretrained(
+            reward_model_path, 
+            device_map='cuda', 
+            trust_remote_code=True, 
+            torch_dtype=torch_dtype).to(torch.device('cuda'))
+        
+    elif "skywork" in reward_model_path.lower():
+        model = AutoModelForSequenceClassification.from_pretrained(
+            reward_model_path, 
+            device_map='cuda', 
+            trust_remote_code=True, 
+            torch_dtype=torch.bfloat16,
+            attn_implementation="flash_attention_2",
+            num_labels=1,
+        ).to(torch.device('cuda'))
+        
     tokenizer = AutoTokenizer.from_pretrained(reward_model_path, use_fast=True)
 
     # Populate the lists
@@ -130,23 +142,29 @@ def hf_reward(
     """
     Calculate reward using a Hugging Face model.
     """
+
+    # Reformat the input
+    conversations = [
+        [{"role": "user", "content": prompt},
+            {"role": "assistant", "content": response}]
+        for response in responses
+    ]
+
+    # Tokenize the input with padding (to process all conversations in a batch)
+    input_ids = tokenizer.apply_chat_template(
+        conversations, return_tensors="pt", padding=True).to(torch.device('cuda'))
+    
+    # Case for armo
     if "armorm-llama3-8b" in model.config._name_or_path.lower():
-        
-        # Reformat the input
-        messages = [
-            [{"role": "user", "content": prompt},
-             {"role": "assistant", "content": response}]
-            for response in responses
-        ]
-        
-        # Apply the chat template for tokens
-        input_ids = tokenizer.apply_chat_template(
-            messages, return_tensors="pt", padding=True).to(torch.device('cuda'))
-        
-        # Get the scores
         with torch.no_grad():
             output = model(input_ids)
             scores = output.logits.cpu().float().tolist()
+
+    # Case for 'Skywork-Reward-Gemma-2-27B'
+    elif "skywork" in model.config._name_or_path.lower():
+        with torch.no_grad():
+            output = model(input_ids)
+            scores = output.logits[:, 0].cpu().float().tolist() 
             
     else:
         raise NotImplementedError(
