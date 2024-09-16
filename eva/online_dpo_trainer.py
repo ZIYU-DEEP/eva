@@ -661,7 +661,10 @@ def first_true_indices(bools: torch.Tensor, dtype=torch.long):
 
 
 def get_reward(
-    model: torch.nn.Module, query_responses: torch.Tensor, pad_token_id: int, context_length: int
+    model: torch.nn.Module, 
+    query_responses: torch.Tensor, 
+    pad_token_id: int, 
+    context_length: int
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """
     Computes the reward logits and the rewards for a given model and query responses.
@@ -696,6 +699,7 @@ def get_reward(
         return_dict=True,
         output_hidden_states=True,
         use_cache=False,  # otherwise mistral-based RM would error out
+        attn_implementation="eager",  # DEBUG
     )
     reward_logits = model.score(output.hidden_states[-1])
     sequence_lengths = first_true_indices(query_responses[:, context_length:] == pad_token_id) - 1 + context_length
