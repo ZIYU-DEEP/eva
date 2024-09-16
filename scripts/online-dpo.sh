@@ -24,5 +24,6 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --do_eval "no" \
     --eval_strategy "no" \
     --n_completions 2 \
-    # --bf16 
+    --attn_implementation "eager" \
+    --bf16 
     # --push_to_hub
