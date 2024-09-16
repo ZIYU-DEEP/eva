@@ -5,7 +5,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --main_process_port 8964 \
     eva/run_dpo_online.py \
     --model_name_or_path google/gemma-2-2b-it     \
-    --reward_model_path trl-lib/pythia-1b-deduped-tldr-rm \
+    --reward_model_path Skywork/Skywork-Reward-Llama-3.1-8B \
     --dataset_name trl-lib/tldr \
     --learning_rate 5.0e-7 \
     --lr_scheduler_type "cosine" \
