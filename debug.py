@@ -30,7 +30,7 @@ def main():
         model.config.bos_token_id = tokenizer.bos_token_id
 
     # Prepare a simple Italian input
-    input_text = "Ciao, come stai?"
+    input_text = "Please translate this into English: Ciao, come stai?"
     inputs = tokenizer(input_text, return_tensors='pt').to(device)
 
     # Set up generation configuration
