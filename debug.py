@@ -111,6 +111,13 @@ def main():
         generated_text = tokenizer.decode(generated_ids[0], skip_special_tokens=True)
         print("Generated text:", generated_text)
 
+        print("Input IDs:", inputs['input_ids'])
+        print("Generated IDs:", generated_ids)
+        print("Generated IDs shape:", generated_ids.shape)
+        print("Next token ID:", next_token)
+        print("Next token decoded:", tokenizer.decode(next_token))
+
+
 
 if __name__ == "__main__":
     main()
