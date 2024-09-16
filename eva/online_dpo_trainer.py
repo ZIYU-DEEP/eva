@@ -186,7 +186,7 @@ class OnlineDPOTrainer(Trainer):
 
         self.generation_config = GenerationConfig(
             max_new_tokens=args.max_new_tokens,
-            min_new_tokens=args.min_new_tokens,
+            min_new_tokens=args.max_new_tokens,  # DEBUG
             temperature=args.temperature,
             top_k=0,
             top_p=1.0,
