@@ -340,12 +340,14 @@ class OnlineDPOTrainer(Trainer):
         # Get the output
         prompt_ids = inputs["prompt_input_ids"].repeat(n_completions, 1)
         prompt_mask = inputs["prompt_attention_mask"].repeat(n_completions, 1)
-        with unwrap_model_for_generation(model, self.accelerator) as unwrapped_model:
-            output = unwrapped_model.generate(
-                input_ids=prompt_ids,
-                attention_mask=prompt_mask,
-                generation_config=self.generation_config,
-            )
+        model.eval()
+        with torch.no_grad():
+            with unwrap_model_for_generation(model, self.accelerator) as unwrapped_model:
+                output = unwrapped_model.generate(
+                    input_ids=prompt_ids,
+                    attention_mask=prompt_mask,
+                    generation_config=self.generation_config,
+                )
         del inputs
 
         # Get the ids from the output
@@ -360,6 +362,7 @@ class OnlineDPOTrainer(Trainer):
 
         # -----------------------------------------------------------------------------
         # Get the logprobs of the completions from the model 
+        model.train()
         output = model(
             input_ids=prompt_completion_ids, 
             attention_mask=prompt_completion_mask)

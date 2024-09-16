@@ -23,7 +23,7 @@ def main():
 
     # Prepare a conversation using the chat template
     messages = [
-        {"role": "user", "content": "Ciao, come stai?"},
+        {"role": "user", "content": "Can you help me debug on this?"},
     ]
 
     # Apply the chat template
