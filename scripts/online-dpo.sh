@@ -23,5 +23,6 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --save_strategy "epoch" \
     --do_eval "no" \
     --eval_strategy "no" \
-    --bf16 
+    --n_completions 2 \
+    # --bf16 
     # --push_to_hub
