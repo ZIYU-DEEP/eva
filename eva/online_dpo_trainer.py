@@ -186,11 +186,11 @@ class OnlineDPOTrainer(Trainer):
 
         self.generation_config = GenerationConfig(
             max_new_tokens=args.max_new_tokens,
-            min_new_tokens=args.max_new_tokens,  # DEBUG
-            temperature=args.temperature,
-            top_k=0,
-            top_p=1.0,
-            do_sample=True,
+            min_new_tokens=args.max_new_tokens,  # DEBUG - TO USE min_new_tokens
+            temperature=0.7,  # DEBUG - TO USE ARG
+            top_k=0, # DEBUG - TO USE ARG
+            top_p=0.9, # DEBUG - TO USE ARG
+            do_sample=True, # DEBUG - TO USE ARG
             use_cache=False if args.gradient_checkpointing else True,
         )
 
