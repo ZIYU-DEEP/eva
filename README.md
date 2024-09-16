@@ -55,6 +55,10 @@ We present a new asymmetric self-play framework for self-improving language mode
    # Version 2
    pip install vllm==0.5.4
    pip install flashinfer -i https://flashinfer.ai/whl/cu121/torch2.4/
+   export VLLM_ATTENTION_BACKEND=FLASHINFER
+   pip install flash-attn --no-build-isolation
+
+   # Always remember to have `attn_implementation="eager"` for `gemma-2` models.
    ```
 
 ## Training Scripts
