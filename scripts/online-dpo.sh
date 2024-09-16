@@ -4,7 +4,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --config_file ./recipes/accelerate_configs/deepspeed_zero3.yaml \
     --main_process_port 8964 \
     eva/run_dpo_online.py \
-    --model_name_or_path google/gemma-2-9b-it     \
+    --model_name_or_path google/gemma-2-2b-it     \
     --reward_model_path trl-lib/pythia-1b-deduped-tldr-rm \
     --dataset_name trl-lib/tldr \
     --learning_rate 5.0e-7 \
