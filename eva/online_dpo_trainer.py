@@ -101,6 +101,7 @@ class OnlineDPOTrainer(Trainer):
         judge: Optional[BasePairwiseJudge] = None,
         args: Optional[OnlineDPOConfig] = None,
         data_collator: Optional[DataCollator] = None,
+        # label_pad_token_id: int = -100,
         train_dataset: Optional[Union[Dataset, IterableDataset, "datasets.Dataset"]] = None,
         eval_dataset: Optional[Union[Dataset, Dict[str, Dataset], "datasets.Dataset"]] = None,
         tokenizer: Optional[PreTrainedTokenizerBase] = None,
@@ -145,7 +146,9 @@ class OnlineDPOTrainer(Trainer):
         # Define the collator is not provided
         if data_collator is None:
             data_collator = DPODataCollatorWithPadding(
-                pad_token_id=tokenizer.pad_token_id)
+                pad_token_id=tokenizer.pad_token_id,
+                # label_pad_token_id=label_pad_token_id,
+                )
 
         # Compute that only on the main process for faster data processing.
         # see: https://github.com/huggingface/trl/pull/1255
@@ -195,6 +198,7 @@ class OnlineDPOTrainer(Trainer):
             model=model,
             args=args,
             data_collator=data_collator,
+            # label_pad_token_id=label_pad_token_id,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset,
             tokenizer=tokenizer,

@@ -99,8 +99,23 @@ if __name__ == "__main__":
         padding_side="left",
         trust_remote_code=model_config.trust_remote_code,
     )
+    
     if tokenizer.chat_template is None:
         tokenizer.chat_template = SIMPLE_QUERY_CHAT_TEMPLATE
+
+    if tokenizer.pad_token_id is None:
+        tokenizer.pad_token = tokenizer.eos_token or tokenizer.bos_token or tokenizer.sep_token or '<pad>'
+        tokenizer.pad_token_id = tokenizer.convert_tokens_to_ids(tokenizer.pad_token)
+
+    if model.config.pad_token_id is None:
+        model.config.pad_token_id = tokenizer.pad_token_id
+
+    if model.config.eos_token_id is None:
+        model.config.eos_token_id = tokenizer.eos_token_id
+
+    if model.config.bos_token_id is None:
+        model.config.bos_token_id = tokenizer.bos_token_id
+
     # -------------------------------------------------------------------------
 
     # -------------------------------------------------------------------------
