@@ -6,16 +6,16 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     eva/run_dpo_online.py \
     --model_name_or_path "google/gemma-2-2b-it"   \
     --reward_model_path "Skywork/Skywork-Reward-Gemma-2-27B"\
-    --dataset_name trl-lib/tldr \
+    --dataset_name cat-searcher/ultrafeedback-gemma-split-1 \
     --learning_rate 5.0e-7 \
     --lr_scheduler_type "cosine" \
-    --output_dir checkpoints/llama \
+    --output_dir checkpoints/gemma-2-2b-it-odpo-rm-27b \
     --beta 0.1 \
     --per_device_train_batch_size 1 \
-    --gradient_accumulation_steps 4 \
+    --gradient_accumulation_steps 8 \
     --num_train_epochs 1 \
     --optim "adamw_torch" \
-    --max_new_tokens 50 \
+    --max_new_tokens 1024 \
     --warmup_ratio 0.1 \
     --missing_eos_penalty 1.0 \
     --logging_steps 20 \
@@ -25,6 +25,9 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --eval_strategy "no" \
     --n_completions 2 \
     --bf16 \
+    --push_to_hub \
+    --hub_model_id "cat-searcher/gemma-2-2b-it-odpo-rm-27b" \
+    --hub_private_repo \
     # --attn_implementation "eager" \
     # --push_to_hub
 
