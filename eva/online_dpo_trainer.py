@@ -750,7 +750,7 @@ def get_reward(
     position_ids = attention_mask.cumsum(1) - attention_mask.long()  # exclusive cumsum
     
     # Case for 'armorm-llama3-8b'
-    if "armorm-llama3-8b" in model.config._name_or_path.lower():
+    if "armorm-llama3-8b" in model.module.config._name_or_path.lower():
         # For armorm models, no need for manual masking, pass input directly
         output = model(
             input_ids=query_responses,  # Directly use query_responses as input_ids
@@ -761,7 +761,7 @@ def get_reward(
         reward_logits = output.logits
     
     # Case for 'Skywork-Reward-Gemma-2-27B'
-    elif "skywork" in model.config._name_or_path.lower():
+    elif "skywork" in model.module.config._name_or_path.lower():
         # Skywork-specific logic for processing logits
         output = model(
             input_ids=query_responses, 
