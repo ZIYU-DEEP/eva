@@ -11,7 +11,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --lr_scheduler_type "cosine" \
     --output_dir checkpoints/llama \
     --beta 0.1 \
-    --per_device_train_batch_size 4 \
+    --per_device_train_batch_size 2 \
     --gradient_accumulation_steps 4 \
     --num_train_epochs 1 \
     --optim "adamw_torch" \
