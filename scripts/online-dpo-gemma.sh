@@ -30,7 +30,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --log_level "info" \
     --logging_steps 10 \
     --hub_strategy "checkpoint" \
-    --save_strategy "step" \
+    --save_strategy "steps" \
     --save_steps 0.2 \
     # --save_strategy "epoch" \
 
