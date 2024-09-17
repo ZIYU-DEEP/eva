@@ -414,7 +414,7 @@ class OnlineDPOTrainer(Trainer):
         with torch.no_grad():
             _, scores, _ = get_reward(
                 self.reward_model, 
-                prompt_completion_ids, 
+                prompt_completion_ids,   # to update this
                 self.tokenizer.pad_token_id, 
                 context_length
             )
