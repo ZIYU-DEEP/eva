@@ -52,7 +52,7 @@ def hf_reward(
     elif "skywork" in model.config._name_or_path.lower():
         with torch.no_grad():
             output = model(input_ids)
-            scores = output.logits[:, 0].cpu().float().tolist() 
+            scores = output.logits[:, 0].unsqueeze(1).cpu().float()
             
     else:
         raise NotImplementedError(
