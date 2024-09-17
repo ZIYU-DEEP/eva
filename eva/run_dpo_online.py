@@ -120,8 +120,9 @@ if __name__ == "__main__":
 
     # -------------------------------------------------------------------------
     # SET THE PROMPTS
-    # dataset = load_dataset(args.dataset_name)[args.dataset_train_split].select(range(0, 160))  #TODO
-    dataset = load_dataset(args.dataset_name)[args.dataset_train_split]
+    dataset_len = len(load_dataset(args.dataset_name)[args.dataset_train_split])
+    dataset = load_dataset(args.dataset_name)[args.dataset_train_split].select(range(0, int(0.25 * dataset_len)))  #TODO
+    # dataset = load_dataset(args.dataset_name)[args.dataset_train_split]
 
 
     def check_prompt_message(example):

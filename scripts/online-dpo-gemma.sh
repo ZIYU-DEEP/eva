@@ -12,15 +12,14 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --lr_scheduler_type "cosine" \
     --beta 0.1 \
     --per_device_train_batch_size 1 \
-    --gradient_accumulation_steps 8 \
+    --gradient_accumulation_steps 4 \
     --num_train_epochs 1 \
     --optim "adamw_torch" \
     --max_new_tokens 512 \
     --warmup_ratio 0.1 \
     --missing_eos_penalty 1.0 \
-    --logging_steps 20 \
+    --logging_steps 10 \
     --gradient_checkpointing \
-    --save_strategy "epoch" \
     --do_eval "no" \
     --eval_strategy "no" \
     --n_completions 2 \
@@ -29,12 +28,10 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --hub_private_repo \
     --attn_implementation "eager" \
     --log_level "info" \
-    --logging_steps 10 \
     --hub_strategy "checkpoint" \
-    # --attn_implementation "eager" \
-    # --push_to_hub \
-    # --save_strategy "step" \
-    # --save_steps 0.2 
+    --save_strategy "steps" \
+    --save_steps 0.2 \
+    # --save_strategy "epoch" \
 
 
 # The eager mode is essential for gemma models!!
