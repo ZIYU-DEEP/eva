@@ -20,7 +20,6 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --missing_eos_penalty 1.0 \
     --logging_steps 20 \
     --gradient_checkpointing \
-    --save_strategy "epoch" \
     --do_eval "no" \
     --eval_strategy "no" \
     --n_completions 2 \
@@ -31,10 +30,9 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --log_level "info" \
     --logging_steps 10 \
     --hub_strategy "checkpoint" \
-    # --attn_implementation "eager" \
-    # --push_to_hub \
-    # --save_strategy "step" \
-    # --save_steps 0.2 
+    --save_strategy "step" \
+    --save_steps 0.2 \
+    # --save_strategy "epoch" \
 
 
 # The eager mode is essential for gemma models!!

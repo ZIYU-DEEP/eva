@@ -86,7 +86,8 @@ def process_dataset(rank: int,
             num_labels=1,
         ).to(torch.device('cuda'))
         
-    tokenizer = AutoTokenizer.from_pretrained(reward_model_path, use_fast=True)
+    tokenizer = AutoTokenizer.from_pretrained(
+        reward_model_path, use_fast=True)
 
     # Populate the lists
     for idx, row in tqdm.tqdm(df.iterrows(), 
