@@ -716,6 +716,93 @@ def first_true_indices(bools: torch.Tensor, dtype=torch.long):
 #     )
 
 
+# def get_reward(
+#     model: torch.nn.Module, 
+#     query_responses: torch.Tensor, 
+#     pad_token_id: int, 
+#     context_length: int
+# ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+#     """
+#     Computes the reward logits and the rewards for a given model and query responses.
+
+#     Args:
+#         model (`torch.nn.Module`):
+#             The model used to compute the reward logits.
+#         query_responses (`torch.Tensor`):
+#             The tensor containing the query responses.
+#         pad_token_id (`int`):
+#             The token ID representing the pad token.
+#         context_length (`int`):
+#             The length of the context in the query responses.
+
+#     Returns:
+#         tuple:
+#             - `reward_logits` (`torch.Tensor`):
+#                 The logits for the reward model.
+#             - `final_rewards` (`torch.Tensor`):
+#                 The final rewards for each query response.
+#             - `sequence_lengths` (`torch.Tensor`):
+#                 The lengths of the sequences in the query responses.
+#     """
+    
+#     # Compute attention mask and position ids
+#     attention_mask = query_responses != pad_token_id
+#     position_ids = attention_mask.cumsum(1) - attention_mask.long()  # exclusive cumsum
+    
+#     # Case for 'armorm-llama3-8b'
+#     if "armorm-llama3-8b" in model.module.config._name_or_path.lower():
+#         # For armorm models, no need for manual masking, pass input directly
+#         output = model(
+#             input_ids=query_responses,  # Directly use query_responses as input_ids
+#             attention_mask=attention_mask, 
+#             position_ids=position_ids,
+#             return_dict=True
+#         )
+#         reward_logits = output.logits
+    
+#     # Case for 'Skywork-Reward-Gemma-2-27B'
+#     elif "skywork" in model.module.config._name_or_path.lower():
+#         # Skywork-specific logic for processing logits
+#         output = model(
+#             input_ids=query_responses, 
+#             attention_mask=attention_mask, 
+#             position_ids=position_ids,
+#             return_dict=True
+#         )
+#         reward_logits = output.logits[:, 0]  # Skywork returns logits as [batch_size, 1]
+    
+#     # Default case (e.g., for 'Pythia' or other models requiring padding handling)
+#     else:
+#         # Mask input IDs for models that require explicit padding management
+#         input_ids = torch.masked_fill(query_responses, ~attention_mask, 0)  # Replace padding tokens with 0
+        
+#         # Extract the language model backbone
+#         lm_backbone = getattr(model, model.base_model_prefix)
+#         output = lm_backbone(
+#             input_ids=input_ids,
+#             attention_mask=attention_mask,
+#             position_ids=position_ids,
+#             return_dict=True,
+#             output_hidden_states=True,
+#             use_cache=False  # To avoid cache errors in certain models
+#         )
+#         reward_logits = model.score(output.hidden_states[-1])
+    
+#     # Calculate the sequence lengths for each query response
+#     sequence_lengths = first_true_indices(
+#         query_responses[:, context_length:] == pad_token_id) - 1 + context_length
+    
+#     # Return the reward logits, final rewards, and sequence lengths
+#     return (
+#         reward_logits,
+#         reward_logits[
+#             torch.arange(reward_logits.size(0), device=reward_logits.device),
+#             sequence_lengths,
+#         ].squeeze(-1),
+#         sequence_lengths,
+#     )
+
+
 def get_reward(
     model: torch.nn.Module, 
     query_responses: torch.Tensor, 
@@ -744,13 +831,18 @@ def get_reward(
             - `sequence_lengths` (`torch.Tensor`):
                 The lengths of the sequences in the query responses.
     """
+    # Access the model configuration (handling DataParallel or not)
+    if hasattr(model, 'module'):
+        model_config = model.module.config
+    else:
+        model_config = model.config
     
     # Compute attention mask and position ids
     attention_mask = query_responses != pad_token_id
     position_ids = attention_mask.cumsum(1) - attention_mask.long()  # exclusive cumsum
     
     # Case for 'armorm-llama3-8b'
-    if "armorm-llama3-8b" in model.module.config._name_or_path.lower():
+    if "armorm-llama3-8b" in model_config._name_or_path.lower():
         # For armorm models, no need for manual masking, pass input directly
         output = model(
             input_ids=query_responses,  # Directly use query_responses as input_ids
@@ -761,7 +853,7 @@ def get_reward(
         reward_logits = output.logits
     
     # Case for 'Skywork-Reward-Gemma-2-27B'
-    elif "skywork" in model.module.config._name_or_path.lower():
+    elif "skywork" in model_config._name_or_path.lower():
         # Skywork-specific logic for processing logits
         output = model(
             input_ids=query_responses, 
@@ -791,14 +883,16 @@ def get_reward(
     # Calculate the sequence lengths for each query response
     sequence_lengths = first_true_indices(
         query_responses[:, context_length:] == pad_token_id) - 1 + context_length
-    
-    # Return the reward logits, final rewards, and sequence lengths
-    return (
-        reward_logits,
-        reward_logits[
+
+    # Handle the case where reward_logits is 1-dimensional
+    if reward_logits.dim() == 1:
+        final_rewards = reward_logits  # No need to index if logits are already flattened
+    else:
+        # If logits have more dimensions, index with sequence_lengths
+        final_rewards = reward_logits[
             torch.arange(reward_logits.size(0), device=reward_logits.device),
             sequence_lengths,
-        ].squeeze(-1),
-        sequence_lengths,
-    )
-
+        ].squeeze(-1)
+    
+    # Return the reward logits, final rewards, and sequence lengths
+    return reward_logits, final_rewards, sequence_lengths
