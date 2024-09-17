@@ -64,7 +64,7 @@ OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITE
 OUTPUT_DIR="${OUTPUT_DIR}-skywork27"
 # ------------------------------------------------------------------
 
-OUTPUT_DIR="${OUTPUT_DIR}--evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}"
+OUTPUT_DIR="${OUTPUT_DIR}-evol-${SAMPLE_METRIC}-${SAMPLE_FRAC}"
 
 
 if [ "$SAMPLE_METHOD" = 'iw_topic' ]; then
