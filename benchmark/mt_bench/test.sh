@@ -1,21 +1,23 @@
 MODEL_PATHS=(
-    "meta-llama/Meta-Llama-3.1-8B-Instruct"
-    "mistralai/Mistral-7B-Instruct-v0.2"
-    "cat-searcher/meta-llama-3.1-8b-it-sppo-iter-1"
-    "cat-searcher/mistral-7b-it-v0.2-sppo-iter-1"
-    "cat-searcher/meta-llama-3.1-8b-it-sppo-iter-1-evol-1"
+    # "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    # "mistralai/Mistral-7B-Instruct-v0.2"
+    # "cat-searcher/meta-llama-3.1-8b-it-sppo-iter-1"
+    # "cat-searcher/mistral-7b-it-v0.2-sppo-iter-1"
+    # "cat-searcher/meta-llama-3.1-8b-it-sppo-iter-1-evol-1"
+    "cat-searcher/gemma-2-9b-it-dpo-iter-1-skywork27-evol-1-reward_gap-0.25"
 )
 
 MODEL_IDS=(
-    "meta-llama-3.1-8b-it"
-    "mistral-7b-instruct-v0.2"
-    "meta-llama-3.1-8b-it-sppo-iter-1"
-    "mistral-7b-it-v0.2-sppo-iter-1"
-    "meta-llama-3.1-8b-it-sppo-iter-1-evol-1"
+    # "meta-llama-3.1-8b-it"
+    # "mistral-7b-instruct-v0.2"
+    # "meta-llama-3.1-8b-it-sppo-iter-1"
+    # "mistral-7b-it-v0.2-sppo-iter-1"
+    # "meta-llama-3.1-8b-it-sppo-iter-1-evol-1"
+    "gemma-2-9b-it-dpo-iter-1-skywork27-evol-1-reward_gap-0.25"
 )
 
-_MODEL="cat-searcher/meta-llama-3.1-8b-it-sppo-iter-1-evol-1"
-_MODEL_ID="meta-llama-3.1-8b-it-sppo-iter-1-evol-1"
+_MODEL="cat-searcher/gemma-2-9b-it-dpo-iter-1-skywork27-evol-1-reward_gap-0.25"
+_MODEL_ID="gemma-2-9b-it-dpo-iter-1-skywork27-evol-1-reward_gap-0.25"
 
 # 1. Download models
 python download_model.py \
