@@ -10,7 +10,7 @@ pairrm_8b = 'RLHFlow/pair-preference-model-LLaMA3-8B'
 rm_gemma_27b = 'Skywork/Skywork-Reward-Gemma-2-27B'
 rm_llama_8b = 'Skywork/Skywork-Reward-Llama-3.1-8B'
 
-reward_model_path = rm_llama_8b
+reward_model_path = rm_gemma_27b
 
 model = AutoModelForSequenceClassification.from_pretrained(
     reward_model_path,
