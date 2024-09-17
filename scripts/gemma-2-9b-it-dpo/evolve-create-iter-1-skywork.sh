@@ -61,10 +61,6 @@ MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  # TODO: t
 OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
 # Notice this is different from default training, where the split is plus one of iter.
 
-# ------------------------------------------------------------------
-# MODIFY FOR THE REWARD MODEL
-OUTPUT_DIR="${OUTPUT_DIR}-skywork27"
-# ------------------------------------------------------------------
 
 echo "The base model used to generate responses is set to $MODEL_PATH."
 echo "The generated responses will be uploaded to $OUTPUT_DIR with suffix pair and all."
@@ -84,6 +80,11 @@ mkdir -p ./logs
 # ##################################################################
 # TODO: REPLACE ALL WITH POINTWISE RM - REMOVE THE PAIRRM PART
 DATASET_TO_REWARD="${HF_USERNAME}/${OUTPUT_DIR}-all"
+
+# ------------------------------------------------------------------
+# MODIFY FOR THE REWARD MODEL
+OUTPUT_DIR="${OUTPUT_DIR}-skywork27"
+# ------------------------------------------------------------------
 
 python src/reward_hf.py \
     --input_dataset $DATASET_TO_REWARD \
