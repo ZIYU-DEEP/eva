@@ -28,7 +28,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --push_to_hub \
     --hub_model_id "cat-searcher/gemma-2-2b-it-odpo-rm-27b" \
     --hub_private_repo \
-    # --attn_implementation "eager" \
+    --attn_implementation "eager" \
     # --push_to_hub
 
 # The eager mode is essential for gemma models!!
