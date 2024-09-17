@@ -28,7 +28,6 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --push_to_hub \
     --hub_private_repo \
     --attn_implementation "eager" \
-    --push_to_hub
     --log_level "info" \
     --logging_steps 10 \
     --hub_strategy "checkpoint" \
