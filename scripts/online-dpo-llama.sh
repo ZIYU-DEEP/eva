@@ -27,7 +27,7 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --bf16 \
     --push_to_hub \
     --hub_private_repo \
-    --attn_implementation "eager" \
+    # --attn_implementation "eager" \
     # --push_to_hub
 
 # The eager mode is essential for gemma models!!
