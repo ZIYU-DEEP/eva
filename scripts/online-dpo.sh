@@ -4,8 +4,8 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --config_file ./recipes/accelerate_configs/deepspeed_zero3.yaml \
     --main_process_port 8964 \
     eva/run_dpo_online.py \
-    --model_name_or_path meta-llama/Meta-Llama-3.1-8B-Instruct    \
-    --reward_model_path Skywork/Skywork-Reward-Llama-3.1-8B \
+    --model_name_or_path "google/gemma-2-2b-it"   \
+    --reward_model_path "Skywork/Skywork-Reward-Gemma-2-27B"\
     --dataset_name trl-lib/tldr \
     --learning_rate 5.0e-7 \
     --lr_scheduler_type "cosine" \

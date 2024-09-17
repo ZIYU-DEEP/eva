@@ -4,7 +4,7 @@ from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 # Load model and tokenizer
 device = "auto"
-model_name = "Skywork/Skywork-Reward-Llama-3.1-8B"
+model_name = "Skywork/Skywork-Reward-Gemma-2-27B"
 rm = AutoModelForSequenceClassification.from_pretrained(
     model_name,
     torch_dtype=torch.bfloat16,
