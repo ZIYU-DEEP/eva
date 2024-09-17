@@ -12,13 +12,13 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --lr_scheduler_type "cosine" \
     --beta 0.1 \
     --per_device_train_batch_size 1 \
-    --gradient_accumulation_steps 8 \
+    --gradient_accumulation_steps 4 \
     --num_train_epochs 1 \
     --optim "adamw_torch" \
     --max_new_tokens 512 \
     --warmup_ratio 0.1 \
     --missing_eos_penalty 1.0 \
-    --logging_steps 20 \
+    --logging_steps 10 \
     --gradient_checkpointing \
     --do_eval "no" \
     --eval_strategy "no" \
@@ -28,7 +28,6 @@ ACCELERATE_LOG_LEVEL=info accelerate launch \
     --hub_private_repo \
     --attn_implementation "eager" \
     --log_level "info" \
-    --logging_steps 10 \
     --hub_strategy "checkpoint" \
     --save_strategy "steps" \
     --save_steps 0.2 \
