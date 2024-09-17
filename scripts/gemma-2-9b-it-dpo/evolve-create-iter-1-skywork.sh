@@ -61,6 +61,11 @@ MODEL_PATH="${HF_USERNAME}/${MODEL_FAMILY}-${LOSS_TYPE}-iter-${ITER}"  # TODO: t
 OUTPUT_DIR="ultrafeedback-${LOSS_TYPE}-${MODEL_FAMILY}-split-${SPLIT}-iter-${ITER}"  # OUTPUT - Used to save responses from this model | TODO: this naming fashion only works at iter-1
 # Notice this is different from default training, where the split is plus one of iter.
 
+# ------------------------------------------------------------------
+# MODIFY FOR THE REWARD MODEL
+OUTPUT_DIR="${OUTPUT_DIR}-skywork27"
+# ------------------------------------------------------------------
+
 echo "The base model used to generate responses is set to $MODEL_PATH."
 echo "The generated responses will be uploaded to $OUTPUT_DIR with suffix pair and all."
 # ------------------------------------------------------------------
@@ -86,7 +91,7 @@ python src/reward_hf.py \
     --n_generations $N_PAIRS \
     --data_root $DATA_ROOT \
     --hf_username  $HF_USERNAME\
-    --reward_model_path RLHFlow/ArmoRM-Llama3-8B-v0.1 \
+    --reward_model_path Skywork/Skywork-Reward-Gemma-2-27B \
     --torch_dtype $DTYPE
 
 echo "Pushed the annotated data to ${HF_USERNAME}/${OUTPUT_DIR}-all-hf-rewards."
@@ -106,22 +111,22 @@ fi
 
 echo $DATASET_EVOLVED
 
-python src/evolve_prompt.py \
-    --hf_username  $HF_USERNAME \
-    --input_dataset $DATASET_WITH_REWARDS \
-    --subset_dataset $DATASET_SUBSET \
-    --output_dataset $DATASET_EVOLVED \
-    --data_root $DATA_ROOT \
-    --gen_model_name $GEN_MODEL_NAME \
-    --num_evolutions $NUM_EVOLUTIONS \
-    --num_workers 2 \
-    --do_adaptive_sample 1 \
-    --sample_metric $SAMPLE_METRIC \
-    --sample_frac $SAMPLE_FRAC \
-    --sample_method $SAMPLE_METHOD \
-    --iw_topic_coef $IW_TOPIC_COEF \
-    --max_prompt_length $MAX_PROMPT_LENGTH \
-    --evolve_temperature $EVOLVE_TEMPERATURE
+# python src/evolve_prompt.py \
+#     --hf_username  $HF_USERNAME \
+#     --input_dataset $DATASET_WITH_REWARDS \
+#     --subset_dataset $DATASET_SUBSET \
+#     --output_dataset $DATASET_EVOLVED \
+#     --data_root $DATA_ROOT \
+#     --gen_model_name $GEN_MODEL_NAME \
+#     --num_evolutions $NUM_EVOLUTIONS \
+#     --num_workers 2 \
+#     --do_adaptive_sample 1 \
+#     --sample_metric $SAMPLE_METRIC \
+#     --sample_frac $SAMPLE_FRAC \
+#     --sample_method $SAMPLE_METHOD \
+#     --iw_topic_coef $IW_TOPIC_COEF \
+#     --max_prompt_length $MAX_PROMPT_LENGTH \
+#     --evolve_temperature $EVOLVE_TEMPERATURE
 
 echo "Pushed the annotated data to ${DATASET_EVOLVED}."
 
