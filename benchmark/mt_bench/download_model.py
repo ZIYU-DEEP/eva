@@ -21,7 +21,7 @@ def main():
     parser = argparse.ArgumentParser(description='Load a transformer model.')
     parser.add_argument('--model-path', type=str, help='The name of the model to load')
     parser.add_argument('--num-gpus-total', type=int, default=8, help='The name of the model to load.')
-    parser.add_argument('--dtype', type=str, default="bfloat16", help='The type of dtype.')
+    parser.add_argument('--dtype', type=str, default="float16", help='The type of dtype.')
     args = parser.parse_args()
 
     load_model(args.model_path, args.num_gpus_total, args.dtype)
