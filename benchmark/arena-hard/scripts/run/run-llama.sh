@@ -35,17 +35,17 @@ awk -v model_name="$MODEL_NAME" '
 ' $SOURCE_CONFIG_JUDGE > $TEMP_CONFIG_JUDGE
 
 
-# -----------------------------------------------------------------------
-# Generate answer for the specific model using the temporary config file
-python gen_answer.py \
-    --setting-file $TEMP_CONFIG_GEN \
-    --endpoint-file config/api_config.yaml
-# -----------------------------------------------------------------------
+# # -----------------------------------------------------------------------
+# # Generate answer for the specific model using the temporary config file
+# python gen_answer.py \
+#     --setting-file $TEMP_CONFIG_GEN \
+#     --endpoint-file config/api_config.yaml
+# # -----------------------------------------------------------------------
 
-# Stop the sglang server
-echo "Stopping the server..."
-pkill -9 -f "sglang.launch_server"
-echo "Server stopped."
+# # Stop the sglang server
+# echo "Stopping the server..."
+# pkill -9 -f "sglang.launch_server"
+# echo "Server stopped."
 
 # -----------------------------------------------------------------------
 # Generate judgement for the specific model using the temporary config file
