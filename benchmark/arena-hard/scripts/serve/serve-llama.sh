@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-model_name=${1:-"meta-llama/Meta-Llama-3.2-1B-Instruct"}
+model_name=${1:-"meta-llama/Llama-3.2-1B-Instruct"}
 dtype=${2:-"bfloat16"}
 host=${3:-"localhost"}
 port=${4:-8964}
