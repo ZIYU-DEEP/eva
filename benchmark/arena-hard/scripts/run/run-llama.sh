@@ -1,36 +1,14 @@
 #!/bin/bash
+set -e
 
-MODEL_PATH="cat-searcher/gemma-2-9b-it-sppo-iter-0"
-MODEL_NAME="gemma-2-9b-it-sppo-iter-0"
-
-# Start the vllm serve command in the background
-CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7 \
-nohup vllm serve $MODEL_PATH \
---dtype bfloat16 \
---host localhost \
---port 8964 \
---tensor-parallel-size 8 \
---api-key eva > local_vllm_serve.log 2>&1 &
-
-# Capture the PID of the vllm serve process
-VLLM_PID=$!
-
-# Function to check if the server is running
-check_server() {
-  nc -z localhost 8964
-}
-
-# Wait until the server is ready
-echo "Waiting for the server to start..."
-until check_server; do
-  sleep 5
-done
+MODEL_PATH=${1:-"meta-llama/Meta-Llama-3.2-1B-Instruct"}
+MODEL_NAME=${2:-"Meta-Llama-3.2-1B-Instruct"}
 
 echo "Server is up and running."
 
 # Define the source and temporary configuration file paths for gen_answer_config
 SOURCE_CONFIG_GEN="config/gen_answer_config.yaml"
-TEMP_CONFIG_GEN="config/temp_gen_answer_config_${MODEL_NAME}.yaml"
+TEMP_CONFIG_GEN="config/gen_answer_config_${MODEL_NAME}.yaml"
 
 # Copy the source configuration file to the temporary configuration file
 cp $SOURCE_CONFIG_GEN $TEMP_CONFIG_GEN
@@ -44,7 +22,7 @@ awk -v model_name="$MODEL_NAME" '
 
 # Define the source and temporary configuration file paths for judge_config
 SOURCE_CONFIG_JUDGE="config/judge_config.yaml"
-TEMP_CONFIG_JUDGE="config/temp_judge_config_${MODEL_NAME}.yaml"
+TEMP_CONFIG_JUDGE="config/judge_config_${MODEL_NAME}.yaml"
 
 # Copy the source configuration file to the temporary configuration file
 cp $SOURCE_CONFIG_JUDGE $TEMP_CONFIG_JUDGE
@@ -56,26 +34,26 @@ awk -v model_name="$MODEL_NAME" '
   !in_model_list { print }
 ' $SOURCE_CONFIG_JUDGE > $TEMP_CONFIG_JUDGE
 
+
+# -----------------------------------------------------------------------
 # Generate answer for the specific model using the temporary config file
 python gen_answer.py \
     --setting-file $TEMP_CONFIG_GEN \
     --endpoint-file config/api_config.yaml
+# -----------------------------------------------------------------------
 
-# Clean up by removing the temporary configuration file for gen_answer
-rm $TEMP_CONFIG_GEN
+# Stop the sglang server
+echo "Stopping the server..."
+pkill -9 -f "sglang.launch_server"
+echo "Server stopped."
 
+# -----------------------------------------------------------------------
 # Generate judgement for the specific model using the temporary config file
 python gen_judgment.py \
     --setting-file $TEMP_CONFIG_JUDGE \
     --endpoint-file config/api_config.yaml
-
-# Clean up by removing the temporary configuration file for judge_config
-rm $TEMP_CONFIG_JUDGE
+# -----------------------------------------------------------------------
 
 # Show the results
 python show_result.py
 
-# Stop the vllm server
-echo "Stopping the vllm server..."
-kill $VLLM_PID
-echo "vllm server stopped."
