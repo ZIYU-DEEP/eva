@@ -39,7 +39,7 @@ done
 python gen_judgment_single.py \
     --model-list "${MODEL_IDS[@]}" \
     --parallel 40 \
-    --filename-suffix _new
+    --filename-suffix _new_llama
 # --------------------------------------------------------------------------
 
 
@@ -47,5 +47,5 @@ python gen_judgment_single.py \
 # 3. Show results
 python show_result.py \
     --model-list "${MODEL_IDS[@]}" \
-    --filename-suffix _combined_new
+    --filename-suffix _combined_new_llama
 # --------------------------------------------------------------------------
