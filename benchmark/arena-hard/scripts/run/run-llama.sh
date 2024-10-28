@@ -2,7 +2,7 @@
 set -e
 
 MODEL_PATH=${1:-"meta-llama/Meta-Llama-3.2-3B-Instruct"}
-MODEL_NAME=${2:-"Llama-3.2-1B-Instruct"}
+MODEL_NAME=${2:-"Llama-3.2-3B-Instruct"}
 
 echo "Server is up and running."
 
